@@ -1,0 +1,1 @@
+CREATE POLICY "Authenticated can read sync_log" ON public.sync_log FOR SELECT TO authenticated USING (true);

@@ -1,0 +1,2180 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
+  public: {
+    Tables: {
+      audit_arquitetura: {
+        Row: {
+          detalhes: Json
+          executado_em: string | null
+          id: number
+          status: string
+          total_falhas: number
+        }
+        Insert: {
+          detalhes?: Json
+          executado_em?: string | null
+          id?: number
+          status: string
+          total_falhas?: number
+        }
+        Update: {
+          detalhes?: Json
+          executado_em?: string | null
+          id?: number
+          status?: string
+          total_falhas?: number
+        }
+        Relationships: []
+      }
+      categorias_omie: {
+        Row: {
+          codigo: string
+          descricao: string
+          tipo: string | null
+        }
+        Insert: {
+          codigo: string
+          descricao: string
+          tipo?: string | null
+        }
+        Update: {
+          codigo?: string
+          descricao?: string
+          tipo?: string | null
+        }
+        Relationships: []
+      }
+      central_tratativas: {
+        Row: {
+          created_at: string | null
+          estagio: string | null
+          id: number
+          mrr: number | null
+          pipedrive_deal_id: number | null
+          pipefy_card_id: string | null
+          stage_change_time: string | null
+          status: string | null
+          titulo: string
+          unidade: string | null
+          update_time: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          estagio?: string | null
+          id?: number
+          mrr?: number | null
+          pipedrive_deal_id?: number | null
+          pipefy_card_id?: string | null
+          stage_change_time?: string | null
+          status?: string | null
+          titulo: string
+          unidade?: string | null
+          update_time?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          estagio?: string | null
+          id?: number
+          mrr?: number | null
+          pipedrive_deal_id?: number | null
+          pipefy_card_id?: string | null
+          stage_change_time?: string | null
+          status?: string | null
+          titulo?: string
+          unidade?: string | null
+          update_time?: string | null
+        }
+        Relationships: []
+      }
+      contas_receber: {
+        Row: {
+          cliente: string | null
+          codigo_omie: number | null
+          cpf_cnpj: string | null
+          created_at: string | null
+          data_competencia: string | null
+          data_pagamento: string | null
+          data_vencimento: string | null
+          id: number
+          num_documento: string | null
+          status_pagamento: string | null
+          unidade: string | null
+          valor: number | null
+        }
+        Insert: {
+          cliente?: string | null
+          codigo_omie?: number | null
+          cpf_cnpj?: string | null
+          created_at?: string | null
+          data_competencia?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          id?: number
+          num_documento?: string | null
+          status_pagamento?: string | null
+          unidade?: string | null
+          valor?: number | null
+        }
+        Update: {
+          cliente?: string | null
+          codigo_omie?: number | null
+          cpf_cnpj?: string | null
+          created_at?: string | null
+          data_competencia?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          id?: number
+          num_documento?: string | null
+          status_pagamento?: string | null
+          unidade?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
+      contrato_omie_grupos: {
+        Row: {
+          contrato_id: number
+          cpf_cnpj: string
+          criado_em: string | null
+          criado_por: string | null
+          id: number
+          razao_social: string | null
+          unidade: string | null
+        }
+        Insert: {
+          contrato_id: number
+          cpf_cnpj: string
+          criado_em?: string | null
+          criado_por?: string | null
+          id?: number
+          razao_social?: string | null
+          unidade?: string | null
+        }
+        Update: {
+          contrato_id?: number
+          cpf_cnpj?: string
+          criado_em?: string | null
+          criado_por?: string | null
+          id?: number
+          razao_social?: string | null
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_omie_grupos_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contrato_omie_grupos_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_grupos_completo"
+            referencedColumns: ["contrato_id"]
+          },
+        ]
+      }
+      contratos: {
+        Row: {
+          cnpj: string | null
+          created_at: string | null
+          empresa_id: number | null
+          ganho_em: string | null
+          id: number
+          mrr: number | null
+          mrr_mensal: number | null
+          pipedrive_deal_id: string | null
+          preco_unitario: number | null
+          produto: string | null
+          quantidade: number | null
+          segmento: string | null
+          status_contrato: string | null
+          subtotal_produto: number | null
+          tipo: string | null
+          tipo_unidade: string | null
+          titulo: string | null
+          unidade: string | null
+          valor_total: number | null
+        }
+        Insert: {
+          cnpj?: string | null
+          created_at?: string | null
+          empresa_id?: number | null
+          ganho_em?: string | null
+          id?: number
+          mrr?: number | null
+          mrr_mensal?: number | null
+          pipedrive_deal_id?: string | null
+          preco_unitario?: number | null
+          produto?: string | null
+          quantidade?: number | null
+          segmento?: string | null
+          status_contrato?: string | null
+          subtotal_produto?: number | null
+          tipo?: string | null
+          tipo_unidade?: string | null
+          titulo?: string | null
+          unidade?: string | null
+          valor_total?: number | null
+        }
+        Update: {
+          cnpj?: string | null
+          created_at?: string | null
+          empresa_id?: number | null
+          ganho_em?: string | null
+          id?: number
+          mrr?: number | null
+          mrr_mensal?: number | null
+          pipedrive_deal_id?: string | null
+          preco_unitario?: number | null
+          produto?: string | null
+          quantidade?: number | null
+          segmento?: string | null
+          status_contrato?: string | null
+          subtotal_produto?: number | null
+          tipo?: string | null
+          tipo_unidade?: string | null
+          titulo?: string | null
+          unidade?: string | null
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_grupos_completo"
+            referencedColumns: ["empresa_id"]
+          },
+        ]
+      }
+      criterios_rateio_cm: {
+        Row: {
+          ativo: boolean | null
+          bu_direto: string | null
+          created_at: string | null
+          fornecedor: string
+          id: number
+          percentuais_custom: Json | null
+          tipo_rateio: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          bu_direto?: string | null
+          created_at?: string | null
+          fornecedor: string
+          id?: number
+          percentuais_custom?: Json | null
+          tipo_rateio?: string
+        }
+        Update: {
+          ativo?: boolean | null
+          bu_direto?: string | null
+          created_at?: string | null
+          fornecedor?: string
+          id?: number
+          percentuais_custom?: Json | null
+          tipo_rateio?: string
+        }
+        Relationships: []
+      }
+      despesas_cm_avulsos: {
+        Row: {
+          apuracao_status: string
+          categoria: string | null
+          codigo_omie: number | null
+          created_at: string
+          data_pagamento: string | null
+          departamento: string
+          fornecedor: string
+          id: number
+          importacao_lote: string | null
+          importado_em: string | null
+          importado_por: string | null
+          mes: string
+          motivo_contestacao: string | null
+          observacao: string | null
+          origem_apuracao: string
+          rateio_bu_direto: string | null
+          rateio_custom: Json | null
+          rateio_regra: string
+          revisado_em: string | null
+          revisado_por: string | null
+          status: string
+          updated_at: string
+          valor_pago: number | null
+          valor_total: number
+        }
+        Insert: {
+          apuracao_status?: string
+          categoria?: string | null
+          codigo_omie?: number | null
+          created_at?: string
+          data_pagamento?: string | null
+          departamento: string
+          fornecedor: string
+          id?: number
+          importacao_lote?: string | null
+          importado_em?: string | null
+          importado_por?: string | null
+          mes: string
+          motivo_contestacao?: string | null
+          observacao?: string | null
+          origem_apuracao?: string
+          rateio_bu_direto?: string | null
+          rateio_custom?: Json | null
+          rateio_regra?: string
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: string
+          updated_at?: string
+          valor_pago?: number | null
+          valor_total: number
+        }
+        Update: {
+          apuracao_status?: string
+          categoria?: string | null
+          codigo_omie?: number | null
+          created_at?: string
+          data_pagamento?: string | null
+          departamento?: string
+          fornecedor?: string
+          id?: number
+          importacao_lote?: string | null
+          importado_em?: string | null
+          importado_por?: string | null
+          mes?: string
+          motivo_contestacao?: string | null
+          observacao?: string | null
+          origem_apuracao?: string
+          rateio_bu_direto?: string | null
+          rateio_custom?: Json | null
+          rateio_regra?: string
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: string
+          updated_at?: string
+          valor_pago?: number | null
+          valor_total?: number
+        }
+        Relationships: []
+      }
+      despesas_cm_fornecedores: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          cenario_id: string | null
+          created_at: string
+          departamento: string
+          funcao: string | null
+          id: number
+          mes_inicio: number | null
+          meses_pontuais: number[] | null
+          nome: string
+          ordem: number
+          parcelas: number | null
+          rateio_bu_direto: string | null
+          rateio_custom: Json | null
+          rateio_regra: string
+          tipo: string
+          updated_at: string
+          valor_base: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          cenario_id?: string | null
+          created_at?: string
+          departamento: string
+          funcao?: string | null
+          id?: number
+          mes_inicio?: number | null
+          meses_pontuais?: number[] | null
+          nome: string
+          ordem?: number
+          parcelas?: number | null
+          rateio_bu_direto?: string | null
+          rateio_custom?: Json | null
+          rateio_regra?: string
+          tipo?: string
+          updated_at?: string
+          valor_base?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          cenario_id?: string | null
+          created_at?: string
+          departamento?: string
+          funcao?: string | null
+          id?: number
+          mes_inicio?: number | null
+          meses_pontuais?: number[] | null
+          nome?: string
+          ordem?: number
+          parcelas?: number | null
+          rateio_bu_direto?: string | null
+          rateio_custom?: Json | null
+          rateio_regra?: string
+          tipo?: string
+          updated_at?: string
+          valor_base?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "despesas_cm_fornecedores_cenario_id_fkey"
+            columns: ["cenario_id"]
+            isOneToOne: false
+            referencedRelation: "dre_sim_cenarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      despesas_cm_overrides: {
+        Row: {
+          codigo_omie: number | null
+          created_at: string
+          data_pagamento: string | null
+          fornecedor_id: number
+          id: number
+          inativo_no_mes: boolean
+          mes: string
+          observacao: string | null
+          status: string
+          updated_at: string
+          valor: number | null
+          valor_pago: number | null
+        }
+        Insert: {
+          codigo_omie?: number | null
+          created_at?: string
+          data_pagamento?: string | null
+          fornecedor_id: number
+          id?: number
+          inativo_no_mes?: boolean
+          mes: string
+          observacao?: string | null
+          status?: string
+          updated_at?: string
+          valor?: number | null
+          valor_pago?: number | null
+        }
+        Update: {
+          codigo_omie?: number | null
+          created_at?: string
+          data_pagamento?: string | null
+          fornecedor_id?: number
+          id?: number
+          inativo_no_mes?: boolean
+          mes?: string
+          observacao?: string | null
+          status?: string
+          updated_at?: string
+          valor?: number | null
+          valor_pago?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "despesas_cm_overrides_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "despesas_cm_fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dre_sim_categorias: {
+        Row: {
+          created_at: string
+          grupo_dre: Database["public"]["Enums"]["grupo_dre"] | null
+          id: string
+          natureza: string
+          nome: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          grupo_dre?: Database["public"]["Enums"]["grupo_dre"] | null
+          id?: string
+          natureza: string
+          nome: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          grupo_dre?: Database["public"]["Enums"]["grupo_dre"] | null
+          id?: string
+          natureza?: string
+          nome?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      dre_sim_cenarios: {
+        Row: {
+          ano: number
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      dre_sim_departamentos: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      dre_sim_tipos_rateio: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      empresas: {
+        Row: {
+          cnpj: string | null
+          created_at: string | null
+          email_fiscal: string | null
+          erp: string | null
+          fonte_cadastro: string | null
+          grupo_id: number | null
+          id: number
+          omie_codigo_cliente: string | null
+          omie_inativo: string | null
+          omie_unidade: string | null
+          origem_da_base: string | null
+          origem_venda: string | null
+          pipedrive_id: string | null
+          pipefy_record_id: string | null
+          razao_social: string | null
+          regime_tributario: string | null
+          segmento: string | null
+          status_financeiro: string | null
+          telefone: string | null
+          tipo_unidade: string | null
+          titulo: string
+          uf: string | null
+          unidade: string | null
+        }
+        Insert: {
+          cnpj?: string | null
+          created_at?: string | null
+          email_fiscal?: string | null
+          erp?: string | null
+          fonte_cadastro?: string | null
+          grupo_id?: number | null
+          id?: number
+          omie_codigo_cliente?: string | null
+          omie_inativo?: string | null
+          omie_unidade?: string | null
+          origem_da_base?: string | null
+          origem_venda?: string | null
+          pipedrive_id?: string | null
+          pipefy_record_id?: string | null
+          razao_social?: string | null
+          regime_tributario?: string | null
+          segmento?: string | null
+          status_financeiro?: string | null
+          telefone?: string | null
+          tipo_unidade?: string | null
+          titulo: string
+          uf?: string | null
+          unidade?: string | null
+        }
+        Update: {
+          cnpj?: string | null
+          created_at?: string | null
+          email_fiscal?: string | null
+          erp?: string | null
+          fonte_cadastro?: string | null
+          grupo_id?: number | null
+          id?: number
+          omie_codigo_cliente?: string | null
+          omie_inativo?: string | null
+          omie_unidade?: string | null
+          origem_da_base?: string | null
+          origem_venda?: string | null
+          pipedrive_id?: string | null
+          pipefy_record_id?: string | null
+          razao_social?: string | null
+          regime_tributario?: string | null
+          segmento?: string | null
+          status_financeiro?: string | null
+          telefone?: string | null
+          tipo_unidade?: string | null
+          titulo?: string
+          uf?: string | null
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresas_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empresas_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_grupos_completo"
+            referencedColumns: ["grupo_id"]
+          },
+        ]
+      }
+      grupos: {
+        Row: {
+          cnpj_raiz: string | null
+          created_at: string | null
+          descricao: string | null
+          grupo_pipefy_id: string | null
+          id: number
+          nome: string
+          segmento: string | null
+        }
+        Insert: {
+          cnpj_raiz?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          grupo_pipefy_id?: string | null
+          id?: number
+          nome: string
+          segmento?: string | null
+        }
+        Update: {
+          cnpj_raiz?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          grupo_pipefy_id?: string | null
+          id?: number
+          nome?: string
+          segmento?: string | null
+        }
+        Relationships: []
+      }
+      nps_pesquisas: {
+        Row: {
+          avaliacao_fiscal: string | null
+          created_at: string | null
+          email_pesquisa: string | null
+          empresa: string | null
+          empresa_id: number | null
+          fase: string | null
+          id: number
+          nome_contato: string | null
+          nps_recomendacao: string | null
+          pipedrive_deal_id: string | null
+          pipefy_card_id: string | null
+          segmento: string | null
+          telefone_pesquisa: string | null
+          unidade: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avaliacao_fiscal?: string | null
+          created_at?: string | null
+          email_pesquisa?: string | null
+          empresa?: string | null
+          empresa_id?: number | null
+          fase?: string | null
+          id?: number
+          nome_contato?: string | null
+          nps_recomendacao?: string | null
+          pipedrive_deal_id?: string | null
+          pipefy_card_id?: string | null
+          segmento?: string | null
+          telefone_pesquisa?: string | null
+          unidade?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avaliacao_fiscal?: string | null
+          created_at?: string | null
+          email_pesquisa?: string | null
+          empresa?: string | null
+          empresa_id?: number | null
+          fase?: string | null
+          id?: number
+          nome_contato?: string | null
+          nps_recomendacao?: string | null
+          pipedrive_deal_id?: string | null
+          pipefy_card_id?: string | null
+          segmento?: string | null
+          telefone_pesquisa?: string | null
+          unidade?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nps_pesquisas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nps_pesquisas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_grupos_completo"
+            referencedColumns: ["empresa_id"]
+          },
+        ]
+      }
+      omie_clientes: {
+        Row: {
+          cidade: string | null
+          cnpj_cpf: string | null
+          codigo_omie: number
+          email: string | null
+          estado: string | null
+          nome_fantasia: string | null
+          razao_social: string | null
+          unidade: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cidade?: string | null
+          cnpj_cpf?: string | null
+          codigo_omie: number
+          email?: string | null
+          estado?: string | null
+          nome_fantasia?: string | null
+          razao_social?: string | null
+          unidade?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cidade?: string | null
+          cnpj_cpf?: string | null
+          codigo_omie?: number
+          email?: string | null
+          estado?: string | null
+          nome_fantasia?: string | null
+          razao_social?: string | null
+          unidade?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      page_validations: {
+        Row: {
+          created_at: string
+          notes: string | null
+          page_key: string
+          updated_at: string
+          updated_by: string | null
+          validated: boolean
+        }
+        Insert: {
+          created_at?: string
+          notes?: string | null
+          page_key: string
+          updated_at?: string
+          updated_by?: string | null
+          validated?: boolean
+        }
+        Update: {
+          created_at?: string
+          notes?: string | null
+          page_key?: string
+          updated_at?: string
+          updated_by?: string | null
+          validated?: boolean
+        }
+        Relationships: []
+      }
+      partners_financeiro: {
+        Row: {
+          categoria_codigo: string | null
+          categoria_percentual: number | null
+          codigo_barras: string | null
+          codigo_categoria: string | null
+          codigo_cliente_fornecedor: number | null
+          codigo_lancamento_omie: number
+          codigo_projeto: number | null
+          codigo_tipo_documento: string | null
+          codigo_vendedor: number | null
+          data_emissao: string | null
+          data_entrada: string | null
+          data_pagamento: string | null
+          data_previsao: string | null
+          data_vencimento: string | null
+          departamento: string | null
+          id: number
+          id_conta_corrente: number | null
+          id_origem: string | null
+          numero_documento: string | null
+          numero_documento_fiscal: string | null
+          numero_parcela: string | null
+          raw: Json | null
+          razao_social: string | null
+          status_titulo: string | null
+          synced_at: string | null
+          tipo: string
+          unidade: string | null
+          valor_documento: number | null
+        }
+        Insert: {
+          categoria_codigo?: string | null
+          categoria_percentual?: number | null
+          codigo_barras?: string | null
+          codigo_categoria?: string | null
+          codigo_cliente_fornecedor?: number | null
+          codigo_lancamento_omie: number
+          codigo_projeto?: number | null
+          codigo_tipo_documento?: string | null
+          codigo_vendedor?: number | null
+          data_emissao?: string | null
+          data_entrada?: string | null
+          data_pagamento?: string | null
+          data_previsao?: string | null
+          data_vencimento?: string | null
+          departamento?: string | null
+          id?: number
+          id_conta_corrente?: number | null
+          id_origem?: string | null
+          numero_documento?: string | null
+          numero_documento_fiscal?: string | null
+          numero_parcela?: string | null
+          raw?: Json | null
+          razao_social?: string | null
+          status_titulo?: string | null
+          synced_at?: string | null
+          tipo: string
+          unidade?: string | null
+          valor_documento?: number | null
+        }
+        Update: {
+          categoria_codigo?: string | null
+          categoria_percentual?: number | null
+          codigo_barras?: string | null
+          codigo_categoria?: string | null
+          codigo_cliente_fornecedor?: number | null
+          codigo_lancamento_omie?: number
+          codigo_projeto?: number | null
+          codigo_tipo_documento?: string | null
+          codigo_vendedor?: number | null
+          data_emissao?: string | null
+          data_entrada?: string | null
+          data_pagamento?: string | null
+          data_previsao?: string | null
+          data_vencimento?: string | null
+          departamento?: string | null
+          id?: number
+          id_conta_corrente?: number | null
+          id_origem?: string | null
+          numero_documento?: string | null
+          numero_documento_fiscal?: string | null
+          numero_parcela?: string | null
+          raw?: Json | null
+          razao_social?: string | null
+          status_titulo?: string | null
+          synced_at?: string | null
+          tipo?: string
+          unidade?: string | null
+          valor_documento?: number | null
+        }
+        Relationships: []
+      }
+      partners_orcamento: {
+        Row: {
+          categoria: string | null
+          departamento: string | null
+          descricao: string | null
+          id: number
+          mes: string
+          origem: string | null
+          synced_at: string | null
+          tipo: string
+          tipo_custo: string | null
+          unidade: string | null
+          valor: number
+        }
+        Insert: {
+          categoria?: string | null
+          departamento?: string | null
+          descricao?: string | null
+          id?: number
+          mes: string
+          origem?: string | null
+          synced_at?: string | null
+          tipo: string
+          tipo_custo?: string | null
+          unidade?: string | null
+          valor: number
+        }
+        Update: {
+          categoria?: string | null
+          departamento?: string | null
+          descricao?: string | null
+          id?: number
+          mes?: string
+          origem?: string | null
+          synced_at?: string | null
+          tipo?: string
+          tipo_custo?: string | null
+          unidade?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
+      partners_saldo_mensal: {
+        Row: {
+          id: number
+          mes: string
+          saldo_final: number
+          synced_at: string
+          unidade: string
+        }
+        Insert: {
+          id?: number
+          mes: string
+          saldo_final: number
+          synced_at?: string
+          unidade?: string
+        }
+        Update: {
+          id?: number
+          mes?: string
+          saldo_final?: number
+          synced_at?: string
+          unidade?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          nome?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recebimentos_franquias: {
+        Row: {
+          cliente: string | null
+          cnpj: string | null
+          codigo_omie: number
+          codigo_projeto: number | null
+          created_at: string | null
+          data_emissao: string | null
+          data_pagamento: string | null
+          data_vencimento: string | null
+          id: number
+          num_documento: string | null
+          observacao: string | null
+          status: string | null
+          unidade: string | null
+          updated_at: string | null
+          valor: number | null
+        }
+        Insert: {
+          cliente?: string | null
+          cnpj?: string | null
+          codigo_omie: number
+          codigo_projeto?: number | null
+          created_at?: string | null
+          data_emissao?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          id?: number
+          num_documento?: string | null
+          observacao?: string | null
+          status?: string | null
+          unidade?: string | null
+          updated_at?: string | null
+          valor?: number | null
+        }
+        Update: {
+          cliente?: string | null
+          cnpj?: string | null
+          codigo_omie?: number
+          codigo_projeto?: number | null
+          created_at?: string | null
+          data_emissao?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          id?: number
+          num_documento?: string | null
+          observacao?: string | null
+          status?: string | null
+          unidade?: string | null
+          updated_at?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
+      receitas_cm_fornecedores: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          cenario_id: string | null
+          created_at: string
+          departamento: string | null
+          funcao: string | null
+          id: number
+          mes_inicio: number | null
+          meses_pontuais: number[] | null
+          nome: string
+          ordem: number | null
+          parcelas: number | null
+          rateio_bu_direto: string | null
+          rateio_custom: Json | null
+          rateio_regra: string | null
+          tipo: string
+          updated_at: string
+          valor_base: number
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          cenario_id?: string | null
+          created_at?: string
+          departamento?: string | null
+          funcao?: string | null
+          id?: number
+          mes_inicio?: number | null
+          meses_pontuais?: number[] | null
+          nome: string
+          ordem?: number | null
+          parcelas?: number | null
+          rateio_bu_direto?: string | null
+          rateio_custom?: Json | null
+          rateio_regra?: string | null
+          tipo?: string
+          updated_at?: string
+          valor_base?: number
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          cenario_id?: string | null
+          created_at?: string
+          departamento?: string | null
+          funcao?: string | null
+          id?: number
+          mes_inicio?: number | null
+          meses_pontuais?: number[] | null
+          nome?: string
+          ordem?: number | null
+          parcelas?: number | null
+          rateio_bu_direto?: string | null
+          rateio_custom?: Json | null
+          rateio_regra?: string | null
+          tipo?: string
+          updated_at?: string
+          valor_base?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receitas_cm_fornecedores_cenario_id_fkey"
+            columns: ["cenario_id"]
+            isOneToOne: false
+            referencedRelation: "dre_sim_cenarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receitas_cm_overrides: {
+        Row: {
+          apuracao_status: string
+          codigo_omie: number | null
+          created_at: string
+          data_pagamento: string | null
+          fornecedor_id: number
+          id: number
+          importacao_lote: string | null
+          importado_em: string | null
+          importado_por: string | null
+          inativo_no_mes: boolean
+          mes: string
+          motivo_contestacao: string | null
+          origem_apuracao: string | null
+          revisado_em: string | null
+          revisado_por: string | null
+          status: string | null
+          updated_at: string
+          valor: number | null
+          valor_pago: number | null
+        }
+        Insert: {
+          apuracao_status?: string
+          codigo_omie?: number | null
+          created_at?: string
+          data_pagamento?: string | null
+          fornecedor_id: number
+          id?: number
+          importacao_lote?: string | null
+          importado_em?: string | null
+          importado_por?: string | null
+          inativo_no_mes?: boolean
+          mes: string
+          motivo_contestacao?: string | null
+          origem_apuracao?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: string | null
+          updated_at?: string
+          valor?: number | null
+          valor_pago?: number | null
+        }
+        Update: {
+          apuracao_status?: string
+          codigo_omie?: number | null
+          created_at?: string
+          data_pagamento?: string | null
+          fornecedor_id?: number
+          id?: number
+          importacao_lote?: string | null
+          importado_em?: string | null
+          importado_por?: string | null
+          inativo_no_mes?: boolean
+          mes?: string
+          motivo_contestacao?: string | null
+          origem_apuracao?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: string | null
+          updated_at?: string
+          valor?: number | null
+          valor_pago?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receitas_cm_overrides_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "receitas_cm_fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      repasses_unidade: {
+        Row: {
+          arquivo_nome: string | null
+          competencia: string
+          created_at: string
+          created_by: string | null
+          id: string
+          observacao: string | null
+          origem: string
+          tipo: Database["public"]["Enums"]["tipo_repasse"]
+          unidade: string
+          updated_at: string
+          valor_recebido: number
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          competencia: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          observacao?: string | null
+          origem?: string
+          tipo: Database["public"]["Enums"]["tipo_repasse"]
+          unidade: string
+          updated_at?: string
+          valor_recebido?: number
+        }
+        Update: {
+          arquivo_nome?: string | null
+          competencia?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          observacao?: string | null
+          origem?: string
+          tipo?: Database["public"]["Enums"]["tipo_repasse"]
+          unidade?: string
+          updated_at?: string
+          valor_recebido?: number
+        }
+        Relationships: []
+      }
+      roas_mensal: {
+        Row: {
+          cac: number | null
+          cac_recebido: number | null
+          cpv_medio: number | null
+          created_at: string
+          deals_digital: number | null
+          deals_expansao: number | null
+          id: number
+          investimento_expansao: number | null
+          investimento_real: number | null
+          investimento_verba_unidades: number | null
+          mes: string
+          mrr_medio: number | null
+          mrr_total_digital: number | null
+          payback_meses_projetado: number | null
+          receita_acumulada: number | null
+          roas_acumulado: number | null
+          roas_cac: number | null
+          roas_direto: number | null
+          royalties_acumulado: number | null
+          royalties_mes: number | null
+          updated_at: string
+        }
+        Insert: {
+          cac?: number | null
+          cac_recebido?: number | null
+          cpv_medio?: number | null
+          created_at?: string
+          deals_digital?: number | null
+          deals_expansao?: number | null
+          id?: number
+          investimento_expansao?: number | null
+          investimento_real?: number | null
+          investimento_verba_unidades?: number | null
+          mes: string
+          mrr_medio?: number | null
+          mrr_total_digital?: number | null
+          payback_meses_projetado?: number | null
+          receita_acumulada?: number | null
+          roas_acumulado?: number | null
+          roas_cac?: number | null
+          roas_direto?: number | null
+          royalties_acumulado?: number | null
+          royalties_mes?: number | null
+          updated_at?: string
+        }
+        Update: {
+          cac?: number | null
+          cac_recebido?: number | null
+          cpv_medio?: number | null
+          created_at?: string
+          deals_digital?: number | null
+          deals_expansao?: number | null
+          id?: number
+          investimento_expansao?: number | null
+          investimento_real?: number | null
+          investimento_verba_unidades?: number | null
+          mes?: string
+          mrr_medio?: number | null
+          mrr_total_digital?: number | null
+          payback_meses_projetado?: number | null
+          receita_acumulada?: number | null
+          roas_acumulado?: number | null
+          roas_cac?: number | null
+          roas_direto?: number | null
+          royalties_acumulado?: number | null
+          royalties_mes?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      roas_por_unidade: {
+        Row: {
+          cac: number | null
+          cac_recebido: number | null
+          deals: number | null
+          gerado_em: string | null
+          id: number
+          investimento_midia: number | null
+          mes: string
+          midia_cac: boolean | null
+          mrr_medio: number | null
+          paga_cac: boolean | null
+          payback_meses: number | null
+          roas_direto: number | null
+          royalties_acumulado: number | null
+          royalties_pct: number | null
+          tipo_unidade: string | null
+          unidade: string
+          verba_recebida: number | null
+        }
+        Insert: {
+          cac?: number | null
+          cac_recebido?: number | null
+          deals?: number | null
+          gerado_em?: string | null
+          id?: number
+          investimento_midia?: number | null
+          mes: string
+          midia_cac?: boolean | null
+          mrr_medio?: number | null
+          paga_cac?: boolean | null
+          payback_meses?: number | null
+          roas_direto?: number | null
+          royalties_acumulado?: number | null
+          royalties_pct?: number | null
+          tipo_unidade?: string | null
+          unidade: string
+          verba_recebida?: number | null
+        }
+        Update: {
+          cac?: number | null
+          cac_recebido?: number | null
+          deals?: number | null
+          gerado_em?: string | null
+          id?: number
+          investimento_midia?: number | null
+          mes?: string
+          midia_cac?: boolean | null
+          mrr_medio?: number | null
+          paga_cac?: boolean | null
+          payback_meses?: number | null
+          roas_direto?: number | null
+          royalties_acumulado?: number | null
+          royalties_pct?: number | null
+          tipo_unidade?: string | null
+          unidade?: string
+          verba_recebida?: number | null
+        }
+        Relationships: []
+      }
+      role_permissions: {
+        Row: {
+          allowed: boolean
+          permission_key: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          allowed?: boolean
+          permission_key: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          allowed?: boolean
+          permission_key?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      royalties_apuracao: {
+        Row: {
+          confirmado_em: string | null
+          confirmado_por: string | null
+          created_at: string | null
+          csc_base_antiga_valor: number | null
+          csc_percentual_base_antiga: number | null
+          csc_trafego_pago: number | null
+          csc_valor_fixo: number | null
+          id: number
+          mes_referencia: string
+          observacao: string | null
+          outras_receitas: number | null
+          receita_base: number | null
+          receita_base_antiga: number | null
+          royalties_percentual: number | null
+          royalties_valor: number | null
+          status: string
+          total_fatura: number | null
+          unidade_id: number
+          updated_at: string | null
+        }
+        Insert: {
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          created_at?: string | null
+          csc_base_antiga_valor?: number | null
+          csc_percentual_base_antiga?: number | null
+          csc_trafego_pago?: number | null
+          csc_valor_fixo?: number | null
+          id?: number
+          mes_referencia: string
+          observacao?: string | null
+          outras_receitas?: number | null
+          receita_base?: number | null
+          receita_base_antiga?: number | null
+          royalties_percentual?: number | null
+          royalties_valor?: number | null
+          status?: string
+          total_fatura?: number | null
+          unidade_id: number
+          updated_at?: string | null
+        }
+        Update: {
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          created_at?: string | null
+          csc_base_antiga_valor?: number | null
+          csc_percentual_base_antiga?: number | null
+          csc_trafego_pago?: number | null
+          csc_valor_fixo?: number | null
+          id?: number
+          mes_referencia?: string
+          observacao?: string | null
+          outras_receitas?: number | null
+          receita_base?: number | null
+          receita_base_antiga?: number | null
+          royalties_percentual?: number | null
+          royalties_valor?: number | null
+          status?: string
+          total_fatura?: number | null
+          unidade_id?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "royalties_apuracao_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      royalties_itens: {
+        Row: {
+          apuracao_id: number
+          categoria: string
+          cnpj: string | null
+          confirmado: boolean | null
+          contrato_id: number | null
+          created_at: string | null
+          fonte: string
+          id: number
+          mrr_contratado: number | null
+          observacao: string | null
+          razao_social: string
+          royalties_item: number | null
+          royalties_percentual_override: number | null
+          status_match: string | null
+          valor_confirmado: number | null
+          valor_omie: number | null
+        }
+        Insert: {
+          apuracao_id: number
+          categoria?: string
+          cnpj?: string | null
+          confirmado?: boolean | null
+          contrato_id?: number | null
+          created_at?: string | null
+          fonte?: string
+          id?: number
+          mrr_contratado?: number | null
+          observacao?: string | null
+          razao_social: string
+          royalties_item?: number | null
+          royalties_percentual_override?: number | null
+          status_match?: string | null
+          valor_confirmado?: number | null
+          valor_omie?: number | null
+        }
+        Update: {
+          apuracao_id?: number
+          categoria?: string
+          cnpj?: string | null
+          confirmado?: boolean | null
+          contrato_id?: number | null
+          created_at?: string | null
+          fonte?: string
+          id?: number
+          mrr_contratado?: number | null
+          observacao?: string | null
+          razao_social?: string
+          royalties_item?: number | null
+          royalties_percentual_override?: number | null
+          status_match?: string | null
+          valor_confirmado?: number | null
+          valor_omie?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "royalties_itens_apuracao_id_fkey"
+            columns: ["apuracao_id"]
+            isOneToOne: false
+            referencedRelation: "royalties_apuracao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "royalties_itens_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "royalties_itens_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_grupos_completo"
+            referencedColumns: ["contrato_id"]
+          },
+        ]
+      }
+      socios: {
+        Row: {
+          area: string | null
+          cargo: string | null
+          cpf: string | null
+          created_at: string | null
+          email: string | null
+          id: number
+          nome_completo: string
+          pipefy_id: string | null
+          telefone: string | null
+          unidade: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          area?: string | null
+          cargo?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: number
+          nome_completo: string
+          pipefy_id?: string | null
+          telefone?: string | null
+          unidade?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          area?: string | null
+          cargo?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: number
+          nome_completo?: string
+          pipefy_id?: string | null
+          telefone?: string | null
+          unidade?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      sqls_por_bu: {
+        Row: {
+          bu: string
+          created_at: string
+          id: number
+          mes: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          bu: string
+          created_at?: string
+          id?: number
+          mes: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          bu?: string
+          created_at?: string
+          id?: number
+          mes?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      sync_log: {
+        Row: {
+          detalhes: Json | null
+          duracao_segundos: number | null
+          executado_em: string
+          fonte: string
+          id: number
+          status: string
+          total_registros: number | null
+        }
+        Insert: {
+          detalhes?: Json | null
+          duracao_segundos?: number | null
+          executado_em?: string
+          fonte: string
+          id?: never
+          status?: string
+          total_registros?: number | null
+        }
+        Update: {
+          detalhes?: Json | null
+          duracao_segundos?: number | null
+          executado_em?: string
+          fonte?: string
+          id?: never
+          status?: string
+          total_registros?: number | null
+        }
+        Relationships: []
+      }
+      unidades: {
+        Row: {
+          absorve_midia: boolean
+          created_at: string | null
+          csc_percentual_base_antiga: number | null
+          csc_valor_fixo: number | null
+          data_inauguracao: string | null
+          empresa: string | null
+          id: number
+          id_asaas: string | null
+          id_omie: string | null
+          midia_cac: boolean | null
+          midia_mensal: number | null
+          nome_da_praca: string
+          observacoes_financeiras: string | null
+          paga_cac: boolean
+          pipefy_id: string | null
+          royalties_percentual: number | null
+          tipo: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          absorve_midia?: boolean
+          created_at?: string | null
+          csc_percentual_base_antiga?: number | null
+          csc_valor_fixo?: number | null
+          data_inauguracao?: string | null
+          empresa?: string | null
+          id?: number
+          id_asaas?: string | null
+          id_omie?: string | null
+          midia_cac?: boolean | null
+          midia_mensal?: number | null
+          nome_da_praca: string
+          observacoes_financeiras?: string | null
+          paga_cac?: boolean
+          pipefy_id?: string | null
+          royalties_percentual?: number | null
+          tipo?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          absorve_midia?: boolean
+          created_at?: string | null
+          csc_percentual_base_antiga?: number | null
+          csc_valor_fixo?: number | null
+          data_inauguracao?: string | null
+          empresa?: string | null
+          id?: number
+          id_asaas?: string | null
+          id_omie?: string | null
+          midia_cac?: boolean | null
+          midia_mensal?: number | null
+          nome_da_praca?: string
+          observacoes_financeiras?: string | null
+          paga_cac?: boolean
+          pipefy_id?: string | null
+          royalties_percentual?: number | null
+          tipo?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      despesas_cm: {
+        Row: {
+          apuracao_status: string | null
+          categoria: string | null
+          codigo_omie: number | null
+          data_pagamento: string | null
+          dpto: string | null
+          fornecedor: string | null
+          id: number | null
+          mes: string | null
+          motivo_contestacao: string | null
+          observacao: string | null
+          origem: string | null
+          origem_apuracao: string | null
+          status: string | null
+          tipo_despesa: string | null
+          valor_pago: number | null
+          valor_total: number | null
+        }
+        Relationships: []
+      }
+      v_confronto_cm: {
+        Row: {
+          apuracao_status: string | null
+          categoria: string | null
+          data_pagamento: string | null
+          diferenca: number | null
+          dpto: string | null
+          fornecedor: string | null
+          mes: string | null
+          motivo_contestacao: string | null
+          observacao: string | null
+          origem: string | null
+          origem_apuracao: string | null
+          resultado: string | null
+          status: string | null
+          tipo_despesa: string | null
+          valor_planejado: number | null
+          valor_realizado: number | null
+        }
+        Relationships: []
+      }
+      v_despesas_cm_mes: {
+        Row: {
+          apuracao_status: string | null
+          categoria: string | null
+          codigo_omie: number | null
+          data_pagamento: string | null
+          departamento: string | null
+          fornecedor: string | null
+          fornecedor_id: number | null
+          funcao: string | null
+          inativo_no_mes: boolean | null
+          mes: string | null
+          motivo_contestacao: string | null
+          observacao: string | null
+          origem: string | null
+          origem_apuracao: string | null
+          override_id: number | null
+          rateio_bu_direto: string | null
+          rateio_custom: Json | null
+          rateio_regra: string | null
+          status: string | null
+          tem_override: boolean | null
+          tipo: string | null
+          valor_base: number | null
+          valor_pago: number | null
+          valor_total: number | null
+        }
+        Relationships: []
+      }
+      v_funil_mensal: {
+        Row: {
+          contratos_ativos: number | null
+          conv_faturado_to_recebido_pct: number | null
+          conv_mrr_to_faturado_pct: number | null
+          conv_mrr_to_recebido_pct: number | null
+          faturado: number | null
+          faturas_emitidas: number | null
+          faturas_recebidas: number | null
+          mes: string | null
+          mrr_contratado: number | null
+          recebido: number | null
+          unidade: string | null
+        }
+        Relationships: []
+      }
+      v_mrr_por_unidade: {
+        Row: {
+          mrr_total: number | null
+          num_contratos: number | null
+          unidade: string | null
+        }
+        Relationships: []
+      }
+      v_nps_regional: {
+        Row: {
+          avaliacao_fiscal: string | null
+          created_at: string | null
+          email_pesquisa: string | null
+          empresa: string | null
+          fase: string | null
+          id: number | null
+          nome_contato: string | null
+          nps_recomendacao: string | null
+          pipedrive_deal_id: string | null
+          pipefy_card_id: string | null
+          segmento: string | null
+          telefone_pesquisa: string | null
+          unidade: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
+      v_payback_simulacao: {
+        Row: {
+          absorve_midia: boolean | null
+          cpv_medio: number | null
+          deals_medio_mensal: number | null
+          investimento_medio: number | null
+          mrr_medio_historico: number | null
+          paga_cac: boolean | null
+          royalties_pct: number | null
+          royalty_por_cliente: number | null
+          tipo: string | null
+          unidade: string | null
+          verba_midia: number | null
+        }
+        Relationships: []
+      }
+      v_rateio_cm_mensal: {
+        Row: {
+          bu: string | null
+          despesa_id: number | null
+          dpto: string | null
+          fornecedor: string | null
+          mes: string | null
+          status: string | null
+          tipo_despesa: string | null
+          valor_alocado: number | null
+          valor_total: number | null
+        }
+        Relationships: []
+      }
+      v_reconciliacao_mensal: {
+        Row: {
+          a_vencer: number | null
+          em_atraso: number | null
+          faturado: number | null
+          mes: string | null
+          mrr_contratado: number | null
+          num_contratos: number | null
+          num_faturas: number | null
+          num_recebidos: number | null
+          pct_faturado_vs_mrr: number | null
+          pct_recebido_vs_faturado: number | null
+          recebido: number | null
+          unidade: string | null
+        }
+        Relationships: []
+      }
+      v_royalties_mensais: {
+        Row: {
+          csc_valor: number | null
+          csc_valor_fixo: number | null
+          faturado: number | null
+          mes: string | null
+          recebido: number | null
+          royalties_percentual: number | null
+          royalties_valor: number | null
+          total_due_matriz: number | null
+          unidade: string | null
+        }
+        Relationships: []
+      }
+      vw_grupos_completo: {
+        Row: {
+          cnpj: string | null
+          cnpj_raiz: string | null
+          contrato_id: number | null
+          empresa_id: number | null
+          empresa_nome: string | null
+          empresa_segmento: string | null
+          fonte_cadastro: string | null
+          ganho_em: string | null
+          grupo_id: number | null
+          grupo_nome: string | null
+          grupo_pipefy_id: string | null
+          grupo_segmento: string | null
+          mrr: number | null
+          pipedrive_deal_id: string | null
+          pipedrive_id: string | null
+          pipefy_record_id: string | null
+          produto: string | null
+          status_contrato: string | null
+          uf: string | null
+          valor_total: number | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      billing_esperado: {
+        Args: { mes_ref: string }
+        Returns: {
+          clientes_ativos: number
+          csc_fixo: number
+          midia_mensal: number
+          mrr_base: number
+          paga_cac: boolean
+          royalties_esp: number
+          royalties_pct: number
+          tem_base_antiga: boolean
+          total_esperado: number
+          unidade: string
+        }[]
+      }
+      can: { Args: { _key: string }; Returns: boolean }
+      clonar_despesas_cm: {
+        Args: { mes_destino: string; mes_origem: string }
+        Returns: {
+          clonados: number
+          ja_existiam: number
+        }[]
+      }
+      current_user_unidade: { Args: never; Returns: string }
+      get_socio_unidade_by_email: { Args: { _email: string }; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      inicializar_mes_cm: {
+        Args: { p_mes: string }
+        Returns: {
+          criados: number
+          ja_existiam: number
+        }[]
+      }
+    }
+    Enums: {
+      app_role:
+        | "admin"
+        | "diretor"
+        | "socio"
+        | "head"
+        | "auditor"
+        | "socio_franqueado"
+      grupo_dre:
+        | "entrada"
+        | "aporte"
+        | "imposto_direto"
+        | "custo_variavel"
+        | "custo_fixo"
+        | "capex"
+      tipo_repasse: "royalties" | "cac"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      app_role: [
+        "admin",
+        "diretor",
+        "socio",
+        "head",
+        "auditor",
+        "socio_franqueado",
+      ],
+      grupo_dre: [
+        "entrada",
+        "aporte",
+        "imposto_direto",
+        "custo_variavel",
+        "custo_fixo",
+        "capex",
+      ],
+      tipo_repasse: ["royalties", "cac"],
+    },
+  },
+} as const
