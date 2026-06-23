@@ -48,6 +48,7 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
     label: "Negócio",
     items: [
       { title: "Financeiro Partners", url: "/financeiro-partners", icon: Receipt, permission: "view.roas" },
+      { title: "Pgtos das Unidades", url: "/pagamentos-unidades", icon: Coins, permission: "view.roas" },
       { title: "FCx — Fluxo de Caixa", url: "/fxc", icon: LineChart, permission: "view.roas" },
       { title: "Simulador de Caixa", url: "/simulador-caixa", icon: LineChart, permission: "view.roas" },
     ],

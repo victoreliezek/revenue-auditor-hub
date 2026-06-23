@@ -19,6 +19,7 @@ import { Route as AuthenticatedSimuladorCaixaRouteImport } from './routes/_authe
 import { Route as AuthenticatedRoyaltiesRouteImport } from './routes/_authenticated/royalties'
 import { Route as AuthenticatedRedeRouteImport } from './routes/_authenticated/rede'
 import { Route as AuthenticatedPainelUnidadeRouteImport } from './routes/_authenticated/painel-unidade'
+import { Route as AuthenticatedPagamentosUnidadesRouteImport } from './routes/_authenticated/pagamentos-unidades'
 import { Route as AuthenticatedOperacaoRouteImport } from './routes/_authenticated/operacao'
 import { Route as AuthenticatedNpsRouteImport } from './routes/_authenticated/nps'
 import { Route as AuthenticatedMeusRoyaltiesRouteImport } from './routes/_authenticated/meus-royalties'
@@ -85,6 +86,12 @@ const AuthenticatedPainelUnidadeRoute =
   AuthenticatedPainelUnidadeRouteImport.update({
     id: '/painel-unidade',
     path: '/painel-unidade',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPagamentosUnidadesRoute =
+  AuthenticatedPagamentosUnidadesRouteImport.update({
+    id: '/pagamentos-unidades',
+    path: '/pagamentos-unidades',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedOperacaoRoute = AuthenticatedOperacaoRouteImport.update({
@@ -194,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/meus-royalties': typeof AuthenticatedMeusRoyaltiesRoute
   '/nps': typeof AuthenticatedNpsRoute
   '/operacao': typeof AuthenticatedOperacaoRoute
+  '/pagamentos-unidades': typeof AuthenticatedPagamentosUnidadesRoute
   '/painel-unidade': typeof AuthenticatedPainelUnidadeRoute
   '/rede': typeof AuthenticatedRedeRoute
   '/royalties': typeof AuthenticatedRoyaltiesRouteWithChildren
@@ -220,6 +228,7 @@ export interface FileRoutesByTo {
   '/meus-royalties': typeof AuthenticatedMeusRoyaltiesRoute
   '/nps': typeof AuthenticatedNpsRoute
   '/operacao': typeof AuthenticatedOperacaoRoute
+  '/pagamentos-unidades': typeof AuthenticatedPagamentosUnidadesRoute
   '/painel-unidade': typeof AuthenticatedPainelUnidadeRoute
   '/rede': typeof AuthenticatedRedeRoute
   '/royalties': typeof AuthenticatedRoyaltiesRouteWithChildren
@@ -249,6 +258,7 @@ export interface FileRoutesById {
   '/_authenticated/meus-royalties': typeof AuthenticatedMeusRoyaltiesRoute
   '/_authenticated/nps': typeof AuthenticatedNpsRoute
   '/_authenticated/operacao': typeof AuthenticatedOperacaoRoute
+  '/_authenticated/pagamentos-unidades': typeof AuthenticatedPagamentosUnidadesRoute
   '/_authenticated/painel-unidade': typeof AuthenticatedPainelUnidadeRoute
   '/_authenticated/rede': typeof AuthenticatedRedeRoute
   '/_authenticated/royalties': typeof AuthenticatedRoyaltiesRouteWithChildren
@@ -279,6 +289,7 @@ export interface FileRouteTypes {
     | '/meus-royalties'
     | '/nps'
     | '/operacao'
+    | '/pagamentos-unidades'
     | '/painel-unidade'
     | '/rede'
     | '/royalties'
@@ -305,6 +316,7 @@ export interface FileRouteTypes {
     | '/meus-royalties'
     | '/nps'
     | '/operacao'
+    | '/pagamentos-unidades'
     | '/painel-unidade'
     | '/rede'
     | '/royalties'
@@ -333,6 +345,7 @@ export interface FileRouteTypes {
     | '/_authenticated/meus-royalties'
     | '/_authenticated/nps'
     | '/_authenticated/operacao'
+    | '/_authenticated/pagamentos-unidades'
     | '/_authenticated/painel-unidade'
     | '/_authenticated/rede'
     | '/_authenticated/royalties'
@@ -429,6 +442,13 @@ declare module '@tanstack/react-router' {
       path: '/operacao'
       fullPath: '/operacao'
       preLoaderRoute: typeof AuthenticatedOperacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pagamentos-unidades': {
+      id: '/_authenticated/pagamentos-unidades'
+      path: '/pagamentos-unidades'
+      fullPath: '/pagamentos-unidades'
+      preLoaderRoute: typeof AuthenticatedPagamentosUnidadesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/nps': {
@@ -567,6 +587,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMeusRoyaltiesRoute: typeof AuthenticatedMeusRoyaltiesRoute
   AuthenticatedNpsRoute: typeof AuthenticatedNpsRoute
   AuthenticatedOperacaoRoute: typeof AuthenticatedOperacaoRoute
+  AuthenticatedPagamentosUnidadesRoute: typeof AuthenticatedPagamentosUnidadesRoute
   AuthenticatedPainelUnidadeRoute: typeof AuthenticatedPainelUnidadeRoute
   AuthenticatedRedeRoute: typeof AuthenticatedRedeRoute
   AuthenticatedRoyaltiesRoute: typeof AuthenticatedRoyaltiesRouteWithChildren
@@ -593,6 +614,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMeusRoyaltiesRoute: AuthenticatedMeusRoyaltiesRoute,
   AuthenticatedNpsRoute: AuthenticatedNpsRoute,
   AuthenticatedOperacaoRoute: AuthenticatedOperacaoRoute,
+  AuthenticatedPagamentosUnidadesRoute: AuthenticatedPagamentosUnidadesRoute,
   AuthenticatedPainelUnidadeRoute: AuthenticatedPainelUnidadeRoute,
   AuthenticatedRedeRoute: AuthenticatedRedeRoute,
   AuthenticatedRoyaltiesRoute: AuthenticatedRoyaltiesRouteWithChildren,
