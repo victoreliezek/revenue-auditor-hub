@@ -215,6 +215,22 @@ function HubExecutivoPage() {
   const arr = mrr * 12;
   const valuation = mrr * multiplo;
 
+  // MoM: último mês completo vs mês anterior
+  const mrrEvolucao = useMemo(() => {
+    const now = new Date();
+    const endLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    const endTwoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 1, 0);
+    const calc = (cutoff: Date) =>
+      ativos
+        .filter((c) => c.ganho_em && new Date(c.ganho_em) <= cutoff)
+        .reduce((s: number, c) => s + Number(c.mrr_mensal ?? 0), 0);
+    const lastMonthLabel = endLastMonth.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
+    const prevMonthLabel = endTwoMonthsAgo.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
+    return { last: calc(endLastMonth), prev: calc(endTwoMonthsAgo), lastMonthLabel, prevMonthLabel };
+  }, [ativos]);
+  const mrrMoMVar =
+    mrrEvolucao.prev > 0 ? ((mrrEvolucao.last - mrrEvolucao.prev) / mrrEvolucao.prev) * 100 : null;
+  const mrrMoMDiff = mrrEvolucao.last - mrrEvolucao.prev;
 
   // ============ SEÇÃO 2 ============
   const inadimplentes = cr.filter((r) =>
@@ -281,19 +297,24 @@ function HubExecutivoPage() {
 
   // ============ SEÇÃO 4 — Novos clientes últimos 6 meses ============
   const seriePorMes = useMemo(() => {
-    const buckets: { mes: string; key: string; novos: number; mrr_add: number }[] = [];
+    const buckets: { mes: string; key: string; novos: number; mrr_add: number; mrr_acumulado: number }[] = [];
     const now = new Date();
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+      const mrr_acumulado = ativos
+        .filter((c) => c.ganho_em && new Date(c.ganho_em) <= endOfMonth)
+        .reduce((s: number, c) => s + Number(c.mrr_mensal ?? 0), 0);
       buckets.push({
         mes: `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`,
         key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
         novos: 0,
         mrr_add: 0,
+        mrr_acumulado,
       });
     }
     const idx = new Map(buckets.map((b, i) => [b.key, i]));
-    ativos.forEach((c) => {
+    ativos.forEach((c: Contrato) => {
       if (!c.ganho_em) return;
       const k = c.ganho_em.slice(0, 7);
       const i = idx.get(k);
@@ -409,6 +430,23 @@ function HubExecutivoPage() {
                 />
               }
             />
+            <BigCard
+              title={`MoM — ${mrrEvolucao.lastMonthLabel}`}
+              value={
+                mrrMoMVar !== null
+                  ? `${mrrMoMVar >= 0 ? "+" : ""}${mrrMoMVar.toFixed(1)}%`
+                  : "—"
+              }
+              exact={
+                mrrMoMVar !== null
+                  ? `${mrrMoMDiff >= 0 ? "+" : ""}${fmtBRL(mrrMoMDiff)} vs ${mrrEvolucao.prevMonthLabel}`
+                  : undefined
+              }
+              sub={`vs ${fmtCompact(mrrEvolucao.prev)} em ${mrrEvolucao.prevMonthLabel}`}
+              icon={<TrendingUp className="h-4 w-4" />}
+              tone={mrrMoMVar === null ? "indigo" : mrrMoMVar >= 0 ? "emerald" : "red"}
+              loading={loading}
+            />
           </div>
 
           {/* SEÇÃO 2 — Alertas de Saúde */}
@@ -510,6 +548,34 @@ function HubExecutivoPage() {
                     ))}
                   </Bar>
                 </BarChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
+
+          {/* SEÇÃO 4a — Evolução do MRR acumulado */}
+          <Card className="p-4">
+            <h2 className="mb-3 text-sm font-semibold">Evolução do MRR — Últimos 6 Meses</h2>
+            {loading ? (
+              <Skeleton className="h-52 w-full" />
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <ComposedChart data={seriePorMes}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+                  <YAxis
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                  />
+                  <RTooltip formatter={(v: number) => fmtBRL(v)} />
+                  <Line
+                    type="monotone"
+                    dataKey="mrr_acumulado"
+                    name="MRR Acumulado"
+                    stroke="hsl(220 70% 50%)"
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                  />
+                </ComposedChart>
               </ResponsiveContainer>
             )}
           </Card>
@@ -637,7 +703,7 @@ function BigCard({
   exact?: string;
   sub: string;
   icon: React.ReactNode;
-  tone: "indigo" | "blue" | "violet" | "emerald" | "emerald-dark";
+  tone: "indigo" | "blue" | "violet" | "emerald" | "emerald-dark" | "red";
   extra?: React.ReactNode;
   loading?: boolean;
   to?: string;
@@ -648,6 +714,7 @@ function BigCard({
     violet: "text-violet-600 dark:text-violet-300",
     emerald: "text-emerald-600 dark:text-emerald-300",
     "emerald-dark": "text-emerald-800 dark:text-emerald-200",
+    red: "text-red-600 dark:text-red-300",
   }[tone];
 
   return (
