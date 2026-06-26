@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import React from "react";
+import { ChevronDown, ChevronRight, Receipt } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -12,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Receipt } from "lucide-react";
+
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -140,28 +142,35 @@ function RedeFinanceiroPage() {
     };
   }, [ultimoMes]);
 
-  const tableRows = useMemo(() => {
-    const map = new Map<string, Map<string, { csc: number; royalties: number; midia: number; total: number }>>();
+  const { pivot, months } = useMemo(() => {
+    const umap = new Map<string, PivotUnidade>();
+    const monthsSet = new Set<string>();
+
     for (const r of enriched) {
       const m = r.mes ?? "";
       const u = r.unidade ?? "—";
       if (!m) continue;
-      if (!map.has(m)) map.set(m, new Map());
-      const umap = map.get(m)!;
-      const cur = umap.get(u) ?? { csc: 0, royalties: 0, midia: 0, total: 0 };
-      cur.csc += r.csc;
-      cur.royalties += r.royalties_valor ?? 0;
-      cur.midia += r.midia;
-      cur.total = cur.csc + cur.royalties + cur.midia;
-      umap.set(u, cur);
-    }
-    const rows: { mes: string; unidade: string; csc: number; royalties: number; midia: number; total: number }[] = [];
-    for (const [mes, umap] of Array.from(map.entries()).sort(([a], [b]) => b.localeCompare(a))) {
-      for (const [unidade, v] of umap.entries()) {
-        rows.push({ mes, unidade, ...v });
+      monthsSet.add(m);
+
+      if (!umap.has(u)) {
+        umap.set(u, { nome: u, monthly: {}, csc: {}, royalties: {}, midia: {}, total: 0 });
       }
+      const p = umap.get(u)!;
+      const cscVal = r.csc;
+      const royVal = r.royalties_valor ?? 0;
+      const midVal = r.midia;
+      const rowTotal = cscVal + royVal + midVal;
+
+      p.monthly[m] = (p.monthly[m] ?? 0) + rowTotal;
+      p.csc[m] = (p.csc[m] ?? 0) + cscVal;
+      p.royalties[m] = (p.royalties[m] ?? 0) + royVal;
+      p.midia[m] = (p.midia[m] ?? 0) + midVal;
+      p.total += rowTotal;
     }
-    return rows;
+
+    const sortedMonths = Array.from(monthsSet).sort();
+    const sortedPivot = Array.from(umap.values()).sort((a, b) => b.total - a.total);
+    return { pivot: sortedPivot, months: sortedMonths };
   }, [enriched]);
 
   return (
@@ -256,43 +265,126 @@ function RedeFinanceiroPage() {
             </Card>
           </div>
 
-          {/* Tabela de Faturamento */}
-          <Card className="overflow-x-auto">
-            <div className="border-b p-3 text-sm font-semibold">Faturamento por Unidade</div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Unidade</TableHead>
-                  <TableHead>Mês</TableHead>
-                  <TableHead className="text-right">CSC</TableHead>
-                  <TableHead className="text-right">Royalties</TableHead>
-                  <TableHead className="text-right">Mídia</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tableRows.slice(0, 50).map((r, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="font-medium">{r.unidade}</TableCell>
-                    <TableCell>{fmtMes(r.mes)}</TableCell>
-                    <TableCell className="text-right">{fmtBRL(r.csc || null)}</TableCell>
-                    <TableCell className="text-right">{fmtBRL(r.royalties || null)}</TableCell>
-                    <TableCell className="text-right">{fmtBRL(r.midia || null)}</TableCell>
-                    <TableCell className="text-right font-semibold">{fmtBRL(r.total || null)}</TableCell>
-                  </TableRow>
-                ))}
-                {tableRows.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="py-6 text-center text-muted-foreground">
-                      Nenhum dado disponível.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </Card>
+          {/* Tabela de Faturamento — pivot por unidade */}
+          <PivotTable pivot={pivot} months={months} />
         </>
       )}
     </div>
+  );
+}
+
+type PivotUnidade = {
+  nome: string;
+  monthly: Record<string, number>;
+  csc: Record<string, number>;
+  royalties: Record<string, number>;
+  midia: Record<string, number>;
+  total: number;
+};
+
+function PivotTable({ pivot, months }: { pivot: PivotUnidade[]; months: string[] }) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const toggle = (nome: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(nome)) next.delete(nome);
+      else next.add(nome);
+      return next;
+    });
+
+  const grandTotal = useMemo(() => {
+    const monthly: Record<string, number> = {};
+    let total = 0;
+    for (const u of pivot) {
+      for (const m of months) {
+        monthly[m] = (monthly[m] ?? 0) + (u.monthly[m] ?? 0);
+      }
+      total += u.total;
+    }
+    return { monthly, total };
+  }, [pivot, months]);
+
+  const SUB_ROWS = [
+    { key: "csc" as const, label: "CSC" },
+    { key: "royalties" as const, label: "Royalties" },
+    { key: "midia" as const, label: "Mídia" },
+  ];
+
+  return (
+    <Card className="overflow-x-auto">
+      <div className="border-b p-3 text-sm font-semibold">Faturamento por Unidade</div>
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/50">
+            <TableHead className="sticky left-0 bg-muted/50 w-[200px] font-semibold">Unidade</TableHead>
+            {months.map((m) => (
+              <TableHead key={m} className="text-right min-w-[110px] font-semibold">
+                {fmtMes(m)}
+              </TableHead>
+            ))}
+            <TableHead className="text-right min-w-[120px] font-semibold">Total</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {pivot.map((u) => {
+            const isOpen = expanded.has(u.nome);
+            return (
+              <React.Fragment key={u.nome}>
+                <TableRow
+                  className="cursor-pointer hover:bg-muted/40 bg-muted/20"
+                  onClick={() => toggle(u.nome)}
+                >
+                  <TableCell className="sticky left-0 bg-muted/20 py-2 font-semibold">
+                    <div className="flex items-center gap-2">
+                      {isOpen
+                        ? <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        : <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+                      {u.nome}
+                    </div>
+                  </TableCell>
+                  {months.map((m) => (
+                    <TableCell key={m} className="text-right tabular-nums py-2 font-semibold">
+                      {u.monthly[m] ? fmtBRL(u.monthly[m]) : "—"}
+                    </TableCell>
+                  ))}
+                  <TableCell className="text-right tabular-nums py-2 font-bold">
+                    {fmtBRL(u.total)}
+                  </TableCell>
+                </TableRow>
+                {isOpen && SUB_ROWS.map(({ key, label }) => (
+                  <TableRow key={`${u.nome}|${key}`} className="hover:bg-muted/10">
+                    <TableCell className="sticky left-0 bg-background pl-10 py-1.5 text-sm text-muted-foreground">
+                      {label}
+                    </TableCell>
+                    {months.map((m) => (
+                      <TableCell key={m} className="text-right tabular-nums py-1.5 text-sm">
+                        {u[key][m] ? fmtBRL(u[key][m]) : "—"}
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-right tabular-nums py-1.5 text-sm font-medium">
+                      {fmtBRL(Object.values(u[key]).reduce((s, v) => s + v, 0) || null)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </React.Fragment>
+            );
+          })}
+        </TableBody>
+        <tfoot>
+          <tr className="border-t-2 border-border bg-muted/40 font-bold">
+            <td className="sticky left-0 bg-muted/40 py-2.5 px-4 text-sm">Grand Total</td>
+            {months.map((m) => (
+              <td key={m} className="py-2.5 px-4 text-right tabular-nums text-sm">
+                {grandTotal.monthly[m] ? fmtBRL(grandTotal.monthly[m]) : "—"}
+              </td>
+            ))}
+            <td className="py-2.5 px-4 text-right tabular-nums text-sm">
+              {fmtBRL(grandTotal.total)}
+            </td>
+          </tr>
+        </tfoot>
+      </Table>
+    </Card>
   );
 }
