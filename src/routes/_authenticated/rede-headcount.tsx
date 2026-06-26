@@ -58,8 +58,7 @@ function RedeHeadcountPage() {
     let mounted = true;
     (async () => {
       const [h, r] = await Promise.all([
-        // @ts-ignore — table may not exist yet
-        supabase.from("headcount_mensal").select("unidade,mes,headcount,admissoes,demissoes").order("mes"),
+        (supabase as any).from("headcount_mensal").select("unidade,mes,headcount,admissoes,demissoes").order("mes"),
         supabase.from("v_reconciliacao_mensal").select("mes,unidade,mrr_contratado,num_contratos").order("mes"),
       ]);
       if (!mounted) return;
