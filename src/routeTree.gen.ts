@@ -18,6 +18,11 @@ import { Route as AuthenticatedTratativasRouteImport } from './routes/_authentic
 import { Route as AuthenticatedSimuladorCaixaRouteImport } from './routes/_authenticated/simulador-caixa'
 import { Route as AuthenticatedRoyaltiesRouteImport } from './routes/_authenticated/royalties'
 import { Route as AuthenticatedRedeRouteImport } from './routes/_authenticated/rede'
+import { Route as AuthenticatedRedeOverviewRouteImport } from './routes/_authenticated/rede-overview'
+import { Route as AuthenticatedRedeLtvRouteImport } from './routes/_authenticated/rede-ltv'
+import { Route as AuthenticatedRedeFinanceiroRouteImport } from './routes/_authenticated/rede-financeiro'
+import { Route as AuthenticatedRedeHeadcountRouteImport } from './routes/_authenticated/rede-headcount'
+import { Route as AuthenticatedRedeRealizadoRouteImport } from './routes/_authenticated/rede-realizado'
 import { Route as AuthenticatedPainelUnidadeRouteImport } from './routes/_authenticated/painel-unidade'
 import { Route as AuthenticatedPagamentosUnidadesRouteImport } from './routes/_authenticated/pagamentos-unidades'
 import { Route as AuthenticatedOperacaoRouteImport } from './routes/_authenticated/operacao'
@@ -81,6 +86,31 @@ const AuthenticatedRoyaltiesRoute = AuthenticatedRoyaltiesRouteImport.update({
 const AuthenticatedRedeRoute = AuthenticatedRedeRouteImport.update({
   id: '/rede',
   path: '/rede',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRedeOverviewRoute = AuthenticatedRedeOverviewRouteImport.update({
+  id: '/rede-overview',
+  path: '/rede-overview',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRedeLtvRoute = AuthenticatedRedeLtvRouteImport.update({
+  id: '/rede-ltv',
+  path: '/rede-ltv',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRedeFinanceiroRoute = AuthenticatedRedeFinanceiroRouteImport.update({
+  id: '/rede-financeiro',
+  path: '/rede-financeiro',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRedeHeadcountRoute = AuthenticatedRedeHeadcountRouteImport.update({
+  id: '/rede-headcount',
+  path: '/rede-headcount',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRedeRealizadoRoute = AuthenticatedRedeRealizadoRouteImport.update({
+  id: '/rede-realizado',
+  path: '/rede-realizado',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPainelUnidadeRoute =
@@ -212,6 +242,11 @@ export interface FileRoutesByFullPath {
   '/pagamentos-unidades': typeof AuthenticatedPagamentosUnidadesRoute
   '/painel-unidade': typeof AuthenticatedPainelUnidadeRoute
   '/rede': typeof AuthenticatedRedeRoute
+  '/rede-overview': typeof AuthenticatedRedeOverviewRoute
+  '/rede-ltv': typeof AuthenticatedRedeLtvRoute
+  '/rede-financeiro': typeof AuthenticatedRedeFinanceiroRoute
+  '/rede-headcount': typeof AuthenticatedRedeHeadcountRoute
+  '/rede-realizado': typeof AuthenticatedRedeRealizadoRoute
   '/royalties': typeof AuthenticatedRoyaltiesRouteWithChildren
   '/simulador-caixa': typeof AuthenticatedSimuladorCaixaRoute
   '/tratativas': typeof AuthenticatedTratativasRoute
@@ -240,6 +275,11 @@ export interface FileRoutesByTo {
   '/pagamentos-unidades': typeof AuthenticatedPagamentosUnidadesRoute
   '/painel-unidade': typeof AuthenticatedPainelUnidadeRoute
   '/rede': typeof AuthenticatedRedeRoute
+  '/rede-overview': typeof AuthenticatedRedeOverviewRoute
+  '/rede-ltv': typeof AuthenticatedRedeLtvRoute
+  '/rede-financeiro': typeof AuthenticatedRedeFinanceiroRoute
+  '/rede-headcount': typeof AuthenticatedRedeHeadcountRoute
+  '/rede-realizado': typeof AuthenticatedRedeRealizadoRoute
   '/royalties': typeof AuthenticatedRoyaltiesRouteWithChildren
   '/simulador-caixa': typeof AuthenticatedSimuladorCaixaRoute
   '/tratativas': typeof AuthenticatedTratativasRoute
@@ -271,6 +311,11 @@ export interface FileRoutesById {
   '/_authenticated/pagamentos-unidades': typeof AuthenticatedPagamentosUnidadesRoute
   '/_authenticated/painel-unidade': typeof AuthenticatedPainelUnidadeRoute
   '/_authenticated/rede': typeof AuthenticatedRedeRoute
+  '/_authenticated/rede-overview': typeof AuthenticatedRedeOverviewRoute
+  '/_authenticated/rede-ltv': typeof AuthenticatedRedeLtvRoute
+  '/_authenticated/rede-financeiro': typeof AuthenticatedRedeFinanceiroRoute
+  '/_authenticated/rede-headcount': typeof AuthenticatedRedeHeadcountRoute
+  '/_authenticated/rede-realizado': typeof AuthenticatedRedeRealizadoRoute
   '/_authenticated/royalties': typeof AuthenticatedRoyaltiesRouteWithChildren
   '/_authenticated/simulador-caixa': typeof AuthenticatedSimuladorCaixaRoute
   '/_authenticated/tratativas': typeof AuthenticatedTratativasRoute
@@ -303,6 +348,11 @@ export interface FileRouteTypes {
     | '/pagamentos-unidades'
     | '/painel-unidade'
     | '/rede'
+    | '/rede-overview'
+    | '/rede-ltv'
+    | '/rede-financeiro'
+    | '/rede-headcount'
+    | '/rede-realizado'
     | '/royalties'
     | '/simulador-caixa'
     | '/tratativas'
@@ -331,6 +381,11 @@ export interface FileRouteTypes {
     | '/pagamentos-unidades'
     | '/painel-unidade'
     | '/rede'
+    | '/rede-overview'
+    | '/rede-ltv'
+    | '/rede-financeiro'
+    | '/rede-headcount'
+    | '/rede-realizado'
     | '/royalties'
     | '/simulador-caixa'
     | '/tratativas'
@@ -361,6 +416,11 @@ export interface FileRouteTypes {
     | '/_authenticated/pagamentos-unidades'
     | '/_authenticated/painel-unidade'
     | '/_authenticated/rede'
+    | '/_authenticated/rede-overview'
+    | '/_authenticated/rede-ltv'
+    | '/_authenticated/rede-financeiro'
+    | '/_authenticated/rede-headcount'
+    | '/_authenticated/rede-realizado'
     | '/_authenticated/royalties'
     | '/_authenticated/simulador-caixa'
     | '/_authenticated/tratativas'
@@ -441,6 +501,41 @@ declare module '@tanstack/react-router' {
       path: '/rede'
       fullPath: '/rede'
       preLoaderRoute: typeof AuthenticatedRedeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rede-overview': {
+      id: '/_authenticated/rede-overview'
+      path: '/rede-overview'
+      fullPath: '/rede-overview'
+      preLoaderRoute: typeof AuthenticatedRedeOverviewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rede-ltv': {
+      id: '/_authenticated/rede-ltv'
+      path: '/rede-ltv'
+      fullPath: '/rede-ltv'
+      preLoaderRoute: typeof AuthenticatedRedeLtvRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rede-financeiro': {
+      id: '/_authenticated/rede-financeiro'
+      path: '/rede-financeiro'
+      fullPath: '/rede-financeiro'
+      preLoaderRoute: typeof AuthenticatedRedeFinanceiroRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rede-headcount': {
+      id: '/_authenticated/rede-headcount'
+      path: '/rede-headcount'
+      fullPath: '/rede-headcount'
+      preLoaderRoute: typeof AuthenticatedRedeHeadcountRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rede-realizado': {
+      id: '/_authenticated/rede-realizado'
+      path: '/rede-realizado'
+      fullPath: '/rede-realizado'
+      preLoaderRoute: typeof AuthenticatedRedeRealizadoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/painel-unidade': {
@@ -611,6 +706,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPagamentosUnidadesRoute: typeof AuthenticatedPagamentosUnidadesRoute
   AuthenticatedPainelUnidadeRoute: typeof AuthenticatedPainelUnidadeRoute
   AuthenticatedRedeRoute: typeof AuthenticatedRedeRoute
+  AuthenticatedRedeOverviewRoute: typeof AuthenticatedRedeOverviewRoute
+  AuthenticatedRedeLtvRoute: typeof AuthenticatedRedeLtvRoute
+  AuthenticatedRedeFinanceiroRoute: typeof AuthenticatedRedeFinanceiroRoute
+  AuthenticatedRedeHeadcountRoute: typeof AuthenticatedRedeHeadcountRoute
+  AuthenticatedRedeRealizadoRoute: typeof AuthenticatedRedeRealizadoRoute
   AuthenticatedRoyaltiesRoute: typeof AuthenticatedRoyaltiesRouteWithChildren
   AuthenticatedSimuladorCaixaRoute: typeof AuthenticatedSimuladorCaixaRoute
   AuthenticatedTratativasRoute: typeof AuthenticatedTratativasRoute
@@ -639,6 +739,11 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPagamentosUnidadesRoute: AuthenticatedPagamentosUnidadesRoute,
   AuthenticatedPainelUnidadeRoute: AuthenticatedPainelUnidadeRoute,
   AuthenticatedRedeRoute: AuthenticatedRedeRoute,
+  AuthenticatedRedeOverviewRoute: AuthenticatedRedeOverviewRoute,
+  AuthenticatedRedeLtvRoute: AuthenticatedRedeLtvRoute,
+  AuthenticatedRedeFinanceiroRoute: AuthenticatedRedeFinanceiroRoute,
+  AuthenticatedRedeHeadcountRoute: AuthenticatedRedeHeadcountRoute,
+  AuthenticatedRedeRealizadoRoute: AuthenticatedRedeRealizadoRoute,
   AuthenticatedRoyaltiesRoute: AuthenticatedRoyaltiesRouteWithChildren,
   AuthenticatedSimuladorCaixaRoute: AuthenticatedSimuladorCaixaRoute,
   AuthenticatedTratativasRoute: AuthenticatedTratativasRoute,
