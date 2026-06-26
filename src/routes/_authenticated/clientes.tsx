@@ -100,17 +100,24 @@ const STATUS_META: Record<
 };
 
 export const Route = createFileRoute("/_authenticated/clientes")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    status: typeof search.status === "string" ? search.status : "",
+    unidade: typeof search.unidade === "string" ? search.unidade : "",
+  }),
   component: ClientesPage,
 });
 
 function ClientesPage() {
   const perms = usePermissions();
+  const { status: statusParam, unidade: unidadeParam } = Route.useSearch();
   const [rows, setRows] = useState<Cliente[]>([]);
   const [mrrByPipedriveId, setMrrByPipedriveId] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
-  const [unidade, setUnidade] = useState(ALL);
-  const [statusFilter, setStatusFilter] = useState<StatusFinanceiro | null>(null);
+  const [unidade, setUnidade] = useState(unidadeParam || ALL);
+  const [statusFilter, setStatusFilter] = useState<StatusFinanceiro | null>(
+    statusParam ? (statusParam as StatusFinanceiro) : null,
+  );
   type SortKey =
     | "razao_social"
     | "unidade"

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   AreaChart,
@@ -55,6 +55,7 @@ const fmtMesLong = (m: string | null | undefined) => {
 };
 
 function RedeOverviewPage() {
+  const navigate = useNavigate();
   const [rows, setRows] = useState<ReconcRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [unidadeFilter, setUnidadeFilter] = useState(ALL);
@@ -166,7 +167,11 @@ function RedeOverviewPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-        <Card className="p-4">
+        <Card
+          className="p-4 cursor-pointer hover:shadow-md transition-shadow hover:border-primary/40"
+          onClick={() => navigate({ to: "/clientes" })}
+          title="Ver lista de clientes"
+        >
           <div className="text-xs text-muted-foreground">Receita Total</div>
           <div className="mt-1 text-xl font-bold">{fmtBRL(kpis.receita)}</div>
           {kpis.vsAnterior != null && (
@@ -175,7 +180,11 @@ function RedeOverviewPage() {
             </div>
           )}
         </Card>
-        <Card className="p-4">
+        <Card
+          className="p-4 cursor-pointer hover:shadow-md transition-shadow hover:border-primary/40"
+          onClick={() => navigate({ to: "/clientes", search: { status: "ATIVO" } })}
+          title="Ver contratos ativos"
+        >
           <div className="text-xs text-muted-foreground">Receita Recorrente</div>
           <div className="mt-1 text-xl font-bold">{fmtBRL(kpis.mrr)}</div>
           {kpis.receita > 0 && (
@@ -184,9 +193,14 @@ function RedeOverviewPage() {
             </div>
           )}
         </Card>
-        <Card className="p-4">
+        <Card
+          className="p-4 cursor-pointer hover:shadow-md transition-shadow hover:border-primary/40"
+          onClick={() => navigate({ to: "/clientes", search: { status: "ATIVO" } })}
+          title="Ver clientes ativos"
+        >
           <div className="text-xs text-muted-foreground">Clientes Ativos</div>
           <div className="mt-1 text-2xl font-bold">{kpis.clientes || "—"}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">contratos vigentes</div>
         </Card>
         <Card className="p-4">
           <div className="text-xs text-muted-foreground">Churn Receita</div>

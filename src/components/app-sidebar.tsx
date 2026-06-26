@@ -25,7 +25,7 @@ type Item = {
 const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
   {
     label: "Início",
-    items: [{ title: "Hub", url: "/", icon: LayoutDashboard, permission: "view.hub" }],
+    items: [{ title: "Overview", url: "/rede-overview", icon: Activity, permission: "view.hub" }],
   },
   {
     label: "Rede",
@@ -39,7 +39,6 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
   {
     label: "Gestão da Rede",
     items: [
-      { title: "Overview", url: "/rede-overview", icon: Activity, permission: "view.clientes" },
       { title: "LTV Estimado", url: "/rede-ltv", icon: TrendingUp, permission: "view.clientes" },
       { title: "Financeiro", url: "/rede-financeiro", icon: Receipt, permission: "view.roas" },
       { title: "Headcount", url: "/rede-headcount", icon: Users, permission: "view.roas" },
