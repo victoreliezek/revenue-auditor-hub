@@ -24,6 +24,7 @@ import { Route as AuthenticatedOperacaoRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedNpsRouteImport } from './routes/_authenticated/nps'
 import { Route as AuthenticatedMeusRoyaltiesRouteImport } from './routes/_authenticated/meus-royalties'
 import { Route as AuthenticatedFunilReceitaRouteImport } from './routes/_authenticated/funil-receita'
+import { Route as AuthenticatedReconciliacaoRouteImport } from './routes/_authenticated/reconciliacao'
 import { Route as AuthenticatedFxcRouteImport } from './routes/_authenticated/fxc'
 import { Route as AuthenticatedFinanceiroPartnersRouteImport } from './routes/_authenticated/financeiro-partners'
 import { Route as AuthenticatedDrePartnersRouteImport } from './routes/_authenticated/dre-partners'
@@ -116,6 +117,12 @@ const AuthenticatedFunilReceitaRoute =
     path: '/funil-receita',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedReconciliacaoRoute =
+  AuthenticatedReconciliacaoRouteImport.update({
+    id: '/reconciliacao',
+    path: '/reconciliacao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedFxcRoute = AuthenticatedFxcRouteImport.update({
   id: '/fxc',
   path: '/fxc',
@@ -198,6 +205,7 @@ export interface FileRoutesByFullPath {
   '/financeiro-partners': typeof AuthenticatedFinanceiroPartnersRoute
   '/fxc': typeof AuthenticatedFxcRoute
   '/funil-receita': typeof AuthenticatedFunilReceitaRoute
+  '/reconciliacao': typeof AuthenticatedReconciliacaoRoute
   '/meus-royalties': typeof AuthenticatedMeusRoyaltiesRoute
   '/nps': typeof AuthenticatedNpsRoute
   '/operacao': typeof AuthenticatedOperacaoRoute
@@ -225,6 +233,7 @@ export interface FileRoutesByTo {
   '/financeiro-partners': typeof AuthenticatedFinanceiroPartnersRoute
   '/fxc': typeof AuthenticatedFxcRoute
   '/funil-receita': typeof AuthenticatedFunilReceitaRoute
+  '/reconciliacao': typeof AuthenticatedReconciliacaoRoute
   '/meus-royalties': typeof AuthenticatedMeusRoyaltiesRoute
   '/nps': typeof AuthenticatedNpsRoute
   '/operacao': typeof AuthenticatedOperacaoRoute
@@ -255,6 +264,7 @@ export interface FileRoutesById {
   '/_authenticated/financeiro-partners': typeof AuthenticatedFinanceiroPartnersRoute
   '/_authenticated/fxc': typeof AuthenticatedFxcRoute
   '/_authenticated/funil-receita': typeof AuthenticatedFunilReceitaRoute
+  '/_authenticated/reconciliacao': typeof AuthenticatedReconciliacaoRoute
   '/_authenticated/meus-royalties': typeof AuthenticatedMeusRoyaltiesRoute
   '/_authenticated/nps': typeof AuthenticatedNpsRoute
   '/_authenticated/operacao': typeof AuthenticatedOperacaoRoute
@@ -286,6 +296,7 @@ export interface FileRouteTypes {
     | '/financeiro-partners'
     | '/fxc'
     | '/funil-receita'
+    | '/reconciliacao'
     | '/meus-royalties'
     | '/nps'
     | '/operacao'
@@ -313,6 +324,7 @@ export interface FileRouteTypes {
     | '/financeiro-partners'
     | '/fxc'
     | '/funil-receita'
+    | '/reconciliacao'
     | '/meus-royalties'
     | '/nps'
     | '/operacao'
@@ -342,6 +354,7 @@ export interface FileRouteTypes {
     | '/_authenticated/financeiro-partners'
     | '/_authenticated/fxc'
     | '/_authenticated/funil-receita'
+    | '/_authenticated/reconciliacao'
     | '/_authenticated/meus-royalties'
     | '/_authenticated/nps'
     | '/_authenticated/operacao'
@@ -472,6 +485,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFunilReceitaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/reconciliacao': {
+      id: '/_authenticated/reconciliacao'
+      path: '/reconciliacao'
+      fullPath: '/reconciliacao'
+      preLoaderRoute: typeof AuthenticatedReconciliacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/financeiro-partners': {
       id: '/_authenticated/financeiro-partners'
       path: '/financeiro-partners'
@@ -584,6 +604,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFinanceiroPartnersRoute: typeof AuthenticatedFinanceiroPartnersRoute
   AuthenticatedFxcRoute: typeof AuthenticatedFxcRoute
   AuthenticatedFunilReceitaRoute: typeof AuthenticatedFunilReceitaRoute
+  AuthenticatedReconciliacaoRoute: typeof AuthenticatedReconciliacaoRoute
   AuthenticatedMeusRoyaltiesRoute: typeof AuthenticatedMeusRoyaltiesRoute
   AuthenticatedNpsRoute: typeof AuthenticatedNpsRoute
   AuthenticatedOperacaoRoute: typeof AuthenticatedOperacaoRoute
@@ -611,6 +632,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFinanceiroPartnersRoute: AuthenticatedFinanceiroPartnersRoute,
   AuthenticatedFxcRoute: AuthenticatedFxcRoute,
   AuthenticatedFunilReceitaRoute: AuthenticatedFunilReceitaRoute,
+  AuthenticatedReconciliacaoRoute: AuthenticatedReconciliacaoRoute,
   AuthenticatedMeusRoyaltiesRoute: AuthenticatedMeusRoyaltiesRoute,
   AuthenticatedNpsRoute: AuthenticatedNpsRoute,
   AuthenticatedOperacaoRoute: AuthenticatedOperacaoRoute,
