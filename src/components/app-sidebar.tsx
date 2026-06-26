@@ -37,17 +37,7 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
     ],
   },
   {
-    label: "Gestão da Rede",
-    items: [
-      { title: "LTV Estimado", url: "/rede-ltv", icon: TrendingUp, permission: "view.clientes" },
-      { title: "Financeiro", url: "/rede-financeiro", icon: Receipt, permission: "view.roas" },
-      { title: "Headcount", url: "/rede-headcount", icon: Users, permission: "view.roas" },
-      { title: "Realizado Unidades", url: "/rede-realizado", icon: BarChart3, permission: "view.clientes" },
-      { title: "Unidades", url: "/unidades", icon: Coins, permission: "view.auditoria.cac" },
-    ],
-  },
-  {
-    label: "Receita",
+    label: "Receita da Rede",
     items: [
       { title: "Funil de Receita", url: "/funil-receita", icon: Filter, permission: "view.roas" },
       { title: "Reconciliação", url: "/reconciliacao", icon: GitMerge, permission: "view.roas" },
@@ -55,7 +45,17 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
     ],
   },
   {
-    label: "Financeiro Partners",
+    label: "Performance da Rede",
+    items: [
+      { title: "LTV Estimado", url: "/rede-ltv", icon: TrendingUp, permission: "view.clientes" },
+      { title: "Financeiro Rede", url: "/rede-financeiro", icon: Receipt, permission: "view.roas" },
+      { title: "Headcount", url: "/rede-headcount", icon: Users, permission: "view.roas" },
+      { title: "Realizado Unidades", url: "/rede-realizado", icon: BarChart3, permission: "view.clientes" },
+      { title: "Unidades", url: "/unidades", icon: Coins, permission: "view.auditoria.cac" },
+    ],
+  },
+  {
+    label: "Planning Partners",
     items: [
       { title: "DRE & Caixa", url: "/financeiro-partners", icon: Receipt, permission: "view.roas" },
       { title: "FCx — Fluxo de Caixa", url: "/fxc", icon: LineChart, permission: "view.roas" },
