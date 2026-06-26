@@ -92,12 +92,12 @@ export const listReconciliacao = createServerFn({ method: "GET" })
     }
 
     // 4. Todos os recebimentos (RECEBIDO) das unidades
-    let contas: { cpf_cnpj: string | null; valor: number | null; data_pagamento: string | null; unidade: string | null }[] = [];
+    let contas: { cpf_cnpj: string | null; valor: number | null; data_pagamento: string | null; unidade: string | null; cliente: string | null }[] = [];
     let from = 0;
     while (true) {
       const { data: page } = await supabase
         .from("contas_receber")
-        .select("cpf_cnpj,valor,data_pagamento,unidade")
+        .select("cpf_cnpj,valor,data_pagamento,unidade,cliente")
         .eq("status_pagamento", "RECEBIDO")
         .in("unidade", UNIDADES_COM_OMIE)
         .range(from, from + 999);
@@ -180,6 +180,13 @@ export const listReconciliacao = createServerFn({ method: "GET" })
     }
 
     // 6. CNPJs Omie sem Pipedrive
+    // Need cliente name — fetch it from contas index
+    const clienteByCnpj = new Map<string, { cliente: string | null; unidade: string | null }>();
+    for (const c of contas) {
+      const k = digits(c.cpf_cnpj);
+      if (k && !clienteByCnpj.has(k)) clienteByCnpj.set(k, { cliente: c.cliente ?? null, unidade: c.unidade ?? null });
+    }
+
     const naoMapeados: OmieNaoMapeado[] = [];
     for (const [cnpj, pags] of recByCnpj.entries()) {
       if (cnpjsUsados.has(cnpj)) continue;
@@ -188,14 +195,14 @@ export const listReconciliacao = createServerFn({ method: "GET" })
       for (const p of sorted) pagMap.set(p.mes, (pagMap.get(p.mes) ?? 0) + p.valor);
       const pagMensais = Array.from(pagMap.entries()).map(([mes, valor]) => ({ mes, valor })).sort((a, b) => a.mes.localeCompare(b.mes));
       const total = pagMensais.reduce((s, p) => s + p.valor, 0);
-      // Use first payment's unidade from raw contas
-      const primeiroRec = contas.find((c) => digits(c.cpf_cnpj) === cnpj);
+      const meta = clienteByCnpj.get(cnpj);
+      const primMes = pagMensais[0]?.mes;
       naoMapeados.push({
         cnpj,
-        razao_social: primeiroRec ? (contas.find((c) => digits(c.cpf_cnpj) === cnpj)?.unidade ?? cnpj) : cnpj,
-        unidade: primeiroRec?.unidade ?? "",
+        razao_social: meta?.cliente ?? cnpj,
+        unidade: meta?.unidade ?? "",
         total_recebido: total,
-        primeiro_pagamento: pagMensais[0]?.mes + "-01" ?? null,
+        primeiro_pagamento: primMes ? primMes + "-01" : null,
         pagamentos_mensais: pagMensais,
       });
     }
