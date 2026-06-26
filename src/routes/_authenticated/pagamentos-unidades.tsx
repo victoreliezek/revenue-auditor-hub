@@ -31,6 +31,7 @@ const BRL = (n: number) =>
 
 type PfRow = {
   id: number;
+  unidade: string | null;
   razao_social: string | null;
   codigo_categoria: string | null;
   data_vencimento: string | null;
@@ -47,7 +48,7 @@ async function fetchAll(ano: string): Promise<PfRow[]> {
   while (true) {
     const { data, error } = await supabase
       .from("partners_financeiro")
-      .select("id,razao_social,codigo_categoria,data_vencimento,valor_documento,status_titulo")
+      .select("id,unidade,razao_social,codigo_categoria,data_vencimento,valor_documento,status_titulo")
       .eq("tipo", "RECEBER")
       .neq("status_titulo", "CANCELADO")
       .gte("data_vencimento", start)
@@ -56,6 +57,7 @@ async function fetchAll(ano: string): Promise<PfRow[]> {
     if (error) throw new Error(error.message);
     const rows: PfRow[] = (data ?? []).map((r: any) => ({
       id: r.id,
+      unidade: r.unidade ?? null,
       razao_social: r.razao_social ?? null,
       codigo_categoria: r.codigo_categoria ?? null,
       data_vencimento: r.data_vencimento ?? null,
@@ -92,7 +94,6 @@ function PagamentosUnidadesPage() {
 
   const [rows, setRows] = useState<PfRow[]>([]);
   const [categoriasMap, setCategoriasMap] = useState<Map<string, string>>(new Map());
-  const [unidadesMap, setUnidadesMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -103,23 +104,11 @@ function PagamentosUnidadesPage() {
     Promise.all([
       fetchAll(ano),
       supabase.from("categorias_omie").select("codigo,descricao").then(({ data }) => data ?? []),
-      supabase
-        .from("recebimentos_franquias")
-        .select("cliente,unidade")
-        .neq("unidade", "")
-        .then(({ data }) => data ?? []),
     ])
-      .then(([pfRows, cats, franqs]) => {
+      .then(([pfRows, cats]) => {
         setRows(pfRows);
         setCategoriasMap(
           new Map((cats as any[]).map((c) => [c.codigo as string, c.descricao as string])),
-        );
-        setUnidadesMap(
-          new Map(
-            (franqs as any[])
-              .filter((f) => f.cliente && f.unidade)
-              .map((f) => [f.cliente as string, f.unidade as string]),
-          ),
         );
       })
       .catch((e) => setError(e.message))
@@ -136,11 +125,8 @@ function PagamentosUnidadesPage() {
 
   const filtered = useMemo(() => {
     if (unidadeFilter === "__all__") return rows;
-    return rows.filter((r) => {
-      const display = unidadesMap.get(r.razao_social ?? "") ?? r.razao_social ?? "—";
-      return display === unidadeFilter;
-    });
-  }, [rows, unidadeFilter, unidadesMap]);
+    return rows.filter((r) => (r.unidade ?? r.razao_social ?? "—") === unidadeFilter);
+  }, [rows, unidadeFilter]);
 
   const { pivot, months } = useMemo(() => {
     const unitMap = new Map<string, UnidadePivot>();
@@ -148,7 +134,7 @@ function PagamentosUnidadesPage() {
 
     for (const r of filtered) {
       const rs = r.razao_social ?? "—";
-      const display = unidadesMap.get(rs) ?? rs;
+      const display = r.unidade ?? rs;
       const v = r.valor_documento;
       const month = r.data_vencimento ? parseInt(r.data_vencimento.slice(5, 7)) : null;
       if (!month) continue;
@@ -179,7 +165,7 @@ function PagamentosUnidadesPage() {
       .map((u) => ({ ...u, cats: u.cats.sort((a, b) => b.total - a.total) }));
 
     return { pivot: sortedUnits, months: sortedMonths };
-  }, [filtered, unidadesMap, categoriasMap]);
+  }, [filtered, categoriasMap]);
 
   const grandTotal = useMemo(() => {
     const monthly: MonthMap = {};
@@ -195,10 +181,8 @@ function PagamentosUnidadesPage() {
 
   const unidadeOpcoes = useMemo(
     () =>
-      Array.from(
-        new Set(rows.map((r) => unidadesMap.get(r.razao_social ?? "") ?? r.razao_social ?? "—")),
-      ).sort(),
-    [rows, unidadesMap],
+      Array.from(new Set(rows.map((r: PfRow) => r.unidade ?? r.razao_social ?? "—"))).sort(),
+    [rows],
   );
 
   const anos = Array.from({ length: 4 }, (_, i) => String(Number(anoAtual) - 1 + i));
