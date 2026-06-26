@@ -71,13 +71,20 @@ const TONE_BADGE: Record<string, string> = {
 };
 
 function FunilCard({
-  icon, label, value, sub, tone = "slate",
-}: { icon: React.ReactNode; label: string; value: string; sub: string; tone?: string }) {
+  icon, label, value, sub, tone = "slate", source,
+}: { icon: React.ReactNode; label: string; value: string; sub: string; tone?: string; source?: string }) {
   return (
     <div className={cn("flex-1 rounded-lg border p-4 shadow-sm", TONE_BG[tone])}>
-      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-        {icon}
-        {label}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          {icon}
+          {label}
+        </div>
+        {source && (
+          <span className="shrink-0 rounded bg-muted/80 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+            {source}
+          </span>
+        )}
       </div>
       <div className="mt-2 text-2xl font-bold">{value}</div>
       <div className="mt-1 text-xs text-muted-foreground">{sub}</div>
@@ -247,38 +254,53 @@ export function FunilContent() {
       {loading ? (
         <Skeleton className="h-32 w-full" />
       ) : (
-        <div className="flex flex-col items-stretch gap-2 md:flex-row md:items-center">
-          <FunilCard
-            icon={<FileText className="h-4 w-4" />}
-            label="MRR Contratado"
-            value={brl(totals.mrr)}
-            sub={`${totals.contratos} contratos ativos`}
-          />
-          <ConvArrow pct={convMF} tone={convMF === null ? "slate" : toneMrrFat(convMF)} />
-          <FunilCard
-            icon={<Receipt className="h-4 w-4" />}
-            label="Faturado"
-            value={brl(totals.faturado)}
-            sub={`${totals.faturas} faturas emitidas`}
-            tone={convMF === null ? "slate" : toneMrrFat(convMF)}
-          />
-          <ConvArrow pct={convFR} tone={convFR === null ? "slate" : toneFatRec(convFR)} />
-          <FunilCard
-            icon={<Wallet className="h-4 w-4" />}
-            label="Recebido"
-            value={brl(totals.recebido)}
-            sub={`${totals.recebidas} faturas recebidas`}
-            tone={convFR === null ? "slate" : toneFatRec(convFR)}
-          />
-          <ConvArrow pct={convMR} tone={convMR === null ? "slate" : toneMrrFat(convMR)} />
-          <FunilCard
-            icon={<Target className="h-4 w-4" />}
-            label="Conversão Total"
-            value={convMR === null ? "—" : `${convMR.toFixed(1)}%`}
-            sub="Recebido / MRR Contratado"
-            tone={convMR === null ? "slate" : toneMrrFat(convMR)}
-          />
-        </div>
+        <>
+          {/* Aviso de cobertura parcial quando há unidades sem dados Omie */}
+          {rows.some((r) => N(r.mrr_contratado) > 0 && N(r.faturado) === 0) && (
+            <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              <span>
+                Faturado e Recebido cobrem apenas unidades com dados no Omie.
+                Unidades sem Omie aparecem com MRR mas sem faturamento.
+              </span>
+            </div>
+          )}
+          <div className="flex flex-col items-stretch gap-2 md:flex-row md:items-center">
+            <FunilCard
+              icon={<FileText className="h-4 w-4" />}
+              label="MRR Contratado"
+              value={brl(totals.mrr)}
+              sub={`${totals.contratos} contratos ativos`}
+              source="contratos"
+            />
+            <ConvArrow pct={convMF} tone={convMF === null ? "slate" : toneMrrFat(convMF)} />
+            <FunilCard
+              icon={<Receipt className="h-4 w-4" />}
+              label="Faturado"
+              value={brl(totals.faturado)}
+              sub={`${totals.faturas} faturas emitidas`}
+              tone={convMF === null ? "slate" : toneMrrFat(convMF)}
+              source="omie"
+            />
+            <ConvArrow pct={convFR} tone={convFR === null ? "slate" : toneFatRec(convFR)} />
+            <FunilCard
+              icon={<Wallet className="h-4 w-4" />}
+              label="Recebido"
+              value={brl(totals.recebido)}
+              sub={`${totals.recebidas} faturas recebidas`}
+              tone={convFR === null ? "slate" : toneFatRec(convFR)}
+              source="omie"
+            />
+            <ConvArrow pct={convMR} tone={convMR === null ? "slate" : toneMrrFat(convMR)} />
+            <FunilCard
+              icon={<Target className="h-4 w-4" />}
+              label="Conversão Total"
+              value={convMR === null ? "—" : `${convMR.toFixed(1)}%`}
+              sub="Recebido / MRR Contratado"
+              tone={convMR === null ? "slate" : toneMrrFat(convMR)}
+            />
+          </div>
+        </>
       )}
 
       <section className="rounded-lg border bg-card">
