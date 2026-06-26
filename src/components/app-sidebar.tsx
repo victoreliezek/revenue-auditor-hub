@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, TrendingUp, Users, ShieldCheck, Building2, Coins, BadgeCheck, Wallet, Smile, MessageSquareWarning, FileBarChart, Filter, Gauge, LineChart, Receipt } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Users, ShieldCheck, Building2, Coins, BadgeCheck, Wallet, Smile, MessageSquareWarning, FileBarChart, Filter, Gauge, LineChart, Receipt, Activity, BarChart3 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -34,6 +34,16 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
       { title: "Operação", url: "/operacao", icon: Building2, permission: "view.clientes" },
       { title: "NPS", url: "/nps", icon: Smile, permission: "view.clientes" },
       { title: "Tratativas", url: "/tratativas", icon: MessageSquareWarning, permission: "view.clientes" },
+    ],
+  },
+  {
+    label: "Gestão da Rede",
+    items: [
+      { title: "Overview", url: "/rede-overview", icon: Activity, permission: "view.clientes" },
+      { title: "LTV Estimado", url: "/rede-ltv", icon: TrendingUp, permission: "view.clientes" },
+      { title: "Financeiro", url: "/rede-financeiro", icon: Receipt, permission: "view.roas" },
+      { title: "Headcount", url: "/rede-headcount", icon: Users, permission: "view.roas" },
+      { title: "Realizado Unidades", url: "/rede-realizado", icon: BarChart3, permission: "view.clientes" },
     ],
   },
   {

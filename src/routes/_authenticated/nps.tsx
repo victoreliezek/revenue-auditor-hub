@@ -531,6 +531,7 @@ function NpsPage() {
                 <TableHeader className="sticky top-0 z-10 bg-background">
                   <TableRow>
                     <TableHead className="bg-background">Empresa</TableHead>
+                    <TableHead className="bg-background">CNPJ</TableHead>
                     <TableHead className="bg-background">Unidade</TableHead>
                     <TableHead className="bg-background">Segmento</TableHead>
                     <TableHead className="bg-background">Contato</TableHead>
@@ -545,6 +546,7 @@ function NpsPage() {
                   {filtered.map((r: NpsRow) => (
                     <TableRow key={r.id}>
                       <TableCell className="font-medium">{r.empresa ?? "—"}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{r.empresa_cnpj ?? "—"}</TableCell>
                       <TableCell>{r.unidade ?? "—"}</TableCell>
                       <TableCell>{r.segmento ?? "—"}</TableCell>
                       <TableCell>
