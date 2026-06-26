@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { ValidationBanner } from "@/components/validation-banner";
+import { DataFreshnessBar } from "@/components/data-freshness-bar";
 
 
 interface AppShellProps {
@@ -23,6 +24,7 @@ export function AppShell({ title, subtitle, children, headerExtra }: AppShellPro
         </div>
         {headerExtra && <div className="flex items-center gap-2">{headerExtra}</div>}
       </div>
+      <DataFreshnessBar />
       <div className="flex-1">{children}</div>
     </div>
   );
