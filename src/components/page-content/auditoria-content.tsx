@@ -2,14 +2,16 @@ import { useState } from "react";
 import { DataProvider, BaseFilterSelect, RefreshButton } from "@/components/audit/data-context";
 import { VendasPipedriveTab } from "@/components/audit/vendas-pipedrive-tab";
 import { OmieSemPipedriveTab } from "@/components/audit/omie-sem-pipedrive-tab";
+import { HistoricoMensalTab } from "@/components/audit/historico-mensal-tab";
 import { OmieLastSync } from "@/components/omie-last-sync";
 import { cn } from "@/lib/utils";
 
-type Tab = "vendas" | "omie";
+type Tab = "vendas" | "omie" | "historico";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "vendas", label: "Vendas Pipedrive" },
   { key: "omie", label: "Omie sem Pipedrive" },
+  { key: "historico", label: "Histórico Mensal" },
 ];
 
 export function AuditoriaContent() {
@@ -47,6 +49,7 @@ export function AuditoriaContent() {
       <div className="mx-auto max-w-7xl px-4 py-6">
         {tab === "vendas" && <VendasPipedriveTab />}
         {tab === "omie" && <OmieSemPipedriveTab />}
+        {tab === "historico" && <HistoricoMensalTab />}
       </div>
     </DataProvider>
   );
