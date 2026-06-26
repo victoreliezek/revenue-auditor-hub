@@ -112,12 +112,14 @@ function ClientesPage() {
   const { status: statusParam, unidade: unidadeParam } = Route.useSearch();
   const [rows, setRows] = useState<Cliente[]>([]);
   const [mrrByPipedriveId, setMrrByPipedriveId] = useState<Map<string, number>>(new Map());
+  const [churnedIds, setChurnedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [unidade, setUnidade] = useState(unidadeParam || ALL);
   const [statusFilter, setStatusFilter] = useState<StatusFinanceiro | null>(
     statusParam ? (statusParam as StatusFinanceiro) : null,
   );
+  const [churnFilter, setChurnFilter] = useState<boolean | null>(null);
   type SortKey =
     | "razao_social"
     | "unidade"
@@ -138,7 +140,7 @@ function ClientesPage() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const [empRes, contRes] = await Promise.all([
+      const [empRes, contRes, tratRes] = await Promise.all([
         supabase
           .from("empresas")
           .select(
@@ -154,6 +156,12 @@ function ClientesPage() {
           .eq("tipo", "Recorrente")
           .eq("tipo_unidade", "franquia")
           .limit(20000),
+        supabase
+          .from("central_tratativas")
+          .select("pipedrive_deal_id")
+          .eq("estagio", "Perdido")
+          .eq("status", "lost")
+          .limit(2000),
       ]);
       if (!mounted) return;
       if (empRes.data) setRows(empRes.data as Cliente[]);
@@ -165,6 +173,10 @@ function ClientesPage() {
         m.set(id, (m.get(id) ?? 0) + Number(c.mrr_mensal ?? 0));
       }
       setMrrByPipedriveId(m);
+      const churned = new Set<string>(
+        (tratRes.data ?? []).map((t) => String(t.pipedrive_deal_id)).filter(Boolean),
+      );
+      setChurnedIds(churned);
       setLoading(false);
     })();
     return () => {
@@ -189,18 +201,32 @@ function ClientesPage() {
     return rows;
   }, [rows, perms.scopedToOwnUnit, perms.unidade]);
 
+  // churn status derived from central_tratativas (estagio=Perdido)
+  const isChurn = (r: Cliente) => !!r.pipedrive_id && churnedIds.has(r.pipedrive_id);
+
+  const churnCounts = useMemo(() => ({
+    churn: visiveis.filter(isChurn).length,
+    ativo: visiveis.filter((r) => !isChurn(r)).length,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [visiveis, churnedIds]);
+
   const counts = useMemo(() => {
     const c = {} as Record<StatusFinanceiro, number>;
     STATUS_ORDER.forEach((s) => (c[s] = 0));
-    visiveis.forEach((r) => {
+    // payment status counts only for non-churned clients
+    visiveis.filter((r) => !isChurn(r)).forEach((r) => {
       if (r.status_financeiro && c[r.status_financeiro] != null) c[r.status_financeiro]++;
     });
     return c;
-  }, [visiveis]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visiveis, churnedIds]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     const out = visiveis.filter((r) => {
+      // churn filter: null = all, true = only churn, false = only active
+      if (churnFilter === true && !isChurn(r)) return false;
+      if (churnFilter === false && isChurn(r)) return false;
       if (statusFilter && r.status_financeiro !== statusFilter) return false;
       if (!perms.scopedToOwnUnit && unidade !== ALL && r.unidade !== unidade) return false;
       if (term) {
@@ -266,11 +292,12 @@ function ClientesPage() {
     });
   }, [visiveis, q, unidade, statusFilter, perms.scopedToOwnUnit, sort, mrrByPipedriveId]);
 
-  const hasFilters = q !== "" || unidade !== ALL || statusFilter !== null;
+  const hasFilters = q !== "" || unidade !== ALL || statusFilter !== null || churnFilter !== null;
   const clearFilters = () => {
     setQ("");
     setUnidade(ALL);
     setStatusFilter(null);
+    setChurnFilter(null);
   };
 
   return (
@@ -292,7 +319,38 @@ function ClientesPage() {
         </TabsList>
 
         <TabsContent value="planning" className="space-y-6">
-          {/* Status cards */}
+          {/* Status do Cliente (ativo vs churn) */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => { setChurnFilter(churnFilter === false ? null : false); setStatusFilter(null); }}
+              className={cn(
+                "rounded-lg border p-4 text-left shadow-sm transition-all hover:shadow-md",
+                "bg-emerald-50 border-emerald-200 text-emerald-900 dark:bg-emerald-950 dark:border-emerald-900 dark:text-emerald-100",
+                churnFilter === false && "ring-2 ring-offset-2 ring-primary",
+              )}
+            >
+              <div className="text-xs font-medium uppercase tracking-wide opacity-80">Clientes Ativos</div>
+              <div className="mt-1 text-3xl font-bold">{churnCounts.ativo}</div>
+              <div className="mt-1 text-[11px] opacity-75">Sem card de churn em tratativas</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setChurnFilter(churnFilter === true ? null : true); setStatusFilter(null); }}
+              className={cn(
+                "rounded-lg border p-4 text-left shadow-sm transition-all hover:shadow-md",
+                "bg-red-50 border-red-200 text-red-900 dark:bg-red-950 dark:border-red-900 dark:text-red-100",
+                churnFilter === true && "ring-2 ring-offset-2 ring-primary",
+              )}
+            >
+              <div className="text-xs font-medium uppercase tracking-wide opacity-80">Churn</div>
+              <div className="mt-1 text-3xl font-bold">{churnCounts.churn}</div>
+              <div className="mt-1 text-[11px] opacity-75">Card "Perdido" em tratativas</div>
+            </button>
+          </div>
+
+          {/* Status de Pagamento (somente clientes ativos) */}
+          <div className="text-xs text-muted-foreground -mb-1 px-0.5">Status de pagamento — clientes ativos</div>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
             {STATUS_ORDER.map((s) => {
               const meta = STATUS_META[s];
@@ -453,10 +511,16 @@ function ClientesPage() {
                 <TableBody>
                   {filtered.map((r) => {
                     const meta = r.status_financeiro ? STATUS_META[r.status_financeiro] : null;
+                    const churned = isChurn(r);
                     return (
-                      <TableRow key={r.id}>
+                      <TableRow key={r.id} className={churned ? "opacity-60" : undefined}>
                         <TableCell className="font-medium">
-                          {r.razao_social || r.titulo || "—"}
+                          <div className="flex items-center gap-2">
+                            {r.razao_social || r.titulo || "—"}
+                            {churned && (
+                              <Badge className="bg-red-100 text-red-700 border-red-200 text-[10px] px-1.5 py-0">churn</Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {r.unidade ? <Badge variant="secondary">{r.unidade}</Badge> : "—"}

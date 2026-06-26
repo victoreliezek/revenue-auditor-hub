@@ -57,18 +57,43 @@ const fmtMesLong = (m: string | null | undefined) => {
 function RedeOverviewPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<ReconcRow[]>([]);
+  const [clientesAtivos, setClientesAtivos] = useState<number | null>(null);
+  const [totalClientes, setTotalClientes] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [unidadeFilter, setUnidadeFilter] = useState(ALL);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const { data } = await supabase
-        .from("v_reconciliacao_mensal")
-        .select("mes,unidade,mrr_contratado,faturado,recebido,num_contratos")
-        .order("mes", { ascending: true });
+      const [reconRes, empRes, tratRes] = await Promise.all([
+        supabase
+          .from("v_reconciliacao_mensal")
+          .select("mes,unidade,mrr_contratado,faturado,recebido,num_contratos")
+          .order("mes", { ascending: true }),
+        supabase
+          .from("empresas")
+          .select("pipedrive_id")
+          .eq("tipo_unidade", "franquia")
+          .limit(2000),
+        supabase
+          .from("central_tratativas")
+          .select("pipedrive_deal_id")
+          .eq("estagio", "Perdido")
+          .eq("status", "lost")
+          .limit(2000),
+      ]);
       if (!mounted) return;
-      setRows((data ?? []) as ReconcRow[]);
+      setRows((reconRes.data ?? []) as ReconcRow[]);
+
+      const churnedIds = new Set(
+        (tratRes.data ?? []).map((t) => String(t.pipedrive_deal_id)).filter(Boolean),
+      );
+      const empresas = empRes.data ?? [];
+      const ativos = empresas.filter(
+        (e) => !e.pipedrive_id || !churnedIds.has(String(e.pipedrive_id)),
+      ).length;
+      setTotalClientes(empresas.length);
+      setClientesAtivos(ativos);
       setLoading(false);
     })();
     return () => { mounted = false; };
@@ -195,12 +220,14 @@ function RedeOverviewPage() {
         </Card>
         <Card
           className="p-4 cursor-pointer hover:shadow-md transition-shadow hover:border-primary/40"
-          onClick={() => navigate({ to: "/clientes", search: { status: "ATIVO" } })}
+          onClick={() => navigate({ to: "/clientes" })}
           title="Ver clientes ativos"
         >
           <div className="text-xs text-muted-foreground">Clientes Ativos</div>
-          <div className="mt-1 text-2xl font-bold">{kpis.clientes || "—"}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">contratos vigentes</div>
+          <div className="mt-1 text-2xl font-bold">{clientesAtivos ?? "—"}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {totalClientes != null ? `de ${totalClientes} cadastrados` : "sem churn"}
+          </div>
         </Card>
         <Card className="p-4">
           <div className="text-xs text-muted-foreground">Churn Receita</div>
