@@ -232,9 +232,9 @@ section{padding:100px 0;}
     <a class="nav-link" href="#premissas">Premissas</a>
     <a class="nav-link" href="#impacto">Impacto</a>
     <a class="nav-link" href="#evolucao">Evolução</a>
-    <a class="nav-link" href="#composicao">Composição</a>
-    <a class="nav-link" href="#apuracao">Apuração</a>
+    <a class="nav-link" href="#composicao">Progressão</a>
     <a class="nav-link" href="#legal">Base Legal</a>
+    ${d.observacoes ? '<a class="nav-link" href="#notas">Notas</a>' : ''}
   </div>
   <span class="confid">Diagnóstico · Confidencial</span>
 </nav>
@@ -253,7 +253,7 @@ section{padding:100px 0;}
   </p>
   <div class="hero-meta reveal d3">
     <div class="hm"><div class="hml">Empresa</div><div class="hmv">${d.empresa} · ${d.estado}</div></div>
-    <div class="hm"><div class="hml">Atividade</div><div class="hmv">${d.atividade || 'Comércio atacadista'}</div></div>
+    <div class="hm"><div class="hml">Atividade</div><div class="hmv">${d.atividade || '—'}</div></div>
     <div class="hm"><div class="hml">Elaboração</div><div class="hmv">Planning · ${d.referencia}</div></div>
   </div>
 </div>
@@ -271,7 +271,7 @@ section{padding:100px 0;}
     <div class="card cg-border reveal d1"><div class="cl">Faturamento anual</div><div class="cv">R$ ${(d.faturamento/1e6).toFixed(1)}<span style="font-size:1rem">mi</span></div><div class="cd">Base de cálculo dos tributos sobre a receita</div></div>
     <div class="card reveal d2"><div class="cl">Aquisições anuais</div><div class="cv">R$ ${(d.aquisicoes/1e6).toFixed(1)}<span style="font-size:1rem">mi</span></div><div class="cd">Compras que geram crédito tributário</div></div>
     <div class="card cg-border reveal d3"><div class="cl">Carga efetiva hoje</div><div class="cv" style="color:var(--g)">${fmtPct(first.carga)}</div><div class="cd">Sobre ICMS, PIS e COFINS a pagar</div></div>
-    <div class="card reveal"><div class="cl">Atividade</div><div class="cv" style="font-size:1rem;line-height:1.25;">Atacado<br>industrial</div><div class="cd">${d.estado}</div></div>
+    <div class="card reveal"><div class="cl">Atividade</div><div class="cv" style="font-size:1rem;line-height:1.25;">${d.atividade || '—'}</div><div class="cd">${d.estado}</div></div>
   </div>
   <div style="margin-top:48px;" class="reveal">
     <div class="eyebrow" style="margin-bottom:6px;">Alíquotas de referência</div>
@@ -319,9 +319,9 @@ section{padding:100px 0;}
     <div class="ig hl"><div class="ig-label cl-r">Imposto a pagar / ano</div>
       <div class="ig-row"><span class="ig-v" style="color:var(--g)">R$ ${(first.desembolso/1e6).toFixed(2)}mi</span><span class="ig-arrow">→</span><span class="ig-v" style="color:var(--r)">R$ ${(last.desembolso/1e6).toFixed(2)}mi</span></div>
       <div class="ig-delta"><strong style="color:var(--r)">+R$ ${fmtBRL(deltaR)} por ano</strong> no regime final</div></div>
-    <div class="ig"><div class="ig-label cl-r">Resultado operacional</div>
-      <div class="ig-row"><span class="ig-v" style="color:var(--g)">R$ 6,21mi</span><span class="ig-arrow">→</span><span class="ig-v" style="color:var(--r)">R$ 3,86mi</span></div>
-      <div class="ig-delta">Queda de <strong style="color:var(--r)">R$ 2.350.740,00</strong> no resultado simulado</div></div>
+    <div class="ig"><div class="ig-label cl-r">Receita após impostos</div>
+      <div class="ig-row"><span class="ig-v" style="color:var(--g)">R$ ${((d.faturamento-first.desembolso)/1e6).toFixed(2)}mi</span><span class="ig-arrow">→</span><span class="ig-v" style="color:var(--r)">R$ ${((d.faturamento-last.desembolso)/1e6).toFixed(2)}mi</span></div>
+      <div class="ig-delta">Impacto de <strong style="color:var(--r)">−R$ ${fmtBRL(deltaR)}</strong> no resultado simulado</div></div>
   </div>
   <div class="bar-box reveal">
     <div class="bar-title">Carga efetiva sobre o consumo · hoje vs regime final</div>
@@ -329,7 +329,7 @@ section{padding:100px 0;}
     <div class="bar-row"><span class="bar-yr">${last.ano}</span><div class="bar-track"><div class="bar-fill" data-w="100"></div></div><span class="bar-lbl" style="color:var(--c)">${fmtPct(last.carga)}</span></div>
     <div style="text-align:right;margin-top:14px;font-size:1.7rem;font-weight:900;color:var(--c);">+${deltaPp} p.p.</div>
   </div>
-  ${obsBlock}
+
 </div>
 </section>
 
@@ -363,63 +363,20 @@ section{padding:100px 0;}
 <!-- ── COMPOSIÇÃO ── -->
 <section id="composicao" style="background:var(--s1);">
 <div class="container">
-  <div class="reveal"><div class="eyebrow">04 · Quem sai, quem entra</div>
-  <h2 class="section-title ruled">O desembolso por imposto, <span style="color:var(--g)">ano a ano</span></h2>
-  <p class="section-sub">O ICMS encolhe até zerar em 2033, o PIS/COFINS sai em 2027, e CBS e IBS crescem para ocupar o lugar.</p></div>
+  <div class="reveal"><div class="eyebrow">04 · Progressão anual</div>
+  <h2 class="section-title ruled">Desembolso total <span style="color:var(--g)">ano a ano</span></h2>
+  <p class="section-sub">O imposto a pagar cresce gradualmente com a transição e dá o salto maior em 2033, quando o ICMS zera e o IBS assume a alíquota cheia.</p></div>
   <div class="reveal" style="margin-top:32px;">
     <div class="tabs-header">
-      <button class="tab-btn active" onclick="tab('comp','grafico',this)">Gráfico empilhado</button>
+      <button class="tab-btn active" onclick="tab('comp','grafico',this)">Gráfico</button>
       <button class="tab-btn" onclick="tab('comp','tabela',this)">Tabela</button>
-      <button class="tab-btn" onclick="tab('comp','analise',this)">Análise</button>
     </div>
-    <div id="comp-grafico" class="tab-panel active"><div class="chart-box"><canvas id="chartStack" height="120"></canvas></div></div>
+    <div id="comp-grafico" class="tab-panel active"><div class="chart-box"><canvas id="chartBar" height="120"></canvas></div></div>
     <div id="comp-tabela" class="tab-panel">
-      <table class="dt"><thead><tr><th>Imposto</th><th style="text-align:right;">2026</th><th style="text-align:right;">2027</th><th style="text-align:right;">2028</th><th style="text-align:right;">2029</th><th style="text-align:right;">2030</th><th style="text-align:right;">2031</th><th style="text-align:right;">2032</th><th style="text-align:right;">2033</th></tr></thead>
+      <table class="dt"><thead><tr><th>Ano</th><th>Fase</th><th style="text-align:right;">Carga efetiva</th><th style="text-align:right;">Total impostos (R$)</th><th style="text-align:right;">Var. vs 2026</th></tr></thead>
       <tbody>
-        <tr><td class="vw">ICMS</td><td style="text-align:right;">960.960</td><td style="text-align:right;">960.960</td><td style="text-align:right;">960.960</td><td style="text-align:right;">864.864</td><td style="text-align:right;">768.768</td><td style="text-align:right;">672.672</td><td style="text-align:right;">576.576</td><td class="vg" style="text-align:right;">0</td></tr>
-        <tr><td class="vw">PIS / COFINS</td><td style="text-align:right;">632.611</td><td class="vg" style="text-align:right;">0</td><td class="vg" style="text-align:right;">0</td><td class="vg" style="text-align:right;">0</td><td class="vg" style="text-align:right;">0</td><td class="vg" style="text-align:right;">0</td><td class="vg" style="text-align:right;">0</td><td class="vg" style="text-align:right;">0</td></tr>
-        <tr><td class="vc">CBS</td><td style="text-align:right;color:#555;">0</td><td class="vc" style="text-align:right;">638.698</td><td class="vc" style="text-align:right;">634.963</td><td class="vc" style="text-align:right;">641.536</td><td class="vc" style="text-align:right;">644.374</td><td class="vc" style="text-align:right;">647.212</td><td class="vc" style="text-align:right;">650.050</td><td class="vc" style="text-align:right;">694.463</td></tr>
-        <tr><td class="vr">IBS</td><td style="text-align:right;color:#555;">0</td><td class="vr" style="text-align:right;">6.773</td><td class="vr" style="text-align:right;">6.733</td><td class="vr" style="text-align:right;">129.260</td><td class="vr" style="text-align:right;">259.663</td><td class="vr" style="text-align:right;">391.210</td><td class="vr" style="text-align:right;">523.900</td><td class="vr" style="text-align:right;">1.399.236</td></tr>
-        <tr class="total-row"><td>TOTAL</td><td style="text-align:right;">1.593.571</td><td style="text-align:right;">1.606.431</td><td style="text-align:right;">1.602.657</td><td style="text-align:right;">1.635.659</td><td style="text-align:right;">1.672.805</td><td style="text-align:right;">1.711.094</td><td style="text-align:right;">1.750.526</td><td class="vr" style="text-align:right;">2.093.699</td></tr>
+        ${d.years.map((y, i) => '<tr' + (i === d.years.length - 1 ? ' class="last-row"' : '') + '><td>' + y.ano + '</td><td style="color:#777;font-size:.78rem;">' + getPhase(i) + '</td><td style="text-align:right;color:#5FB77F;font-weight:700;">' + fmtPct(y.carga) + '</td><td style="text-align:right;">' + fmtBRL(y.desembolso) + '</td><td style="text-align:right;color:' + (y.desembolso > first.desembolso ? '#ff5252' : '#777') + ';">' + (i === 0 ? '—' : '+R$ ' + fmtBRL(y.desembolso - first.desembolso)) + '</td></tr>').join('')}
       </tbody></table>
-    </div>
-    <div id="comp-analise" class="tab-panel">
-      <div class="bb-grid">
-        <div class="bb"><div class="bb-tax">ICMS</div><div class="bb-val">R$ 960k <span style="color:var(--r)">→ 0</span></div><div class="bb-sub" style="color:var(--r)">Zera em 2033</div><div class="bb-desc">−R$ 96k/ano a partir de 2029. A saída alivia a carga, mas não compensa a entrada do IBS.</div></div>
-        <div class="bb"><div class="bb-tax">CBS</div><div class="bb-val vc">R$ 694k</div><div class="bb-sub vc">Estável no regime final</div><div class="bb-desc">Substitui o PIS/COFINS em 2027 num patamar parecido. A CBS não é responsável pelo aumento — é praticamente neutra.</div></div>
-        <div class="bb red-bb"><div class="bb-tax">IBS</div><div class="bb-val vr">R$ 1,40mi</div><div class="bb-sub vr">O grande peso de 2033</div><div class="bb-desc">67% de todo o imposto pago no regime final. É nele que mora o salto de 8,34% para 9,97%.</div></div>
-      </div>
-    </div>
-  </div>
-</div>
-</section>
-
-<div class="divider"></div>
-
-<!-- ── APURAÇÃO ── -->
-<section id="apuracao">
-<div class="container">
-  <div class="reveal"><div class="eyebrow">05 · Anatomia da apuração</div>
-  <h2 class="section-title ruled">Débito menos crédito · <span style="color:var(--c)">como o imposto se forma</span></h2>
-  <p class="section-sub">O imposto a pagar é o que se deve sobre a receita (débito) menos o que se aproveita das compras (crédito). A Reforma aumenta os dois lados, mas o débito cresce mais rápido.</p></div>
-  <div class="ap-grid reveal">
-    <div>
-      <div class="ap-row ap-head"><span>Componente</span><span class="ap-v1">Atual (R$)</span><span class="ap-v2" style="color:var(--c)">Pós-Reforma (R$)</span></div>
-      <div class="ap-row ap-group"><span>Tributos sobre a receita (débito)</span><span class="ap-v1">3.619.560</span><span class="ap-v2" style="color:var(--r);font-weight:800;">5.970.300</span></div>
-      <div class="ap-row ap-indent"><span>ICMS</span><span class="ap-v1">1.848.000</span><span class="ap-v2" style="color:#555;">0</span></div>
-      <div class="ap-row ap-indent"><span>PIS / COFINS</span><span class="ap-v1">1.771.560</span><span class="ap-v2" style="color:#555;">0</span></div>
-      <div class="ap-row ap-indent"><span>CBS</span><span class="ap-v1" style="color:#555;">0</span><span class="ap-v2">1.980.300</span></div>
-      <div class="ap-row ap-indent"><span>IBS</span><span class="ap-v1" style="color:#555;">0</span><span class="ap-v2">3.990.000</span></div>
-      <div class="ap-row ap-group" style="margin-top:8px;"><span>Créditos sobre aquisições</span><span class="ap-v1">2.025.989</span><span class="ap-v2">3.876.601</span></div>
-      <div class="ap-row ap-indent"><span>ICMS / PIS / COFINS</span><span class="ap-v1">2.025.989</span><span class="ap-v2" style="color:#555;">0</span></div>
-      <div class="ap-row ap-indent"><span>CBS (crédito)</span><span class="ap-v1" style="color:#555;">0</span><span class="ap-v2">1.285.837</span></div>
-      <div class="ap-row ap-indent"><span>IBS (crédito)</span><span class="ap-v1" style="color:#555;">0</span><span class="ap-v2">2.590.764</span></div>
-      <div class="ap-row ap-total"><span>Imposto a pagar (débito − crédito)</span><span class="ap-v1">1.593.571</span><span class="ap-v2" style="font-size:1rem;">2.093.699</span></div>
-    </div>
-    <div class="ap-kpis">
-      <div class="card cc-border" style="text-align:center;"><div class="cl cl-c">Receita líquida</div><div style="font-size:.95rem;font-weight:800;margin:7px 0;">R$ 17,38mi<br><span style="color:var(--r)">→ R$ 15,03mi</span></div><div class="cd">Menos receita sobra após os tributos</div></div>
-      <div class="card" style="text-align:center;"><div class="cl">Crédito aproveitado</div><div style="font-size:.95rem;font-weight:800;margin:7px 0;">15,35%<br><span style="color:var(--c)">→ 29,37%</span></div><div class="cd">Mais crédito, mas insuficiente</div></div>
-      <div class="card cr-border" style="text-align:center;"><div class="cl cl-r">Acréscimo na carga</div><div class="cv" style="color:var(--r);font-size:1.8rem;margin:7px 0;">+${deltaPp}<span style="font-size:1rem">p.p.</span></div><div class="cd">+R$ ${fmtBRL(deltaR)}/ano</div></div>
     </div>
   </div>
 </div>
@@ -450,6 +407,18 @@ section{padding:100px 0;}
 </div>
 </section>
 
+${d.observacoes ? `
+<div class="divider"></div>
+<section id="notas" style="background:var(--s1);">
+<div class="container">
+  <div class="reveal"><div class="eyebrow">Nota da Auditora</div>
+  <h2 class="section-title ruled" style="font-size:1.4rem;">Observações técnicas desta análise</h2></div>
+  <div class="reveal" style="margin-top:24px;background:#0f180f;border:1px solid #1e3a1e;border-radius:12px;padding:24px 28px;font-size:.88rem;color:#ccc;line-height:1.75;max-width:720px;">
+    ${d.observacoes.split('\n').map((l) => '<p style="margin-bottom:6px;">' + (l.trim() || '&nbsp;') + '</p>').join('')}
+  </div>
+</div>
+</section>` : ''}
+
 <div class="divider"></div>
 
 <!-- ── CTA ── -->
@@ -473,14 +442,14 @@ function tab(g,p,btn){
   btn.closest('.tabs-header').querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   if(p==='grafico'&&g==='evo'&&!window.cLine) initLine();
-  if(p==='grafico'&&g==='comp'&&!window.cStack) initStack();
+  if(p==='grafico'&&g==='comp'&&!window.cBar) initBar();
 }
 
 // Scroll progress + nav active
 window.addEventListener('scroll',()=>{
   const h=document.documentElement;
   document.getElementById('pl').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
-  ['premissas','impacto','evolucao','composicao','apuracao','legal','cta'].forEach(id=>{
+  ['premissas','impacto','evolucao','composicao','legal','notas','cta'].forEach(id=>{
     const el=document.getElementById(id);
     if(el&&el.getBoundingClientRect().top<=80)
       document.querySelectorAll('.nav-link').forEach(l=>l.classList.toggle('active',l.getAttribute('href')==='#'+id));
@@ -510,21 +479,18 @@ function initLine(){
       scales:{x:{ticks:{color:'#666',font:{size:11}},grid:{color:'#1a1a1a'}},
               y:{min:${Math.floor(first.carga * 100 - 0.5)},ticks:{color:'#666',font:{size:11},callback:v=>v+'%'},grid:{color:'#1a1a1a'}}}}});
 }
-function initStack(){
-  window.cStack=new Chart(document.getElementById('chartStack').getContext('2d'),{type:'bar',
-    data:{labels:anos,datasets:[
-      {label:'ICMS',data:[960960,960960,960960,864864,768768,672672,576576,0],backgroundColor:'#444',stack:'t'},
-      {label:'PIS/COFINS',data:[632611,0,0,0,0,0,0,0],backgroundColor:'#666',stack:'t'},
-      {label:'CBS',data:[0,638698,634963,641536,644374,647212,650050,694463],backgroundColor:'#4EBED8',stack:'t'},
-      {label:'IBS',data:[0,6773,6733,129260,259663,391210,523900,1399236],backgroundColor:'#ff5252',stack:'t'}]},
+function initBar(){
+  const colors=desemb.map((_,i)=>i===desemb.length-1?'#5FB77F':'#4EBED8');
+  window.cBar=new Chart(document.getElementById('chartBar').getContext('2d'),{type:'bar',
+    data:{labels:anos,datasets:[{label:'Total impostos a pagar (R$)',data:desemb,backgroundColor:colors,borderRadius:4}]},
     options:{responsive:true,animation:{duration:900},
-      plugins:{legend:{labels:{color:'#888',font:{size:11},boxWidth:12}},
+      plugins:{legend:{display:false},
         tooltip:{backgroundColor:'#1c1c1c',borderColor:'#333',borderWidth:1,
-          callbacks:{label:c=>' '+c.dataset.label+': R$ '+c.parsed.y.toLocaleString('pt-BR')}}},
-      scales:{x:{ticks:{color:'#666',font:{size:11}},grid:{color:'#1a1a1a'},stacked:true},
-              y:{stacked:true,ticks:{color:'#666',font:{size:11},callback:v=>'R$ '+(v/1000).toFixed(0)+'k'},grid:{color:'#1a1a1a'}}}}});
+          callbacks:{label:c=>'R$ '+c.parsed.y.toLocaleString('pt-BR')}}},
+      scales:{x:{ticks:{color:'#666',font:{size:11}},grid:{color:'#1a1a1a'}},
+              y:{ticks:{color:'#666',font:{size:11},callback:v=>'R$ '+(v/1000).toFixed(0)+'k'},grid:{color:'#1a1a1a'}}}}});
 }
-window.addEventListener('load',()=>setTimeout(initStack,100));
+window.addEventListener('load',()=>setTimeout(initBar,100));
 <\/script>
 </body>
 </html>`;
