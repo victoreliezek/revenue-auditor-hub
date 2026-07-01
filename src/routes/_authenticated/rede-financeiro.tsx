@@ -621,9 +621,22 @@ function ValidacaoRoyaltiesSection() {
                   </TableCell>
                   {months.map((m) => {
                     const c = cells.get(`${unidade}|${m}`);
+                    if (!c || (c.cobrado == null && !c.recebido)) {
+                      return (
+                        <TableCell key={m} className="text-right tabular-nums py-2 text-sm text-muted-foreground/40">
+                          —
+                        </TableCell>
+                      );
+                    }
+                    // Diverge se os dois existem e a diferença passa de 1% do cobrado
+                    const diverge =
+                      c.cobrado != null && c.recebido > 0 && Math.abs(c.cobrado - c.recebido) > Math.abs(c.cobrado) * 0.01;
                     return (
-                      <TableCell key={m} className="text-right tabular-nums py-2 text-sm text-muted-foreground">
-                        {c?.cobrado != null || c?.recebido ? fmtBRL(c?.recebido || c?.cobrado || 0) : "—"}
+                      <TableCell key={m} className="text-right tabular-nums py-2 text-sm">
+                        <span className={diverge ? "text-amber-600 dark:text-amber-400 font-semibold" : "text-muted-foreground"}>
+                          {fmtBRL(c.cobrado ?? c.recebido)}
+                        </span>
+                        {diverge && <span title="Cobrado e Recebido divergem" className="ml-1">⚠️</span>}
                       </TableCell>
                     );
                   })}
