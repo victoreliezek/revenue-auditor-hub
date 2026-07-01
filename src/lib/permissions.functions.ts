@@ -19,6 +19,7 @@ export const KNOWN_PERMISSIONS: { key: string; label: string; description: strin
   { key: "view.auditoria.royalties", label: "Aba Royalties (Auditoria)", description: "Visualizar aba de Royalties dentro de Auditoria.", group: "Auditoria" },
   { key: "view.auditoria.unmapped", label: "Aba Não Mapeados", description: "Visualizar aba de Registros Não Mapeados.", group: "Auditoria" },
   { key: "view.roas", label: "Acessar ROAS & Payback", description: "Módulo de ROAS e payback.", group: "Acesso" },
+  { key: "view.reforma_tributaria", label: "Acessar Reforma Tributária", description: "Gerador de mapa da reforma tributária para clientes.", group: "Ferramentas" },
   { key: "view.network.benchmarks", label: "Benchmarks da rede", description: "Permite ver médias e comparativos agregados da rede.", group: "Dados" },
   { key: "view.admin.users", label: "Gerenciar usuários", description: "Cadastrar, editar e excluir usuários.", group: "Administração" },
   { key: "view.admin.permissions", label: "Configurar permissões", description: "Editar a matriz de permissões por papel.", group: "Administração" },

@@ -64,7 +64,7 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
   {
     label: "Ferramentas",
     items: [
-      { title: "Reforma Tributária", url: "/reforma-tributaria", icon: FileBarChart2, permission: "view.roas" },
+      { title: "Reforma Tributária", url: "/reforma-tributaria", icon: FileBarChart2, permission: "view.reforma_tributaria" },
     ],
   },
   {
