@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { TrendingDown, Calendar, Target } from "lucide-react";
 import {
@@ -24,6 +24,10 @@ export const Route = createFileRoute("/_authenticated/simulador-caixa")({
   head: () => ({
     meta: [{ title: "Simulador de Fluxo de Caixa – Planning" }],
   }),
+  // Página desativada: sem link no menu e acesso direto redireciona.
+  beforeLoad: () => {
+    throw redirect({ to: "/" });
+  },
   component: SimuladorCaixa,
 });
 
