@@ -73,8 +73,9 @@ function ReformaTributariaPage() {
     setFileName(file.name);
     try {
       const parsed = await parseReformaTributariaXlsx(file);
-      setData((prev) => ({ ...prev, ...parsed }));
-      toast.success('Arquivo carregado. Revise e ajuste os dados antes de gerar.');
+      // Reset company-specific text fields so stale data from previous client doesn't carry over
+      setData((prev) => ({ ...prev, empresa: '', atividade: '', ...parsed }));
+      toast.success('Arquivo carregado. Preencha Razão Social e Atividade antes de gerar.');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao processar o arquivo.');
     } finally {
