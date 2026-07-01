@@ -75,6 +75,7 @@ type Lanc = {
   numero_documento: string | null;
   codigo_lancamento_omie: number | null;
   codigo_cliente_fornecedor: number | null;
+  razao_social: string | null;
 };
 
 
@@ -207,10 +208,6 @@ export function DREPartnersPage() {
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [drill, setDrill] = useState<{ label: string; items: Lanc[] } | null>(null);
   const [categoriaMap, setCategoriaMap] = useState<Map<string, string>>(new Map());
-  const [clienteMap, setClienteMap] = useState<Map<number, string>>(new Map());
-
-
-
 
   useEffect(() => {
     let mounted = true;
@@ -221,7 +218,7 @@ export function DREPartnersPage() {
       const endYear = ano + 1;
       const { data: rows } = await supabase
         .from("partners_financeiro")
-        .select("tipo,categoria_codigo,departamento,data_emissao,data_vencimento,valor_documento,status_titulo,numero_documento,codigo_lancamento_omie,codigo_cliente_fornecedor")
+        .select("tipo,categoria_codigo,departamento,data_emissao,data_vencimento,valor_documento,status_titulo,numero_documento,codigo_lancamento_omie,codigo_cliente_fornecedor,razao_social")
         .gte("data_vencimento", `${startYear}-01-01`)
         .lt("data_vencimento", `${endYear + 1}-01-01`)
         .neq("status_titulo", "CANCELADO")
@@ -235,19 +232,12 @@ export function DREPartnersPage() {
         .from("categorias_omie")
         .select("codigo,descricao")
         .limit(5000);
-      const { data: cfs } = await (supabase as any)
-        .from("clientes_fornecedores_omie")
-        .select("codigo,razao_social")
-        .limit(20000);
       if (!mounted) return;
       setData((rows ?? []) as Lanc[]);
       setLastSync(sync?.[0]?.synced_at ?? null);
       const cm = new Map<string, string>();
       (cats ?? []).forEach((c: any) => cm.set(c.codigo, c.descricao));
       setCategoriaMap(cm);
-      const fm = new Map<number, string>();
-      (cfs ?? []).forEach((c: any) => fm.set(Number(c.codigo), c.razao_social));
-      setClienteMap(fm);
       setLoading(false);
     })();
     return () => {
