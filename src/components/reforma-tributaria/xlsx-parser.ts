@@ -156,19 +156,27 @@ export async function parseReformaTributariaXlsx(
         const carga2033 = numCell(sheet2, 'AE31') || (sheet4 ? numCell(sheet4, 'O12') : 0);
         years.push({ ano: 2033, desembolso: desembolso2033, carga: carga2033 });
 
-        // Sanity check: warn if most values are still 0 (might be wrong template row)
-        const nonZeroYears = years.filter((y) => y.desembolso > 0 || y.carga > 0).length;
-        if (nonZeroYears === 0 && faturamento === 0) {
-          // Try to give a helpful message with available sheet names
-          console.warn(
-            '[reforma-parser] All values zero. Sheet names found:',
-            wb.SheetNames,
-            'Sheet2 ref range:',
-            sheet2['!ref'],
-          );
+        // Extract empresa name: try sheet3 A3 first, then fall back to filename
+        // Sheet3 A3 holds the client name in the "Imposto Sobre o Consumo" tab
+        const sheet3 = wb.Sheets[wb.SheetNames[2]];
+        let empresa = '';
+        if (sheet3) {
+          const cell = sheet3['A3'];
+          if (cell && cell.v && typeof cell.v === 'string' && cell.v.trim().length > 2) {
+            empresa = cell.v.trim();
+          }
+        }
+        // If sheet3 is empty or didn't yield a name, extract from filename
+        // Pattern: "Mapa da Reforma Tributaria_NOME DA EMPRESA 1.xlsx"
+        if (!empresa) {
+          const base = file.name.replace(/\.xlsx?$/i, '');
+          const idx = base.indexOf('_');
+          if (idx >= 0) {
+            empresa = base.slice(idx + 1).replace(/\s+\d+$/, '').trim();
+          }
         }
 
-        resolve({ faturamento, aquisicoes, aliquotas, years });
+        resolve({ empresa, faturamento, aquisicoes, aliquotas, years });
       } catch (err) {
         reject(
           new Error(
