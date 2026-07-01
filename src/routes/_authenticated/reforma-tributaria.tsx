@@ -73,8 +73,8 @@ function ReformaTributariaPage() {
     setFileName(file.name);
     try {
       const parsed = await parseReformaTributariaXlsx(file);
-      // Reset atividade (not in xlsx) so stale value from previous client doesn't carry over
-      setData((prev) => ({ ...prev, atividade: '', ...parsed }));
+      // Always reset to DEFAULT_DATA on new file — never carry state from previous client
+      setData({ ...DEFAULT_DATA, ...parsed });
       toast.success('Arquivo carregado. Confirme a Razão Social e preencha a Atividade.');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao processar o arquivo.');
