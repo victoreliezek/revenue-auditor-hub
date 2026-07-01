@@ -596,7 +596,7 @@ export function DREPartnersPage() {
         </div>
 
       </div>
-      <DrillDialog drill={drill} onClose={() => setDrill(null)} categoriaMap={categoriaMap} clienteMap={clienteMap} />
+      <DrillDialog drill={drill} onClose={() => setDrill(null)} categoriaMap={categoriaMap} />
     </AppShell>
   );
 }
@@ -809,12 +809,10 @@ function DrillDialog({
   drill,
   onClose,
   categoriaMap,
-  clienteMap,
 }: {
   drill: { label: string; items: Lanc[] } | null;
   onClose: () => void;
   categoriaMap: Map<string, string>;
-  clienteMap: Map<number, string>;
 }) {
   const items = drill?.items ?? [];
   const sorted = [...items].sort((a, b) =>
@@ -824,8 +822,6 @@ function DrillDialog({
 
   const catNome = (codigo: string | null) =>
     (codigo && categoriaMap.get(codigo)) || "";
-  const cliNome = (codigo: number | null) =>
-    (codigo != null && clienteMap.get(Number(codigo))) || "";
 
   const exportCsv = () => {
     const head = [
@@ -849,7 +845,7 @@ function DrillDialog({
         r.status_titulo ?? "",
         r.categoria_codigo ?? "",
         catNome(r.categoria_codigo),
-        cliNome(r.codigo_cliente_fornecedor),
+        r.razao_social ?? "",
         r.departamento ?? "",
         r.numero_documento ?? "",
         r.codigo_lancamento_omie ?? "",
@@ -905,7 +901,7 @@ function DrillDialog({
               ) : (
                 sorted.map((r, i) => {
                   const catN = catNome(r.categoria_codigo);
-                  const cf = cliNome(r.codigo_cliente_fornecedor);
+                  const cf = r.razao_social ?? "";
                   return (
                   <TableRow key={`${r.codigo_lancamento_omie ?? i}-${i}`}>
                     <TableCell className="whitespace-nowrap">

@@ -18,6 +18,8 @@ import {
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/rede-financeiro")({
@@ -269,6 +271,9 @@ function RedeFinanceiroPage() {
           <PivotTable pivot={pivot} months={months} />
         </>
       )}
+
+      {/* Validação Royalties — Projetado x Cobrado x Recebido */}
+      <ValidacaoRoyaltiesSection />
     </div>
   );
 }
@@ -386,5 +391,440 @@ function PivotTable({ pivot, months }: { pivot: PivotUnidade[]; months: string[]
         </tfoot>
       </Table>
     </Card>
+  );
+}
+
+// ============================================================
+// Validação Royalties — Projetado x Cobrado x Recebido por unidade
+// ============================================================
+type ApuracaoRow = {
+  id: number;
+  unidade_id: number;
+  mes_referencia: string;
+  royalties_valor: number | null;
+  status: string;
+};
+
+type RecebidoLanc = {
+  razao_social: string | null;
+  categoria_codigo: string | null;
+  status_titulo: string | null;
+  data_pagamento: string | null;
+  data_vencimento: string | null;
+  valor_documento: number | null;
+  numero_documento: string | null;
+};
+
+type RoyaltiesItem = {
+  id: number;
+  razao_social: string;
+  cnpj: string | null;
+  valor_confirmado: number | null;
+  royalties_item: number | null;
+  confirmado: boolean | null;
+};
+
+type ValidacaoCell = {
+  projetado: number | null;
+  cobrado: number | null;
+  cobradoStatus?: string;
+  cobradoApuracaoId?: number;
+  recebido: number;
+  recebidoItems: RecebidoLanc[];
+};
+
+const STATUS_APURACAO_LABEL: Record<string, string> = {
+  rascunho: "Rascunho",
+  em_revisao: "Em revisão",
+  confirmado: "Confirmado",
+  faturado: "Faturado",
+};
+
+function ValidacaoRoyaltiesSection() {
+  const [loading, setLoading] = useState(true);
+  const [apuracoes, setApuracoes] = useState<ApuracaoRow[]>([]);
+  const [overrides, setOverrides] = useState<{ unidade: string; mes: string; valor: number }[]>([]);
+  const [recebidos, setRecebidos] = useState<RecebidoLanc[]>([]);
+  const [mapaUnidade, setMapaUnidade] = useState<Map<string, string>>(new Map());
+  const [unidadesById, setUnidadesById] = useState<Map<number, string>>(new Map());
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [drill, setDrill] = useState<
+    | { tipo: "cobrado"; unidade: string; mes: string; apuracaoId: number }
+    | { tipo: "recebido"; unidade: string; mes: string; items: RecebidoLanc[] }
+    | null
+  >(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const [uRes, apRes, fornRes, mapRes, pfRes] = await Promise.all([
+        supabase.from("unidades").select("id,nome_da_praca").eq("tipo", "regional"),
+        supabase
+          .from("royalties_apuracao")
+          .select("id,unidade_id,mes_referencia,royalties_valor,status"),
+        (supabase as any)
+          .from("receitas_cm_fornecedores")
+          .select("id,unidade")
+          .eq("categoria", "Royalties"),
+        (supabase as any).from("partners_financeiro_unidade_map").select("razao_social,unidade"),
+        supabase
+          .from("partners_financeiro")
+          .select("razao_social,categoria_codigo,status_titulo,data_pagamento,data_vencimento,valor_documento,numero_documento")
+          .in("categoria_codigo", ["1.01.95", "1.01.93"]),
+      ]);
+      if (!mounted) return;
+
+      const uMap = new Map<number, string>();
+      (uRes.data ?? []).forEach((u: any) => uMap.set(u.id, u.nome_da_praca));
+      setUnidadesById(uMap);
+      setApuracoes((apRes.data ?? []) as ApuracaoRow[]);
+
+      const fornUnidade = new Map<number, string>();
+      (fornRes.data ?? []).forEach((f: any) => fornUnidade.set(f.id, f.unidade));
+      const fornecedorIds = Array.from(fornUnidade.keys());
+      let ovs: any[] = [];
+      if (fornecedorIds.length) {
+        const { data } = await supabase
+          .from("receitas_cm_overrides")
+          .select("fornecedor_id,mes,valor")
+          .in("fornecedor_id", fornecedorIds);
+        ovs = data ?? [];
+      }
+      if (!mounted) return;
+      setOverrides(
+        ovs
+          .filter((o) => o.valor != null)
+          .map((o) => ({ unidade: fornUnidade.get(o.fornecedor_id) ?? "", mes: o.mes, valor: Number(o.valor) })),
+      );
+
+      const mMap = new Map<string, string>();
+      (mapRes.data ?? []).forEach((m: any) => mMap.set(m.razao_social, m.unidade));
+      setMapaUnidade(mMap);
+      setRecebidos((pfRes.data ?? []) as RecebidoLanc[]);
+      setLoading(false);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const { cells, months, unidadesList } = useMemo(() => {
+    const cellMap = new Map<string, ValidacaoCell>();
+    const monthsSet = new Set<string>();
+    const unidadesSet = new Set<string>();
+
+    const getCell = (unidade: string, mes: string) => {
+      const key = `${unidade}|${mes}`;
+      let c = cellMap.get(key);
+      if (!c) {
+        c = { projetado: null, cobrado: null, recebido: 0, recebidoItems: [] };
+        cellMap.set(key, c);
+      }
+      monthsSet.add(mes);
+      unidadesSet.add(unidade);
+      return c;
+    };
+
+    for (const a of apuracoes) {
+      const unidade = unidadesById.get(a.unidade_id);
+      if (!unidade) continue;
+      const mes = String(a.mes_referencia).slice(0, 7);
+      const c = getCell(unidade, mes);
+      c.cobrado = (c.cobrado ?? 0) + (a.royalties_valor ?? 0);
+      c.cobradoApuracaoId = a.id;
+      c.cobradoStatus = a.status;
+    }
+
+    for (const o of overrides) {
+      if (!o.unidade) continue;
+      const mes = String(o.mes).slice(0, 7);
+      const c = getCell(o.unidade, mes);
+      c.projetado = (c.projetado ?? 0) + o.valor;
+    }
+
+    for (const r of recebidos) {
+      if (r.status_titulo !== "RECEBIDO") continue;
+      const unidade = r.razao_social ? mapaUnidade.get(r.razao_social) : undefined;
+      if (!unidade) continue;
+      const dataRef = r.data_pagamento ?? r.data_vencimento;
+      if (!dataRef) continue;
+      const mes = dataRef.slice(0, 7);
+      const c = getCell(unidade, mes);
+      c.recebido += r.valor_documento ?? 0;
+      c.recebidoItems.push(r);
+    }
+
+    return {
+      cells: cellMap,
+      months: Array.from(monthsSet).sort(),
+      unidadesList: Array.from(unidadesSet).sort(),
+    };
+  }, [apuracoes, overrides, recebidos, mapaUnidade, unidadesById]);
+
+  const toggle = (unidade: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(unidade)) next.delete(unidade);
+      else next.add(unidade);
+      return next;
+    });
+
+  if (loading) {
+    return <Card className="p-6 text-sm text-muted-foreground">Carregando validação de royalties…</Card>;
+  }
+
+  if (unidadesList.length === 0) {
+    return null;
+  }
+
+  const ROW_DEFS = [
+    { key: "projetado" as const, label: "Projetado" },
+    { key: "cobrado" as const, label: "Cobrado" },
+    { key: "recebido" as const, label: "Recebido" },
+  ];
+
+  return (
+    <Card className="overflow-x-auto">
+      <div className="border-b p-3">
+        <div className="text-sm font-semibold">Validação Royalties — Projetado × Cobrado × Recebido</div>
+        <div className="text-xs text-muted-foreground">
+          Projetado: página Receitas (manual). Cobrado: apuração de royalties por unidade. Recebido: Omie da
+          Partners, por razão social mapeada à unidade. Clique num valor de Cobrado/Recebido para ver o detalhe.
+        </div>
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/50">
+            <TableHead className="sticky left-0 bg-muted/50 w-[200px] font-semibold">Unidade</TableHead>
+            {months.map((m) => (
+              <TableHead key={m} className="text-right min-w-[110px] font-semibold">
+                {fmtMes(m)}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {unidadesList.map((unidade) => {
+            const isOpen = expanded.has(unidade);
+            return (
+              <React.Fragment key={unidade}>
+                <TableRow className="cursor-pointer hover:bg-muted/40 bg-muted/20" onClick={() => toggle(unidade)}>
+                  <TableCell className="sticky left-0 bg-muted/20 py-2 font-semibold">
+                    <div className="flex items-center gap-2">
+                      {isOpen ? (
+                        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      )}
+                      {unidade}
+                    </div>
+                  </TableCell>
+                  {months.map((m) => {
+                    const c = cells.get(`${unidade}|${m}`);
+                    return (
+                      <TableCell key={m} className="text-right tabular-nums py-2 text-sm text-muted-foreground">
+                        {c?.cobrado != null || c?.recebido ? fmtBRL(c?.recebido || c?.cobrado || 0) : "—"}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+                {isOpen &&
+                  ROW_DEFS.map(({ key, label }) => (
+                    <TableRow key={`${unidade}|${key}`} className="hover:bg-muted/10">
+                      <TableCell className="sticky left-0 bg-background pl-10 py-1.5 text-sm text-muted-foreground">
+                        {label}
+                      </TableCell>
+                      {months.map((m) => {
+                        const c = cells.get(`${unidade}|${m}`);
+                        if (!c) {
+                          return (
+                            <TableCell key={m} className="text-right tabular-nums py-1.5 text-sm text-muted-foreground/40">
+                              —
+                            </TableCell>
+                          );
+                        }
+                        if (key === "projetado") {
+                          return (
+                            <TableCell key={m} className="text-right tabular-nums py-1.5 text-sm">
+                              {c.projetado != null ? fmtBRL(c.projetado) : "—"}
+                            </TableCell>
+                          );
+                        }
+                        if (key === "cobrado") {
+                          return (
+                            <TableCell key={m} className="text-right tabular-nums py-1.5 text-sm">
+                              {c.cobrado != null ? (
+                                <button
+                                  type="button"
+                                  className="hover:underline hover:text-primary"
+                                  title={`Ver clientes (${STATUS_APURACAO_LABEL[c.cobradoStatus ?? ""] ?? c.cobradoStatus})`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (c.cobradoApuracaoId) {
+                                      setDrill({ tipo: "cobrado", unidade, mes: m, apuracaoId: c.cobradoApuracaoId });
+                                    }
+                                  }}
+                                >
+                                  {fmtBRL(c.cobrado)}
+                                </button>
+                              ) : (
+                                "—"
+                              )}
+                            </TableCell>
+                          );
+                        }
+                        return (
+                          <TableCell key={m} className="text-right tabular-nums py-1.5 text-sm">
+                            {c.recebido ? (
+                              <button
+                                type="button"
+                                className="hover:underline hover:text-primary"
+                                title="Ver lançamentos"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDrill({ tipo: "recebido", unidade, mes: m, items: c.recebidoItems });
+                                }}
+                              >
+                                {fmtBRL(c.recebido)}
+                              </button>
+                            ) : (
+                              "—"
+                            )}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+              </React.Fragment>
+            );
+          })}
+        </TableBody>
+      </Table>
+      <ValidacaoDrillDialog drill={drill} onClose={() => setDrill(null)} />
+    </Card>
+  );
+}
+
+function ValidacaoDrillDialog({
+  drill,
+  onClose,
+}: {
+  drill:
+    | { tipo: "cobrado"; unidade: string; mes: string; apuracaoId: number }
+    | { tipo: "recebido"; unidade: string; mes: string; items: RecebidoLanc[] }
+    | null;
+  onClose: () => void;
+}) {
+  const [itens, setItens] = useState<RoyaltiesItem[] | null>(null);
+
+  useEffect(() => {
+    if (!drill || drill.tipo !== "cobrado") {
+      setItens(null);
+      return;
+    }
+    let mounted = true;
+    (async () => {
+      const { data } = await supabase
+        .from("royalties_itens")
+        .select("id,razao_social,cnpj,valor_confirmado,royalties_item,confirmado")
+        .eq("apuracao_id", drill.apuracaoId)
+        .eq("categoria", "royalties");
+      if (mounted) setItens((data ?? []) as RoyaltiesItem[]);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [drill]);
+
+  if (!drill) return null;
+
+  const titulo = `${drill.unidade} — ${fmtMes(drill.mes)} — ${drill.tipo === "cobrado" ? "Cobrado (clientes)" : "Recebido (Omie Partners)"}`;
+
+  return (
+    <Dialog open={!!drill} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>{titulo}</DialogTitle>
+          <DialogDescription>
+            {drill.tipo === "cobrado"
+              ? "Clientes que compõem o valor de royalties apurado para esta unidade/mês."
+              : "Lançamentos recebidos no Omie da Partners, atribuídos a esta unidade pelo mapeamento de razão social."}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="max-h-[60vh] overflow-auto">
+          {drill.tipo === "cobrado" ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>CNPJ</TableHead>
+                  <TableHead className="text-center">Confirmado</TableHead>
+                  <TableHead className="text-right">Royalties</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {itens === null ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
+                      Carregando…
+                    </TableCell>
+                  </TableRow>
+                ) : itens.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
+                      Sem itens.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  itens.map((it) => (
+                    <TableRow key={it.id}>
+                      <TableCell>{it.razao_social}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{it.cnpj ?? "—"}</TableCell>
+                      <TableCell className="text-center">{it.confirmado ? "✓" : "—"}</TableCell>
+                      <TableCell className="text-right">{fmtBRL(it.royalties_item ?? 0)}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Razão Social</TableHead>
+                  <TableHead>Doc.</TableHead>
+                  <TableHead>Pagamento</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {drill.items.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
+                      Sem lançamentos.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  drill.items.map((r, i) => (
+                    <TableRow key={`${r.numero_documento ?? i}-${i}`}>
+                      <TableCell>{r.razao_social ?? "—"}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{r.numero_documento ?? "—"}</TableCell>
+                      <TableCell className="text-xs">
+                        {r.data_pagamento
+                          ? new Date(r.data_pagamento).toLocaleDateString("pt-BR")
+                          : r.data_vencimento
+                            ? new Date(r.data_vencimento).toLocaleDateString("pt-BR")
+                            : "—"}
+                      </TableCell>
+                      <TableCell className="text-right">{fmtBRL(r.valor_documento ?? 0)}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
