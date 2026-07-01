@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { TrendingUp, Users, ShieldCheck, Building2, Coins, BadgeCheck, Wallet, Smile, MessageSquareWarning, Filter, Gauge, LineChart, Receipt, Activity, BarChart3, GitMerge } from "lucide-react";
+import { TrendingUp, Users, ShieldCheck, Building2, Coins, BadgeCheck, Wallet, Smile, MessageSquareWarning, Filter, Gauge, LineChart, Receipt, Activity, BarChart3, GitMerge, FileBarChart2 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -60,6 +60,12 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
       { title: "DRE & Caixa", url: "/financeiro-partners", icon: Receipt, permission: "view.roas" },
       { title: "FCx — Fluxo de Caixa", url: "/fxc", icon: LineChart, permission: "view.roas" },
       { title: "Simulador de Caixa", url: "/simulador-caixa", icon: LineChart, permission: "view.roas" },
+    ],
+  },
+  {
+    label: "Ferramentas",
+    items: [
+      { title: "Reforma Tributária", url: "/reforma-tributaria", icon: FileBarChart2, permission: "view.roas" },
     ],
   },
   {
