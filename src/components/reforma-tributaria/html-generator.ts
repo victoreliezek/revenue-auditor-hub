@@ -518,7 +518,7 @@ function initLine(){
       pointRadius:cargas.map((_,i)=>i===cargas.length-1?8:4),pointBorderWidth:0}]},
     options:{responsive:true,animation:{duration:900},
       plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1c1c',borderColor:'#333',borderWidth:1,
-        callbacks:{label:c=>` Carga: ${c.parsed.y.toFixed(2)}%`,afterLabel:c=>` Desembolso: R$ ${desemb[c.dataIndex].toLocaleString('pt-BR')}`}}},
+        callbacks:{label:c=>' Carga: '+c.parsed.y.toFixed(2)+'%',afterLabel:c=>' Desembolso: R$ '+desemb[c.dataIndex].toLocaleString('pt-BR')}}},
       scales:{x:{ticks:{color:'#666',font:{size:11}},grid:{color:'#1a1a1a'}},
               y:{min:${Math.floor(first.carga * 100 - 0.5)},ticks:{color:'#666',font:{size:11},callback:v=>v+'%'},grid:{color:'#1a1a1a'}}}}});
 }
