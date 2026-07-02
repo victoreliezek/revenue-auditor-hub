@@ -1,11 +1,10 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { DREPartnersPage } from "@/routes/_authenticated/dre-partners";
-import { DespesasCmPage } from "@/routes/_authenticated/despesas-cm";
-import { ReceitasView } from "@/components/financeiro-partners/receitas-view";
 import { DreProjetadaView } from "@/components/financeiro-partners/dre-projetada";
+import { FxcView } from "@/components/financeiro-partners/fxc-view";
 
-type TabId = "dre" | "receitas" | "despesas" | "dfc";
+type TabId = "dre" | "dfc" | "fcx";
 
 export const Route = createFileRoute("/_authenticated/financeiro-partners")({
   head: () => ({
@@ -14,13 +13,13 @@ export const Route = createFileRoute("/_authenticated/financeiro-partners")({
       {
         name: "description",
         content:
-          "Visão consolidada: DRE projetada, receitas, despesas e DFC da Planning Partners.",
+          "Visão consolidada: DRE projetada, DFC e FCx da Planning Partners.",
       },
     ],
   }),
   validateSearch: (search: Record<string, unknown>): { tab: TabId } => {
     const t = search.tab;
-    const valid: TabId[] = ["dre", "receitas", "despesas", "dfc"];
+    const valid: TabId[] = ["dre", "dfc", "fcx"];
     return { tab: (valid.includes(t as TabId) ? (t as TabId) : "dre") };
   },
   component: FinanceiroPartnersPage,
@@ -28,9 +27,8 @@ export const Route = createFileRoute("/_authenticated/financeiro-partners")({
 
 const TABS = [
   { id: "dre", label: "DRE Projetada" },
-  { id: "receitas", label: "Receitas" },
-  { id: "despesas", label: "Despesas" },
   { id: "dfc", label: "DFC" },
+  { id: "fcx", label: "FCx" },
 ] as const;
 
 function FinanceiroPartnersPage() {
@@ -64,8 +62,7 @@ function FinanceiroPartnersPage() {
       <div className="flex-1">
         {tab === "dfc" && <DREPartnersPage />}
         {tab === "dre" && <DreProjetadaView />}
-        {tab === "receitas" && <ReceitasView />}
-        {tab === "despesas" && <DespesasCmPage section="despesas" />}
+        {tab === "fcx" && <FxcView />}
       </div>
     </div>
   );

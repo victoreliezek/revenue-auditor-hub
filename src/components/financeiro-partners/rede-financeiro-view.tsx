@@ -1,4 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import React from "react";
 import { ChevronDown, ChevronRight, Receipt } from "lucide-react";
@@ -19,12 +18,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-
-export const Route = createFileRoute("/_authenticated/rede-financeiro")({
-  component: RedeFinanceiroPage,
-});
 
 type RoyaltiesRow = {
   mes: string | null;
@@ -60,7 +54,7 @@ const COLORS = {
   taxa: "hsl(38 92% 50%)",
 };
 
-function RedeFinanceiroPage() {
+export function RedeFinanceiroView() {
   const [royalties, setRoyalties] = useState<RoyaltiesRow[]>([]);
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [loading, setLoading] = useState(true);
