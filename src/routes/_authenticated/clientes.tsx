@@ -352,8 +352,8 @@ function ClientesPage() {
 
       <Tabs defaultValue="planning" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="planning">Planning</TabsTrigger>
-          <TabsTrigger value="pre-planning">Pré-Planning</TabsTrigger>
+          <TabsTrigger value="planning">Base nova</TabsTrigger>
+          <TabsTrigger value="pre-planning">Base Antiga</TabsTrigger>
         </TabsList>
 
         <TabsContent value="planning" className="space-y-6">
