@@ -9,9 +9,9 @@ type SourceDef = {
 };
 
 const SOURCES: SourceDef[] = [
-  { key: "omie",       label: "Omie",       prefix: "dados de" },
-  { key: "pipedrive",  label: "Pipedrive",  prefix: "sync" },
-  { key: "contratos",  label: "Contratos",  prefix: "sync" },
+  { key: "omie",       label: "Omie",        prefix: "dados de" },
+  { key: "contratos",  label: "Pipedrive",   prefix: "sync" },
+  { key: "tratativas", label: "Tratativas",  prefix: "manual" },
 ];
 
 function fmtDate(iso: string | null): string {

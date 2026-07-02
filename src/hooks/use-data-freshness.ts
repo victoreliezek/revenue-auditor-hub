@@ -2,9 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export type DataFreshnessInfo = {
-  omie: string | null;       // MAX(data_competencia) from contas_receber — período mais recente
-  pipedrive: string | null;  // MAX(update_time) from central_tratativas — último update Pipedrive
-  contratos: string | null;  // MAX(created_at) from contratos — último contrato sincronizado
+  omie: string | null;        // MAX(data_competencia) from contas_receber — período mais recente
+  tratativas: string | null;  // MAX(update_time) from central_tratativas — atualização MANUAL pelo time (Lovable)
+  contratos: string | null;   // MAX(created_at) from contratos — último contrato sincronizado (sync_pipedrive_contratos.py, diário 07:00)
 };
 
 export function useDataFreshness() {
@@ -33,7 +33,7 @@ export function useDataFreshness() {
       ]);
       return {
         omie: omieRes.data?.data_competencia ?? null,
-        pipedrive: pdRes.data?.update_time ?? null,
+        tratativas: pdRes.data?.update_time ?? null,
         contratos: contRes.data?.created_at ?? null,
       };
     },
