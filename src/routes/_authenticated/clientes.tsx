@@ -48,6 +48,15 @@ type Cliente = {
   segmento: string | null;
 };
 
+// razao_social às vezes vem de um enriquecimento de CNPJ que grava placeholders
+// em vez de deixar nulo quando não encontra a razão social oficial.
+const GARBAGE_RAZAO_SOCIAL = new Set([".", "0", "-", "--", "---", "n/a", "N/A", "NA", "o", "a", "n", "c", "cc", "xx"]);
+function displayName(r: Pick<Cliente, "razao_social" | "titulo">): string {
+  const rs = r.razao_social?.trim();
+  if (rs && !GARBAGE_RAZAO_SOCIAL.has(rs)) return rs;
+  return r.titulo?.trim() || "";
+}
+
 const ALL = "__all__";
 
 const STATUS_ORDER: StatusFinanceiro[] = [
@@ -270,7 +279,7 @@ function ClientesPage() {
         const ra = rank.get(a.status_financeiro ?? "") ?? 99;
         const rb = rank.get(b.status_financeiro ?? "") ?? 99;
         if (ra !== rb) return ra - rb;
-        return (a.razao_social ?? "").localeCompare(b.razao_social ?? "", "pt-BR");
+        return displayName(a).localeCompare(displayName(b), "pt-BR");
       });
     }
     const dir = sort.dir === "asc" ? 1 : -1;
@@ -287,7 +296,7 @@ function ClientesPage() {
       let c = 0;
       switch (sort.key) {
         case "razao_social":
-          c = cmpStr(a.razao_social ?? a.titulo, b.razao_social ?? b.titulo);
+          c = cmpStr(displayName(a), displayName(b));
           break;
         case "unidade":
           c = cmpStr(a.unidade, b.unidade);
@@ -493,7 +502,7 @@ function ClientesPage() {
               disabled={loading || filtered.length === 0}
               onClick={() => {
                 const data = filtered.map((r) => ({
-                  "Razão Social": r.razao_social || r.titulo || "",
+                  "Razão Social": displayName(r),
                   Unidade: r.unidade || "",
                   MRR: mrrByPipedriveId.get(r.pipedrive_id ?? "") ?? 0,
                   CNPJ: r.cnpj || "",
@@ -584,7 +593,7 @@ function ClientesPage() {
                       <TableRow key={r.id} className={churned ? "opacity-60" : undefined}>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
-                            {r.razao_social || r.titulo || "—"}
+                            {displayName(r) || "—"}
                             {churned && (
                               <Badge className="bg-red-100 text-red-700 border-red-200 text-[10px] px-1.5 py-0">churn</Badge>
                             )}
