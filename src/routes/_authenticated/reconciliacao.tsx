@@ -44,7 +44,7 @@ const COLS: { key: ColKey; label: string; defaultVisible: boolean }[] = [
   { key: "fonte",       label: "Fonte",           defaultVisible: false },
   { key: "status",      label: "Status",          defaultVisible: true  },
   { key: "primeiro_pag",label: "1º Pagamento",    defaultVisible: true  },
-  { key: "total_rec",   label: "Total Recebido",  defaultVisible: true  },
+  { key: "total_rec",   label: "Recebido",  defaultVisible: true  },
 ];
 
 function useColVisibility() {

@@ -130,15 +130,14 @@ function RedeOverviewPage() {
   const penultimo = byMes[byMes.length - 2];
 
   const kpis = useMemo(() => {
-    if (!ultimo) return { receita: 0, mrr: 0, clientes: 0, churn: null, nrr: null, vsAnterior: null };
+    if (!ultimo) return { receita: 0, mrr: 0, clientes: 0, churn: null, nrr: null };
     const receita = ultimo.recebido;
     const mrr = ultimo.mrr;
     const clientes = ultimo.contratos;
-    const vsAnterior = penultimo ? receita - penultimo.recebido : null;
     const nrr = penultimo && penultimo.mrr > 0 ? (mrr / penultimo.mrr) * 100 : null;
     const churnClientes = penultimo ? Math.max(0, penultimo.contratos - clientes) : null;
     const churnPct = penultimo && penultimo.contratos > 0 ? (churnClientes! / penultimo.contratos) * 100 : null;
-    return { receita, mrr, clientes, churnClientes, churnPct, vsAnterior, nrr };
+    return { receita, mrr, clientes, churnClientes, churnPct, nrr };
   }, [ultimo, penultimo]);
 
   const chartData = useMemo(() =>
@@ -191,30 +190,17 @@ function RedeOverviewPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-        <Card
-          className="p-4 cursor-pointer hover:shadow-md transition-shadow hover:border-primary/40"
-          onClick={() => navigate({ to: "/clientes" })}
-          title="Ver lista de clientes"
-        >
-          <div className="text-xs text-muted-foreground">Receita Total</div>
-          <div className="mt-1 text-xl font-bold">{fmtBRL(kpis.receita)}</div>
-          {kpis.vsAnterior != null && (
-            <div className={`text-xs mt-0.5 ${kpis.vsAnterior >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-              {kpis.vsAnterior >= 0 ? "▲" : "▼"} {fmtBRL(Math.abs(kpis.vsAnterior))} vs anterior
-            </div>
-          )}
-        </Card>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
         <Card
           className="p-4 cursor-pointer hover:shadow-md transition-shadow hover:border-primary/40"
           onClick={() => navigate({ to: "/clientes", search: { status: "ATIVO" } })}
           title="Ver contratos ativos"
         >
-          <div className="text-xs text-muted-foreground">Receita Recorrente</div>
+          <div className="text-xs text-muted-foreground">MRR</div>
           <div className="mt-1 text-xl font-bold">{fmtBRL(kpis.mrr)}</div>
           {kpis.receita > 0 && (
             <div className="text-xs text-muted-foreground mt-0.5">
-              {fmtPct((kpis.mrr / kpis.receita) * 100)} do total
+              {fmtPct((kpis.mrr / kpis.receita) * 100)} do recebido
             </div>
           )}
         </Card>
@@ -260,10 +246,10 @@ function RedeOverviewPage() {
 
       {!loading && chartData.length > 0 && (
         <>
-          {/* Receita Recorrente e Crescimento */}
+          {/* MRR e Crescimento */}
           <div className="grid gap-4 lg:grid-cols-2">
             <Card className="p-4">
-              <div className="mb-2 text-sm font-medium">Receita Recorrente por Mês</div>
+              <div className="mb-2 text-sm font-medium">MRR por Mês</div>
               <div className="h-[240px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData}>
@@ -285,7 +271,7 @@ function RedeOverviewPage() {
             </Card>
 
             <Card className="p-4">
-              <div className="mb-2 text-sm font-medium">Crescimento % e Receita Total vs Mês Anterior</div>
+              <div className="mb-2 text-sm font-medium">Crescimento % e Recebido vs Mês Anterior</div>
               <div className="h-[240px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={chartData}>
@@ -299,7 +285,7 @@ function RedeOverviewPage() {
                       }
                     />
                     <Legend />
-                    <Bar yAxisId="left" dataKey="recebido" name="Receita Total" fill="hsl(var(--primary) / 0.7)" />
+                    <Bar yAxisId="left" dataKey="recebido" name="Recebido" fill="hsl(var(--primary) / 0.7)" />
                     <Line yAxisId="right" type="monotone" dataKey="crescimento" name="Crescimento %" stroke="hsl(38 92% 50%)" strokeWidth={2} dot={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
@@ -362,7 +348,7 @@ function RedeOverviewPage() {
               <TableRow>
                 <TableHead>Unidade</TableHead>
                 <TableHead className="text-right">MRR Atual</TableHead>
-                <TableHead className="text-right">Receita Total</TableHead>
+                <TableHead className="text-right">Recebido</TableHead>
                 <TableHead className="text-right">Clientes</TableHead>
                 <TableHead className="text-right">ARPA</TableHead>
               </TableRow>

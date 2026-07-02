@@ -458,7 +458,7 @@ export function ReceitasView() {
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Kpi label="Planejado" value={BRL(kpis.planejado)} tone="neutral" />
-          <Kpi label="Faturado (Omie)" value={BRL(kpis.faturado)} tone="neutral" />
+          <Kpi label="Faturado" value={BRL(kpis.faturado)} tone="neutral" />
           <Kpi label="Recebido" value={BRL(kpis.recebido)} tone="green" />
           <Kpi label="A vencer" value={BRL(kpis.aVencer)} tone="amber" />
           <Kpi label="Em atraso" value={BRL(kpis.atrasado)} tone="red" />

@@ -65,7 +65,7 @@ const UNIT_COLORS = [
 type MetricKey = "receita" | "mrr" | "clientes" | "arpa" | "crescimento" | "cac" | "nps";
 
 const METRICS: { key: MetricKey; label: string; format: (v: number) => string }[] = [
-  { key: "receita", label: "Receita Total", format: fmtBRL },
+  { key: "receita", label: "Recebido", format: fmtBRL },
   { key: "mrr", label: "MRR", format: fmtBRL },
   { key: "clientes", label: "Clientes Ativos", format: (v) => String(Math.round(v)) },
   { key: "arpa", label: "ARPA", format: fmtBRL },

@@ -149,7 +149,7 @@ function MeusRoyaltiesPage() {
                   <TableHead className="text-right">CSC</TableHead>
                   <TableHead className="text-right">Mídia</TableHead>
                   <TableHead className="text-right">Total Previsto</TableHead>
-                  <TableHead className="text-right">Total Recebido</TableHead>
+                  <TableHead className="text-right">Recebido</TableHead>
                   <TableHead>Situação</TableHead>
                 </TableRow>
               </TableHeader>

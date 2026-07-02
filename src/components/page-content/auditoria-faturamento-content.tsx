@@ -164,7 +164,7 @@ export function AuditoriaFaturamentoContent() {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <KpiCard label="Total Esperado" value={loading ? "—" : brl(totalEsperado)} tone="indigo" />
-        <KpiCard label="Total Recebido" value={loading ? "—" : brl(totalRecebidoPrincipal)} sub="Royalties + CSC + Mídia" />
+        <KpiCard label="Recebido" value={loading ? "—" : brl(totalRecebidoPrincipal)} sub="Royalties + CSC + Mídia" />
         <KpiCard
           label="Delta (Recebido − Esperado)"
           value={loading ? "—" : brl(delta)}
