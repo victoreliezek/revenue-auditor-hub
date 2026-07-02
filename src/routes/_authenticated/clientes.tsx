@@ -611,7 +611,7 @@ function ClientesPage() {
                         <TableCell className="font-mono text-xs">
                           {r.pipedrive_id ? (
                             <a
-                              href={`https://planningpartners.pipedrive.com/organization/${r.pipedrive_id}`}
+                              href={`https://app.pipedrive.com/deal/${r.pipedrive_id}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 text-primary hover:underline"
