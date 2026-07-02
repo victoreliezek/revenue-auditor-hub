@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { ArrowRight, FileText, Receipt, Wallet, Target, AlertTriangle, AlertCircle, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/components/audit/format";
@@ -18,6 +19,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/hooks/use-permissions";
+import { FunilGapClientesDialog } from "@/components/funil-gap-clientes-dialog";
 
 type FunilRow = {
   mes: string | null;
@@ -109,10 +111,37 @@ function nextMonth(iso: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
+function monthBounds(mes: string): { dataIni: string; dataFim: string } {
+  const [y, m] = mes.split("-").map(Number);
+  const last = new Date(y, m, 0);
+  return {
+    dataIni: `${mes}-01`,
+    dataFim: `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, "0")}-${String(last.getDate()).padStart(2, "0")}`,
+  };
+}
+
+function CellLink({ to, search, className, children }: {
+  to: string;
+  search: Record<string, string>;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      to={to}
+      search={search}
+      className={cn("underline-offset-2 hover:underline hover:text-primary", className)}
+    >
+      {children}
+    </Link>
+  );
+}
+
 export function FunilContent() {
   const { can, loading: permLoading } = usePermissions();
   const [mes, setMes] = useState<string>(defaultMes());
   const [unidadesSel, setUnidadesSel] = useState<string[] | null>(null);
+  const [gapDialog, setGapDialog] = useState<{ unidade: string; mes: string; gap: number } | null>(null);
 
   const meses = useMemo(() => {
     const out: { value: string; label: string }[] = [];
@@ -335,6 +364,8 @@ export function FunilContent() {
                 const fr = r.conv_faturado_to_recebido_pct == null ? null : Number(r.conv_faturado_to_recebido_pct);
                 const mr = r.conv_mrr_to_recebido_pct == null ? null : Number(r.conv_mrr_to_recebido_pct);
                 const semDados = mrr > 0 && fat === 0;
+                const unidadeStr = r.unidade ?? "";
+                const { dataIni, dataFim } = monthBounds(mes);
                 return (
                   <TableRow key={r.unidade}>
                     <TableCell>
@@ -347,11 +378,33 @@ export function FunilContent() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">{brl(mrr)}</TableCell>
-                    <TableCell className="text-right">{brl(fat)}</TableCell>
-                    <TableCell className={cn("text-right", gapF > 0 && "text-red-600 dark:text-red-400 font-medium")}>{brl(gapF)}</TableCell>
-                    <TableCell className="text-right">{brl(rec)}</TableCell>
-                    <TableCell className={cn("text-right", gapC > 0 && "text-orange-600 dark:text-orange-400 font-medium")}>{brl(gapC)}</TableCell>
+                    <TableCell className="text-right">
+                      <CellLink to="/clientes" search={{ unidade: unidadeStr }}>{brl(mrr)}</CellLink>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <CellLink to="/contas-receber" search={{ unidade: unidadeStr, dataIni, dataFim }}>{brl(fat)}</CellLink>
+                    </TableCell>
+                    <TableCell className={cn("text-right", gapF > 0 && "text-red-600 dark:text-red-400 font-medium")}>
+                      {Math.abs(gapF) < 0.01 ? (
+                        brl(gapF)
+                      ) : gapF > 0 ? (
+                        <button
+                          type="button"
+                          className="underline-offset-2 hover:underline hover:text-primary"
+                          onClick={() => setGapDialog({ unidade: unidadeStr, mes, gap: gapF })}
+                        >
+                          {brl(gapF)}
+                        </button>
+                      ) : (
+                        <CellLink to="/contas-receber" search={{ unidade: unidadeStr, dataIni, dataFim }}>{brl(gapF)}</CellLink>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <CellLink to="/contas-receber" search={{ unidade: unidadeStr, status: "RECEBIDO", dataIni, dataFim }}>{brl(rec)}</CellLink>
+                    </TableCell>
+                    <TableCell className={cn("text-right", gapC > 0 && "text-orange-600 dark:text-orange-400 font-medium")}>
+                      <CellLink to="/contas-receber" search={{ unidade: unidadeStr, status: "NAO_RECEBIDO", dataIni, dataFim }}>{brl(gapC)}</CellLink>
+                    </TableCell>
                     <TableCell className="text-right">
                       <Badge className={cn(TONE_BADGE[mf === null ? "slate" : toneMrrFat(mf)])}>
                         {mf === null ? "—" : `${mf.toFixed(1)}%`}
@@ -422,6 +475,16 @@ export function FunilContent() {
           )}
         </div>
       </section>
+
+      {gapDialog && (
+        <FunilGapClientesDialog
+          unidade={gapDialog.unidade}
+          mes={gapDialog.mes}
+          gap={gapDialog.gap}
+          open={!!gapDialog}
+          onOpenChange={(o) => { if (!o) setGapDialog(null); }}
+        />
+      )}
     </div>
   );
 }

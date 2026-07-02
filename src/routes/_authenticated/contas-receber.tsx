@@ -50,6 +50,12 @@ import {
 const ALL = "__all__";
 
 export const Route = createFileRoute("/_authenticated/contas-receber")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    unidade: typeof search.unidade === "string" ? search.unidade : "",
+    status: typeof search.status === "string" ? search.status : "",
+    dataIni: typeof search.dataIni === "string" ? search.dataIni : "",
+    dataFim: typeof search.dataFim === "string" ? search.dataFim : "",
+  }),
   component: ContasReceberPage,
 });
 
@@ -83,15 +89,23 @@ function parseDate(d: string | null): Date | null {
   }
 }
 
+function parseSearchDate(s: string): Date | undefined {
+  if (!s) return undefined;
+  const d = parseISO(s);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
 function ContasReceberPage() {
+  const search = Route.useSearch();
   const { data, isLoading } = useContasReceber();
   const rows = data?.rows ?? [];
 
   const [q, setQ] = useState("");
-  const [unidade, setUnidade] = useState(ALL);
-  const [status, setStatus] = useState(ALL);
-  const [dataIni, setDataIni] = useState<Date | undefined>(undefined);
-  const [dataFim, setDataFim] = useState<Date | undefined>(undefined);
+  const [unidade, setUnidade] = useState(search.unidade || ALL);
+  const [status, setStatus] = useState(search.status || ALL);
+  const [dataIni, setDataIni] = useState<Date | undefined>(parseSearchDate(search.dataIni));
+  const [dataFim, setDataFim] = useState<Date | undefined>(parseSearchDate(search.dataFim));
+  const [defaultTab] = useState(search.unidade || search.status || search.dataIni ? "faturas" : "resumo");
   const sf = useSafraFato();
   const [usarSafraFato, setUsarSafraFato] = useState(false);
 
@@ -108,7 +122,9 @@ function ContasReceberPage() {
     const sfFim = usarSafraFato ? sf.range.end.getTime() - 1 : null;
     return rows.filter((r) => {
       if (unidade !== ALL && r.unidade !== unidade) return false;
-      if (status !== ALL && r.status_pagamento !== status) return false;
+      if (status === "NAO_RECEBIDO") {
+        if (r.status_pagamento === "RECEBIDO" || r.status_pagamento === "CANCELADO") return false;
+      } else if (status !== ALL && r.status_pagamento !== status) return false;
       if (usarSafraFato) {
         // Safra: data_competencia. Fato: data_pagamento ?? data_vencimento.
         const d =
@@ -297,6 +313,7 @@ function ContasReceberPage() {
             <SelectItem value="A VENCER">A vencer</SelectItem>
             <SelectItem value="ATRASADO">Atrasado</SelectItem>
             <SelectItem value="RECEBIDO">Recebido</SelectItem>
+            <SelectItem value="NAO_RECEBIDO">Não recebido (a vencer + atrasado)</SelectItem>
           </SelectContent>
         </Select>
         <Popover>
@@ -354,7 +371,7 @@ function ContasReceberPage() {
         )}
       </Card>
 
-      <Tabs defaultValue="resumo" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList>
           <TabsTrigger value="resumo">Resumo por unidade</TabsTrigger>
           <TabsTrigger value="faturas">
