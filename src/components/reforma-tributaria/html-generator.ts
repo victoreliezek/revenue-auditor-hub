@@ -27,6 +27,15 @@ export function generatePresentationHTML(d: ReformaTributariaData): string {
   const deltaPp = ((last.carga - first.carga) * 100).toFixed(2);
   const deltaR = last.desembolso - first.desembolso;
 
+  // Detect tax regime: ISS = services company; ICMS = commerce/industry
+  const isServico = d.aliquotas.iss > 0;
+  const tributosAtuais = isServico ? 'ISS e PIS/COFINS' : 'ICMS, PIS e COFINS';
+
+  // Resultado operacional: use parsed values if available, else fallback
+  const resAtual = d.resultadoAtual > 0 ? d.resultadoAtual : (d.faturamento - first.desembolso);
+  const resPosReforma = d.resultadoPosReforma > 0 ? d.resultadoPosReforma : (d.faturamento - last.desembolso);
+  const deltaResultado = resAtual - resPosReforma;
+
   const obsBlock = d.observacoes
     ? `<div style="background:#0f180f;border:1px solid #1e3a1e;border-radius:10px;padding:18px 22px;margin-top:24px;font-size:.82rem;color:#ccc;line-height:1.65;">
         <div style="font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#5FB77F;margin-bottom:8px;font-weight:600;">Nota da Auditora</div>
@@ -249,7 +258,7 @@ section{padding:100px 0;}
     de imposto por ano.
   </h1>
   <p class="hero-sub reveal d2">
-    A Reforma Tributária (LC 214) eleva sua carga de <strong>${fmtPct(first.carga)}</strong> para <strong>${fmtPct(last.carga)}</strong> até ${last.ano}. Este mapa mostra como esse aumento acontece — ano a ano, imposto a imposto — para que você planeje antes que a conta chegue.
+    A Reforma Tributária (LC 214) eleva sua carga de <strong>${fmtPct(first.carga)}</strong> para <strong>${fmtPct(last.carga)}</strong> até ${last.ano}. A carga hoje incide sobre <strong>${tributosAtuais}</strong>. Este mapa mostra como esse aumento acontece — ano a ano, imposto a imposto — para que você planeje antes que a conta chegue.
   </p>
   <div class="hero-meta reveal d3">
     <div class="hm"><div class="hml">Empresa</div><div class="hmv">${d.empresa} · ${d.estado}</div></div>
@@ -266,11 +275,11 @@ section{padding:100px 0;}
 <div class="container">
   <div class="reveal"><div class="eyebrow">01 · Premissas</div>
   <h2 class="section-title ruled">Sobre o que esta simulação foi construída</h2>
-  <p class="section-sub">Todo o mapa parte de dados reais da empresa: faturamento, volume de compras e atividade. A carga atual incide sobre ICMS, PIS e COFINS — que a Reforma substitui por CBS e IBS.</p></div>
+  <p class="section-sub">Todo o mapa parte de dados reais da empresa: faturamento, volume de compras e atividade. A carga atual incide sobre ${tributosAtuais} — que a Reforma substitui por CBS e IBS.</p></div>
   <div class="cg c4" style="margin-top:36px;">
     <div class="card cg-border reveal d1"><div class="cl">Faturamento anual</div><div class="cv">R$ ${(d.faturamento/1e6).toFixed(1)}<span style="font-size:1rem">mi</span></div><div class="cd">Base de cálculo dos tributos sobre a receita</div></div>
     <div class="card reveal d2"><div class="cl">Aquisições anuais</div><div class="cv">R$ ${(d.aquisicoes/1e6).toFixed(1)}<span style="font-size:1rem">mi</span></div><div class="cd">Compras que geram crédito tributário</div></div>
-    <div class="card cg-border reveal d3"><div class="cl">Carga efetiva hoje</div><div class="cv" style="color:var(--g)">${fmtPct(first.carga)}</div><div class="cd">Sobre ICMS, PIS e COFINS a pagar</div></div>
+    <div class="card cg-border reveal d3"><div class="cl">Carga efetiva hoje</div><div class="cv" style="color:var(--g)">${fmtPct(first.carga)}</div><div class="cd">Sobre ${tributosAtuais} a pagar</div></div>
     <div class="card reveal"><div class="cl">Atividade</div><div class="cv" style="font-size:1rem;line-height:1.25;">${d.atividade || '—'}</div><div class="cd">${d.estado}</div></div>
   </div>
   <div style="margin-top:48px;" class="reveal">
@@ -282,12 +291,17 @@ section{padding:100px 0;}
     <div id="aliq-saem" class="tab-panel active">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
         <table class="dt"><thead><tr><th>Tributo</th><th>Alíquota</th><th>Situação</th></tr></thead><tbody>
-          <tr><td class="vw">ICMS</td><td class="vg">Variável</td><td>Extinto até 2033</td></tr>
-          <tr><td class="vw">PIS/COFINS não-cumulativo</td><td class="vg">9,25%</td><td>Sai em 2027</td></tr>
-          <tr><td class="vw">PIS/COFINS cumulativo</td><td class="vg">3,65%</td><td>Sai em 2027</td></tr>
-          <tr><td class="vw">IPI</td><td>${(d.aliquotas.ipi*100).toFixed(2)}%</td><td>Mantido em casos específicos</td></tr>
+          ${isServico
+            ? '<tr><td class="vw">ISS</td><td class="vg">' + (d.aliquotas.iss*100).toFixed(2) + '%</td><td>Substituído pelo IBS em 2033</td></tr>'
+            : '<tr><td class="vw">ICMS</td><td class="vg">Variável</td><td>Extinto até 2033</td></tr>'
+          }
+          <tr><td class="vw">PIS/COFINS</td><td class="vg">${(d.aliquotas.pisCofins*100).toFixed(2)}%</td><td>Sai em 2027</td></tr>
+          ${d.aliquotas.ipi > 0 ? '<tr><td class="vw">IPI</td><td>' + (d.aliquotas.ipi*100).toFixed(2) + '%</td><td>Mantido em casos específicos</td></tr>' : ''}
         </tbody></table>
-        <div class="nb"><div class="nb-label">Como sai</div>O ICMS é reduzido progressivamente a partir de 2029 (−10%/ano), zerando em 2033. O PIS/COFINS sai de uma vez em 2027, substituído pela CBS.</div>
+        <div class="nb"><div class="nb-label">Como sai</div>${isServico
+          ? 'O ISS é substituído pelo IBS a partir de 2033. O PIS/COFINS sai em 2027, substituído pela CBS.'
+          : 'O ICMS é reduzido progressivamente a partir de 2029 (−10%/ano), zerando em 2033. O PIS/COFINS sai de uma vez em 2027, substituído pela CBS.'
+        }</div>
       </div>
     </div>
     <div id="aliq-entram" class="tab-panel">
@@ -319,9 +333,9 @@ section{padding:100px 0;}
     <div class="ig hl"><div class="ig-label cl-r">Imposto a pagar / ano</div>
       <div class="ig-row"><span class="ig-v" style="color:var(--g)">R$ ${(first.desembolso/1e6).toFixed(2)}mi</span><span class="ig-arrow">→</span><span class="ig-v" style="color:var(--r)">R$ ${(last.desembolso/1e6).toFixed(2)}mi</span></div>
       <div class="ig-delta"><strong style="color:var(--r)">+R$ ${fmtBRL(deltaR)} por ano</strong> no regime final</div></div>
-    <div class="ig"><div class="ig-label cl-r">Receita após impostos</div>
-      <div class="ig-row"><span class="ig-v" style="color:var(--g)">R$ ${((d.faturamento-first.desembolso)/1e6).toFixed(2)}mi</span><span class="ig-arrow">→</span><span class="ig-v" style="color:var(--r)">R$ ${((d.faturamento-last.desembolso)/1e6).toFixed(2)}mi</span></div>
-      <div class="ig-delta">Impacto de <strong style="color:var(--r)">−R$ ${fmtBRL(deltaR)}</strong> no resultado simulado</div></div>
+    <div class="ig"><div class="ig-label cl-r">Resultado operacional</div>
+      <div class="ig-row"><span class="ig-v" style="color:var(--g)">R$ ${(resAtual/1e6).toFixed(2)}mi</span><span class="ig-arrow">→</span><span class="ig-v" style="color:var(--r)">R$ ${(resPosReforma/1e6).toFixed(2)}mi</span></div>
+      <div class="ig-delta">Queda de <strong style="color:var(--r)">R$ ${fmtBRL(deltaResultado)}</strong> no resultado simulado</div></div>
   </div>
   <div class="bar-box reveal">
     <div class="bar-title">Carga efetiva sobre o consumo · hoje vs regime final</div>
@@ -387,14 +401,14 @@ section{padding:100px 0;}
 <!-- ── LEGAL ── -->
 <section id="legal" style="background:var(--s1);">
 <div class="container">
-  <div class="reveal"><div class="eyebrow">06 · Base legal e benefícios fiscais</div>
-  <h2 class="section-title ruled">O que sustenta os números <span style="color:var(--c)">e o que muda nos incentivos</span></h2>
-  <p class="section-sub">A simulação segue a Lei Complementar 214. Os benefícios do Convênio 52/91 são reduzidos progressivamente de 2029 a 2032.</p></div>
-  <div class="cg c2 reveal" style="margin-top:36px;">
-    <div class="card cg-border"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;"><div class="cl">Base legal</div><span style="font-size:.95rem;font-weight:800;color:var(--g);">LC 214</span></div><div style="font-size:.88rem;font-weight:700;margin-bottom:8px;">Lei Complementar 214</div><div class="cd">Institui a CBS e o IBS e define as regras de transição entre 2026 e 2033.</div></div>
-    <div class="card cc-border"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;"><div class="cl cl-c">Benefício fiscal estadual</div><span style="font-size:.95rem;font-weight:800;color:var(--c);">Conv. 52/91</span></div><div style="font-size:.88rem;font-weight:700;margin-bottom:8px;">Convênio ICMS 52/91</div><div class="cd">Reduzido de forma escalonada durante a transição, acompanhando a consolidação do IBS.</div></div>
+  <div class="reveal"><div class="eyebrow">05 · Base legal</div>
+  <h2 class="section-title ruled">O que sustenta os números</h2>
+  <p class="section-sub">A simulação segue integralmente a Lei Complementar 214, que institui o IVA dual (CBS + IBS) e define as regras de transição de 2026 a 2033.</p></div>
+  <div class="cg ${isServico ? 'c1' : 'c2'} reveal" style="margin-top:36px;">
+    <div class="card cg-border"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;"><div class="cl">Base legal</div><span style="font-size:.95rem;font-weight:800;color:var(--g);">LC 214</span></div><div style="font-size:.88rem;font-weight:700;margin-bottom:8px;">Lei Complementar 214</div><div class="cd">Institui a CBS e o IBS e define as regras de transição entre 2026 e 2033. ${isServico ? 'Para prestadores de serviços, o ISS é substituído pelo IBS em 2033.' : 'O ICMS é reduzido progressivamente de 2029 a 2033.'}</div></div>
+    ${!isServico ? '<div class="card cc-border"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;"><div class="cl cl-c">Benefício fiscal estadual</div><span style="font-size:.95rem;font-weight:800;color:var(--c);">Conv. 52/91</span></div><div style="font-size:.88rem;font-weight:700;margin-bottom:8px;">Convênio ICMS 52/91</div><div class="cd">Reduzido de forma escalonada durante a transição, acompanhando a consolidação do IBS.</div></div>' : ''}
   </div>
-  <div class="reveal" style="margin-top:36px;">
+  ${!isServico ? `<div class="reveal" style="margin-top:36px;">
     <div class="eyebrow" style="margin-bottom:14px;">Redução gradativa dos benefícios fiscais estaduais</div>
     <div class="bs-row">
       <div class="bs"><div class="bs-year">2029</div><div class="bs-pct">10<span style="font-size:.9rem">%</span></div><div class="bs-label">Primeira redução</div><div class="bs-desc">Início do escalonamento</div></div>
@@ -403,7 +417,7 @@ section{padding:100px 0;}
       <div class="bs"><div class="bs-year">2032</div><div class="bs-pct">40<span style="font-size:.9rem">%</span></div><div class="bs-label">Quarta redução</div><div class="bs-desc">Véspera do regime final</div></div>
     </div>
     <div class="nb"><div class="nb-label">Nota técnica</div>Todo o mapa foi elaborado em conformidade com a <strong>Lei Complementar 214</strong>. Os benefícios do <strong>Convênio 52/91</strong> terão redução progressiva: <strong>10% em 2029, 20% em 2030, 30% em 2031 e 40% em 2032</strong>.</div>
-  </div>
+  </div>` : '<div class="nb reveal" style="margin-top:28px;"><div class="nb-label">Nota técnica</div>Todo o mapa foi elaborado em conformidade com a <strong>Lei Complementar 214</strong>. Para prestadores de serviços, o <strong>ISS é substituído pelo IBS em 2033</strong>, com alíquota plena de <strong>' + (d.aliquotas.ibsEstadual + d.aliquotas.ibsMunicipal) * 100 + '%</strong>.</div>'}
 </div>
 </section>
 

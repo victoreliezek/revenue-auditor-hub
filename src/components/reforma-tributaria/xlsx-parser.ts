@@ -11,6 +11,8 @@ export interface AliquotasData {
   ibsEstadual: number;
   ibsMunicipal: number;
   ipi: number;
+  iss: number;
+  pisCofins: number;
 }
 
 export interface ReformaTributariaData {
@@ -23,6 +25,8 @@ export interface ReformaTributariaData {
   aliquotas: AliquotasData;
   years: YearData[];
   observacoes: string;
+  resultadoAtual: number;
+  resultadoPosReforma: number;
 }
 
 export const DEFAULT_DATA: ReformaTributariaData = {
@@ -32,7 +36,7 @@ export const DEFAULT_DATA: ReformaTributariaData = {
   referencia: 'Junho de 2026',
   faturamento: 0,
   aquisicoes: 0,
-  aliquotas: { cbs: 0.0943, ibsEstadual: 0.17, ibsMunicipal: 0.02, ipi: 0.065 },
+  aliquotas: { cbs: 0.0943, ibsEstadual: 0.17, ibsMunicipal: 0.02, ipi: 0.065, iss: 0, pisCofins: 0.0925 },
   years: [
     { ano: 2026, desembolso: 0, carga: 0 },
     { ano: 2027, desembolso: 0, carga: 0 },
@@ -44,6 +48,8 @@ export const DEFAULT_DATA: ReformaTributariaData = {
     { ano: 2033, desembolso: 0, carga: 0 },
   ],
   observacoes: '',
+  resultadoAtual: 0,
+  resultadoPosReforma: 0,
 };
 
 // Mapa de colunas por ano (Sheet2)
@@ -135,12 +141,19 @@ export async function parseReformaTributariaXlsx(
         const aquisicoes = numCell(sheet2, 'C16');
 
         // Alíquotas
+        // B9=ISS, B10=PIS/COFINS cumulativo, B11=PIS/COFINS não-cumulativo (maior = regime normal)
         const aliquotas: AliquotasData = {
           cbs: numCell(sheet2, 'B5'),
           ibsEstadual: numCell(sheet2, 'B6'),
           ibsMunicipal: numCell(sheet2, 'B7'),
           ipi: numCell(sheet2, 'B8'),
+          iss: numCell(sheet2, 'B9'),
+          pisCofins: Math.max(numCell(sheet2, 'B10'), numCell(sheet2, 'B11')),
         };
+
+        // Resultado operacional: Sheet4 E37 (atual) e H37 (pós reforma)
+        const resultadoAtual = sheet4 ? numCell(sheet4, 'E37') : 0;
+        const resultadoPosReforma = sheet4 ? numCell(sheet4, 'H37') : 0;
 
         // Anos 2026–2032 (Sheet2)
         // Row 31 = Total impostos a pagar (R$), Row 32 = Carga efetiva (decimal)
@@ -166,7 +179,7 @@ export async function parseReformaTributariaXlsx(
           empresa = base.slice(idx + 1).replace(/\s+\d+$/, '').trim();
         }
 
-        resolve({ empresa, faturamento, aquisicoes, aliquotas, years });
+        resolve({ empresa, faturamento, aquisicoes, aliquotas, years, resultadoAtual, resultadoPosReforma });
       } catch (err) {
         reject(
           new Error(
