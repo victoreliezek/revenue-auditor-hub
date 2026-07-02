@@ -23,6 +23,7 @@ export const KNOWN_PERMISSIONS: { key: string; label: string; description: strin
   { key: "view.network.benchmarks", label: "Benchmarks da rede", description: "Permite ver médias e comparativos agregados da rede.", group: "Dados" },
   { key: "view.admin.users", label: "Gerenciar usuários", description: "Cadastrar, editar e excluir usuários.", group: "Administração" },
   { key: "view.admin.permissions", label: "Configurar permissões", description: "Editar a matriz de permissões por papel.", group: "Administração" },
+  { key: "view.admin.integracoes", label: "Gerenciar integrações", description: "Cadastrar credenciais de APIs externas (ex: Omie por unidade).", group: "Administração" },
   { key: "data.scope.own_unit_only", label: "Restringe à própria unidade", description: "Filtra todos os dados pela unidade do usuário.", group: "Dados" },
   { key: "manage.repasses", label: "Lançar repasses (Royalties/CAC)", description: "Importar planilha e lançar/excluir repasses recebidos das unidades.", group: "Auditoria" },
 ];

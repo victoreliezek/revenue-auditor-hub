@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { TrendingUp, Users, ShieldCheck, Building2, Coins, BadgeCheck, Wallet, Smile, MessageSquareWarning, Filter, Gauge, LineChart, Receipt, Activity, BarChart3, GitMerge, FileBarChart2 } from "lucide-react";
+import { TrendingUp, Users, ShieldCheck, Building2, Coins, BadgeCheck, Wallet, Smile, MessageSquareWarning, Filter, Gauge, LineChart, Receipt, Activity, BarChart3, GitMerge, FileBarChart2, KeyRound } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -73,6 +73,7 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
       { title: "Usuários", url: "/admin/usuarios", icon: Users, permission: "view.admin.users" },
       { title: "Permissões", url: "/admin/permissoes", icon: ShieldCheck, permission: "view.admin.permissions" },
       { title: "Validação de páginas", url: "/admin/validacao", icon: BadgeCheck, permission: "view.admin.permissions" },
+      { title: "Integrações", url: "/admin/integracoes", icon: KeyRound, permission: "view.admin.integracoes" },
     ],
   },
 ];

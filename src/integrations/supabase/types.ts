@@ -828,6 +828,36 @@ export type Database = {
         }
         Relationships: []
       }
+      omie_credentials: {
+        Row: {
+          app_key: string
+          app_secret: string
+          ativo: boolean
+          created_at: string
+          id: string
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          app_key: string
+          app_secret: string
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          unidade: string
+          updated_at?: string
+        }
+        Update: {
+          app_key?: string
+          app_secret?: string
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       page_validations: {
         Row: {
           created_at: string
