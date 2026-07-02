@@ -146,7 +146,8 @@ function ClientesPage() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const [empRes, contRes, tratRes] = await Promise.all([
+      const [unidadesRes, empRes, contRes, tratRes] = await Promise.all([
+        supabase.from("unidades").select("nome_da_praca").eq("tipo", "regional"),
         supabase
           .from("empresas")
           .select(
@@ -157,10 +158,8 @@ function ClientesPage() {
           .limit(5000),
         supabase
           .from("contratos")
-          .select("mrr_mensal,pipedrive_deal_id,status_contrato,tipo")
+          .select("mrr_mensal,pipedrive_deal_id,status_contrato,unidade")
           .eq("status_contrato", "Ativo")
-          .eq("tipo", "Recorrente")
-          .eq("tipo_unidade", "franquia")
           .limit(20000),
         supabase
           .from("central_tratativas")
@@ -170,9 +169,16 @@ function ClientesPage() {
           .limit(2000),
       ]);
       if (!mounted) return;
-      if (empRes.data) setRows(empRes.data as Cliente[]);
+      // Unidades regionais ativas (fonte de verdade: tabela `unidades`, tipo='regional').
+      // Alinha com v_funil_mensal / v_reconciliacao_mensal — exclui franquias desativadas
+      // como Itaúna mesmo que ainda estejam marcadas tipo_unidade='franquia' em contratos/empresas.
+      const regionais = new Set((unidadesRes.data ?? []).map((u) => u.nome_da_praca));
+      if (empRes.data) {
+        setRows((empRes.data as Cliente[]).filter((r) => regionais.has(r.unidade ?? "")));
+      }
       const m = new Map<string, number>();
       for (const c of contRes.data ?? []) {
+        if (!regionais.has(c.unidade ?? "")) continue;
         const id = c.pipedrive_deal_id != null ? String(c.pipedrive_deal_id) : null;
         if (!id) continue;
         // contratos.mrr_mensal já é o valor mensal (coluna gerada = mrr/12)
