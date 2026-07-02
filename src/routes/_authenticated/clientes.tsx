@@ -44,6 +44,8 @@ type Cliente = {
   pipedrive_id: string | null;
   fonte_cadastro: string | null;
   status_financeiro: StatusFinanceiro | null;
+  erp: string | null;
+  segmento: string | null;
 };
 
 const ALL = "__all__";
@@ -120,6 +122,8 @@ function ClientesPage() {
     statusParam ? (statusParam as StatusFinanceiro) : null,
   );
   const [churnFilter, setChurnFilter] = useState<boolean | null>(null);
+  const [erpFilter, setErpFilter] = useState(ALL);
+  const [segmentoFilter, setSegmentoFilter] = useState(ALL);
   type SortKey =
     | "razao_social"
     | "unidade"
@@ -127,7 +131,9 @@ function ClientesPage() {
     | "cnpj"
     | "status_financeiro"
     | "pipedrive_id"
-    | "fonte_cadastro";
+    | "fonte_cadastro"
+    | "erp"
+    | "segmento";
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" } | null>(null);
   const toggleSort = (key: SortKey) => {
     setSort((prev) => {
@@ -144,7 +150,7 @@ function ClientesPage() {
         supabase
           .from("empresas")
           .select(
-            "id,razao_social,titulo,cnpj,unidade,pipedrive_id,fonte_cadastro,status_financeiro",
+            "id,razao_social,titulo,cnpj,unidade,pipedrive_id,fonte_cadastro,status_financeiro,erp,segmento",
           )
           .eq("tipo_unidade", "franquia")
           .order("razao_social", { ascending: true })
@@ -194,6 +200,16 @@ function ClientesPage() {
     [rows],
   );
 
+  const erps = useMemo(
+    () => Array.from(new Set(rows.map((r) => r.erp).filter(Boolean) as string[])).sort(),
+    [rows],
+  );
+
+  const segmentos = useMemo(
+    () => Array.from(new Set(rows.map((r) => r.segmento).filter(Boolean) as string[])).sort(),
+    [rows],
+  );
+
   const visiveis = useMemo(() => {
     if (perms.scopedToOwnUnit && perms.unidade) {
       return rows.filter((r) => unitMatches(perms.unidade, r.unidade));
@@ -229,6 +245,8 @@ function ClientesPage() {
       if (churnFilter === false && isChurn(r)) return false;
       if (statusFilter && r.status_financeiro !== statusFilter) return false;
       if (!perms.scopedToOwnUnit && unidade !== ALL && r.unidade !== unidade) return false;
+      if (erpFilter !== ALL && r.erp !== erpFilter) return false;
+      if (segmentoFilter !== ALL && r.segmento !== segmentoFilter) return false;
       if (term) {
         const hay = [r.razao_social, r.titulo, r.cnpj]
           .filter(Boolean)
@@ -286,18 +304,32 @@ function ClientesPage() {
         case "fonte_cadastro":
           c = cmpStr(a.fonte_cadastro, b.fonte_cadastro);
           break;
+        case "erp":
+          c = cmpStr(a.erp, b.erp);
+          break;
+        case "segmento":
+          c = cmpStr(a.segmento, b.segmento);
+          break;
       }
       if (c !== 0) return c * dir;
       return (a.razao_social ?? "").localeCompare(b.razao_social ?? "", "pt-BR");
     });
-  }, [visiveis, q, unidade, statusFilter, perms.scopedToOwnUnit, sort, mrrByPipedriveId]);
+  }, [visiveis, q, unidade, statusFilter, erpFilter, segmentoFilter, perms.scopedToOwnUnit, sort, mrrByPipedriveId]);
 
-  const hasFilters = q !== "" || unidade !== ALL || statusFilter !== null || churnFilter !== null;
+  const hasFilters =
+    q !== "" ||
+    unidade !== ALL ||
+    statusFilter !== null ||
+    churnFilter !== null ||
+    erpFilter !== ALL ||
+    segmentoFilter !== ALL;
   const clearFilters = () => {
     setQ("");
     setUnidade(ALL);
     setStatusFilter(null);
     setChurnFilter(null);
+    setErpFilter(ALL);
+    setSegmentoFilter(ALL);
   };
 
   return (
@@ -409,6 +441,32 @@ function ClientesPage() {
                 </SelectContent>
               </Select>
             )}
+            <Select value={erpFilter} onValueChange={setErpFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="ERP" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>Todos os ERPs</SelectItem>
+                {erps.map((e) => (
+                  <SelectItem key={e} value={e}>
+                    {e}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={segmentoFilter} onValueChange={setSegmentoFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Segmento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>Todos os segmentos</SelectItem>
+                {segmentos.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {statusFilter && (
               <Badge className={cn("gap-1", STATUS_META[statusFilter].badge)}>
                 {STATUS_META[statusFilter].label}
@@ -438,9 +496,11 @@ function ClientesPage() {
                     : "",
                   "Pipedrive ID": r.pipedrive_id || "",
                   "Fonte Cadastro": r.fonte_cadastro || "",
+                  ERP: r.erp || "",
+                  Segmento: r.segmento || "",
                 }));
                 exportRowsToXlsx(data, "clientes-planning", "Planning", [
-                  40, 18, 14, 20, 18, 14, 18,
+                  40, 18, 14, 20, 18, 14, 18, 18, 20,
                 ]);
               }}
             >
@@ -471,6 +531,8 @@ function ClientesPage() {
                       { key: "status_financeiro", label: "Status Financeiro", align: "left" },
                       { key: "pipedrive_id", label: "Pipedrive ID", align: "left" },
                       { key: "fonte_cadastro", label: "Fonte Cadastro", align: "left" },
+                      { key: "erp", label: "ERP", align: "left" },
+                      { key: "segmento", label: "Segmento", align: "left" },
                     ] as { key: SortKey; label: string; align: "left" | "right" }[]).map((col) => {
                       const active = sort?.key === col.key;
                       const Icon = !active
@@ -556,13 +618,15 @@ function ClientesPage() {
                           )}
                         </TableCell>
                         <TableCell>{r.fonte_cadastro || "—"}</TableCell>
+                        <TableCell>{r.erp || "—"}</TableCell>
+                        <TableCell>{r.segmento || "—"}</TableCell>
                       </TableRow>
                     );
                   })}
                   {!loading && filtered.length === 0 && (
                     <TableRow>
                       <TableCell
-                        colSpan={7}
+                        colSpan={9}
                         className="py-10 text-center text-sm text-muted-foreground"
                       >
                         Nenhum cliente encontrado.

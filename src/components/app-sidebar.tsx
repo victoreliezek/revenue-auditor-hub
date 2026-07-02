@@ -31,7 +31,6 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
     label: "Rede",
     items: [
       { title: "Clientes", url: "/clientes", icon: Building2, permission: "view.clientes" },
-      { title: "Operação", url: "/operacao", icon: Building2, permission: "view.clientes" },
       { title: "NPS", url: "/nps", icon: Smile, permission: "view.clientes" },
       { title: "Tratativas", url: "/tratativas", icon: MessageSquareWarning, permission: "view.clientes" },
     ],

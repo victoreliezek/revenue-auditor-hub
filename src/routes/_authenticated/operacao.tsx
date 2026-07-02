@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Building2, ChevronDown, ChevronRight, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,10 @@ import {
 import { usePermissions, unitMatches } from "@/hooks/use-permissions";
 
 export const Route = createFileRoute("/_authenticated/operacao")({
+  // Página desativada: sem link no menu e acesso direto redireciona.
+  beforeLoad: () => {
+    throw redirect({ to: "/" });
+  },
   component: OperacaoPage,
 });
 
