@@ -55,9 +55,9 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
   {
     label: "Planning Partners",
     items: [
-      { title: "Financeiro Partners", url: "/financeiro-partners", icon: Receipt, permission: "view.roas" },
-      { title: "Receita Partners", url: "/receita-partners", icon: LineChart, permission: "view.roas" },
-      { title: "Despesas Partners", url: "/despesas-cm", icon: TrendingDown, permission: "view.roas" },
+      { title: "Financeiro Partners", url: "/financeiro-partners", icon: Receipt, permission: "view.financeiro_partners" },
+      { title: "Receita Partners", url: "/receita-partners", icon: LineChart, permission: "view.receita_partners" },
+      { title: "Despesas Partners", url: "/despesas-cm", icon: TrendingDown, permission: "view.despesas_partners" },
     ],
   },
   {
