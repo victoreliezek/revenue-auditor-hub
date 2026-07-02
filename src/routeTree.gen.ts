@@ -17,20 +17,21 @@ import { Route as AuthenticatedUnidadesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedTratativasRouteImport } from './routes/_authenticated/tratativas'
 import { Route as AuthenticatedSimuladorCaixaRouteImport } from './routes/_authenticated/simulador-caixa'
 import { Route as AuthenticatedRoyaltiesRouteImport } from './routes/_authenticated/royalties'
-import { Route as AuthenticatedRedeRouteImport } from './routes/_authenticated/rede'
+import { Route as AuthenticatedReformaTributariaRouteImport } from './routes/_authenticated/reforma-tributaria'
+import { Route as AuthenticatedRedeRealizadoRouteImport } from './routes/_authenticated/rede-realizado'
 import { Route as AuthenticatedRedeOverviewRouteImport } from './routes/_authenticated/rede-overview'
 import { Route as AuthenticatedRedeLtvRouteImport } from './routes/_authenticated/rede-ltv'
-import { Route as AuthenticatedRedeFinanceiroRouteImport } from './routes/_authenticated/rede-financeiro'
 import { Route as AuthenticatedRedeHeadcountRouteImport } from './routes/_authenticated/rede-headcount'
-import { Route as AuthenticatedRedeRealizadoRouteImport } from './routes/_authenticated/rede-realizado'
+import { Route as AuthenticatedRedeFinanceiroRouteImport } from './routes/_authenticated/rede-financeiro'
+import { Route as AuthenticatedRedeRouteImport } from './routes/_authenticated/rede'
+import { Route as AuthenticatedReconciliacaoRouteImport } from './routes/_authenticated/reconciliacao'
 import { Route as AuthenticatedPainelUnidadeRouteImport } from './routes/_authenticated/painel-unidade'
 import { Route as AuthenticatedPagamentosUnidadesRouteImport } from './routes/_authenticated/pagamentos-unidades'
 import { Route as AuthenticatedOperacaoRouteImport } from './routes/_authenticated/operacao'
 import { Route as AuthenticatedNpsRouteImport } from './routes/_authenticated/nps'
 import { Route as AuthenticatedMeusRoyaltiesRouteImport } from './routes/_authenticated/meus-royalties'
-import { Route as AuthenticatedFunilReceitaRouteImport } from './routes/_authenticated/funil-receita'
-import { Route as AuthenticatedReconciliacaoRouteImport } from './routes/_authenticated/reconciliacao'
 import { Route as AuthenticatedFxcRouteImport } from './routes/_authenticated/fxc'
+import { Route as AuthenticatedFunilReceitaRouteImport } from './routes/_authenticated/funil-receita'
 import { Route as AuthenticatedFinanceiroPartnersRouteImport } from './routes/_authenticated/financeiro-partners'
 import { Route as AuthenticatedDrePartnersRouteImport } from './routes/_authenticated/dre-partners'
 import { Route as AuthenticatedDespesasCmRouteImport } from './routes/_authenticated/despesas-cm'
@@ -38,10 +39,10 @@ import { Route as AuthenticatedContasReceberRouteImport } from './routes/_authen
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedAuditoriaFaturamentoRouteImport } from './routes/_authenticated/auditoria-faturamento'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
-import { Route as AuthenticatedReformaTributariaRouteImport } from './routes/_authenticated/reforma-tributaria'
 import { Route as AuthenticatedAdminValidacaoRouteImport } from './routes/_authenticated/admin.validacao'
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin.usuarios'
 import { Route as AuthenticatedAdminPermissoesRouteImport } from './routes/_authenticated/admin.permissoes'
+import { Route as AuthenticatedAdminIntegracoesRouteImport } from './routes/_authenticated/admin.integracoes'
 import { Route as AuthenticatedRoyaltiesUnidadeIdMesRouteImport } from './routes/_authenticated/royalties.$unidadeId.$mes'
 
 const TrustRoute = TrustRouteImport.update({
@@ -84,36 +85,52 @@ const AuthenticatedRoyaltiesRoute = AuthenticatedRoyaltiesRouteImport.update({
   path: '/royalties',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedRedeRoute = AuthenticatedRedeRouteImport.update({
-  id: '/rede',
-  path: '/rede',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedRedeOverviewRoute = AuthenticatedRedeOverviewRouteImport.update({
-  id: '/rede-overview',
-  path: '/rede-overview',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
+const AuthenticatedReformaTributariaRoute =
+  AuthenticatedReformaTributariaRouteImport.update({
+    id: '/reforma-tributaria',
+    path: '/reforma-tributaria',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRedeRealizadoRoute =
+  AuthenticatedRedeRealizadoRouteImport.update({
+    id: '/rede-realizado',
+    path: '/rede-realizado',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRedeOverviewRoute =
+  AuthenticatedRedeOverviewRouteImport.update({
+    id: '/rede-overview',
+    path: '/rede-overview',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRedeLtvRoute = AuthenticatedRedeLtvRouteImport.update({
   id: '/rede-ltv',
   path: '/rede-ltv',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedRedeFinanceiroRoute = AuthenticatedRedeFinanceiroRouteImport.update({
-  id: '/rede-financeiro',
-  path: '/rede-financeiro',
+const AuthenticatedRedeHeadcountRoute =
+  AuthenticatedRedeHeadcountRouteImport.update({
+    id: '/rede-headcount',
+    path: '/rede-headcount',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRedeFinanceiroRoute =
+  AuthenticatedRedeFinanceiroRouteImport.update({
+    id: '/rede-financeiro',
+    path: '/rede-financeiro',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRedeRoute = AuthenticatedRedeRouteImport.update({
+  id: '/rede',
+  path: '/rede',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedRedeHeadcountRoute = AuthenticatedRedeHeadcountRouteImport.update({
-  id: '/rede-headcount',
-  path: '/rede-headcount',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedRedeRealizadoRoute = AuthenticatedRedeRealizadoRouteImport.update({
-  id: '/rede-realizado',
-  path: '/rede-realizado',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
+const AuthenticatedReconciliacaoRoute =
+  AuthenticatedReconciliacaoRouteImport.update({
+    id: '/reconciliacao',
+    path: '/reconciliacao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPainelUnidadeRoute =
   AuthenticatedPainelUnidadeRouteImport.update({
     id: '/painel-unidade',
@@ -142,23 +159,17 @@ const AuthenticatedMeusRoyaltiesRoute =
     path: '/meus-royalties',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedFxcRoute = AuthenticatedFxcRouteImport.update({
+  id: '/fxc',
+  path: '/fxc',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedFunilReceitaRoute =
   AuthenticatedFunilReceitaRouteImport.update({
     id: '/funil-receita',
     path: '/funil-receita',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedReconciliacaoRoute =
-  AuthenticatedReconciliacaoRouteImport.update({
-    id: '/reconciliacao',
-    path: '/reconciliacao',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedFxcRoute = AuthenticatedFxcRouteImport.update({
-  id: '/fxc',
-  path: '/fxc',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedFinanceiroPartnersRoute =
   AuthenticatedFinanceiroPartnersRouteImport.update({
     id: '/financeiro-partners',
@@ -198,12 +209,6 @@ const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
   path: '/auditoria',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedReformaTributariaRoute =
-  AuthenticatedReformaTributariaRouteImport.update({
-    id: '/reforma-tributaria',
-    path: '/reforma-tributaria',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedAdminValidacaoRoute =
   AuthenticatedAdminValidacaoRouteImport.update({
     id: '/admin/validacao',
@@ -220,6 +225,12 @@ const AuthenticatedAdminPermissoesRoute =
   AuthenticatedAdminPermissoesRouteImport.update({
     id: '/admin/permissoes',
     path: '/admin/permissoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminIntegracoesRoute =
+  AuthenticatedAdminIntegracoesRouteImport.update({
+    id: '/admin/integracoes',
+    path: '/admin/integracoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedRoyaltiesUnidadeIdMesRoute =
@@ -240,29 +251,30 @@ export interface FileRoutesByFullPath {
   '/despesas-cm': typeof AuthenticatedDespesasCmRoute
   '/dre-partners': typeof AuthenticatedDrePartnersRoute
   '/financeiro-partners': typeof AuthenticatedFinanceiroPartnersRoute
-  '/fxc': typeof AuthenticatedFxcRoute
   '/funil-receita': typeof AuthenticatedFunilReceitaRoute
-  '/reconciliacao': typeof AuthenticatedReconciliacaoRoute
+  '/fxc': typeof AuthenticatedFxcRoute
   '/meus-royalties': typeof AuthenticatedMeusRoyaltiesRoute
   '/nps': typeof AuthenticatedNpsRoute
   '/operacao': typeof AuthenticatedOperacaoRoute
   '/pagamentos-unidades': typeof AuthenticatedPagamentosUnidadesRoute
   '/painel-unidade': typeof AuthenticatedPainelUnidadeRoute
+  '/reconciliacao': typeof AuthenticatedReconciliacaoRoute
   '/rede': typeof AuthenticatedRedeRoute
-  '/rede-overview': typeof AuthenticatedRedeOverviewRoute
-  '/rede-ltv': typeof AuthenticatedRedeLtvRoute
   '/rede-financeiro': typeof AuthenticatedRedeFinanceiroRoute
   '/rede-headcount': typeof AuthenticatedRedeHeadcountRoute
+  '/rede-ltv': typeof AuthenticatedRedeLtvRoute
+  '/rede-overview': typeof AuthenticatedRedeOverviewRoute
   '/rede-realizado': typeof AuthenticatedRedeRealizadoRoute
+  '/reforma-tributaria': typeof AuthenticatedReformaTributariaRoute
   '/royalties': typeof AuthenticatedRoyaltiesRouteWithChildren
   '/simulador-caixa': typeof AuthenticatedSimuladorCaixaRoute
   '/tratativas': typeof AuthenticatedTratativasRoute
   '/unidades': typeof AuthenticatedUnidadesRoute
+  '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/admin/validacao': typeof AuthenticatedAdminValidacaoRoute
   '/royalties/$unidadeId/$mes': typeof AuthenticatedRoyaltiesUnidadeIdMesRoute
-  '/reforma-tributaria': typeof AuthenticatedReformaTributariaRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -274,30 +286,31 @@ export interface FileRoutesByTo {
   '/despesas-cm': typeof AuthenticatedDespesasCmRoute
   '/dre-partners': typeof AuthenticatedDrePartnersRoute
   '/financeiro-partners': typeof AuthenticatedFinanceiroPartnersRoute
-  '/fxc': typeof AuthenticatedFxcRoute
   '/funil-receita': typeof AuthenticatedFunilReceitaRoute
-  '/reconciliacao': typeof AuthenticatedReconciliacaoRoute
+  '/fxc': typeof AuthenticatedFxcRoute
   '/meus-royalties': typeof AuthenticatedMeusRoyaltiesRoute
   '/nps': typeof AuthenticatedNpsRoute
   '/operacao': typeof AuthenticatedOperacaoRoute
   '/pagamentos-unidades': typeof AuthenticatedPagamentosUnidadesRoute
   '/painel-unidade': typeof AuthenticatedPainelUnidadeRoute
+  '/reconciliacao': typeof AuthenticatedReconciliacaoRoute
   '/rede': typeof AuthenticatedRedeRoute
-  '/rede-overview': typeof AuthenticatedRedeOverviewRoute
-  '/rede-ltv': typeof AuthenticatedRedeLtvRoute
   '/rede-financeiro': typeof AuthenticatedRedeFinanceiroRoute
   '/rede-headcount': typeof AuthenticatedRedeHeadcountRoute
+  '/rede-ltv': typeof AuthenticatedRedeLtvRoute
+  '/rede-overview': typeof AuthenticatedRedeOverviewRoute
   '/rede-realizado': typeof AuthenticatedRedeRealizadoRoute
+  '/reforma-tributaria': typeof AuthenticatedReformaTributariaRoute
   '/royalties': typeof AuthenticatedRoyaltiesRouteWithChildren
   '/simulador-caixa': typeof AuthenticatedSimuladorCaixaRoute
   '/tratativas': typeof AuthenticatedTratativasRoute
   '/unidades': typeof AuthenticatedUnidadesRoute
   '/': typeof AuthenticatedIndexRoute
+  '/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/admin/validacao': typeof AuthenticatedAdminValidacaoRoute
   '/royalties/$unidadeId/$mes': typeof AuthenticatedRoyaltiesUnidadeIdMesRoute
-  '/reforma-tributaria': typeof AuthenticatedReformaTributariaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -311,30 +324,31 @@ export interface FileRoutesById {
   '/_authenticated/despesas-cm': typeof AuthenticatedDespesasCmRoute
   '/_authenticated/dre-partners': typeof AuthenticatedDrePartnersRoute
   '/_authenticated/financeiro-partners': typeof AuthenticatedFinanceiroPartnersRoute
-  '/_authenticated/fxc': typeof AuthenticatedFxcRoute
   '/_authenticated/funil-receita': typeof AuthenticatedFunilReceitaRoute
-  '/_authenticated/reconciliacao': typeof AuthenticatedReconciliacaoRoute
+  '/_authenticated/fxc': typeof AuthenticatedFxcRoute
   '/_authenticated/meus-royalties': typeof AuthenticatedMeusRoyaltiesRoute
   '/_authenticated/nps': typeof AuthenticatedNpsRoute
   '/_authenticated/operacao': typeof AuthenticatedOperacaoRoute
   '/_authenticated/pagamentos-unidades': typeof AuthenticatedPagamentosUnidadesRoute
   '/_authenticated/painel-unidade': typeof AuthenticatedPainelUnidadeRoute
+  '/_authenticated/reconciliacao': typeof AuthenticatedReconciliacaoRoute
   '/_authenticated/rede': typeof AuthenticatedRedeRoute
-  '/_authenticated/rede-overview': typeof AuthenticatedRedeOverviewRoute
-  '/_authenticated/rede-ltv': typeof AuthenticatedRedeLtvRoute
   '/_authenticated/rede-financeiro': typeof AuthenticatedRedeFinanceiroRoute
   '/_authenticated/rede-headcount': typeof AuthenticatedRedeHeadcountRoute
+  '/_authenticated/rede-ltv': typeof AuthenticatedRedeLtvRoute
+  '/_authenticated/rede-overview': typeof AuthenticatedRedeOverviewRoute
   '/_authenticated/rede-realizado': typeof AuthenticatedRedeRealizadoRoute
+  '/_authenticated/reforma-tributaria': typeof AuthenticatedReformaTributariaRoute
   '/_authenticated/royalties': typeof AuthenticatedRoyaltiesRouteWithChildren
   '/_authenticated/simulador-caixa': typeof AuthenticatedSimuladorCaixaRoute
   '/_authenticated/tratativas': typeof AuthenticatedTratativasRoute
   '/_authenticated/unidades': typeof AuthenticatedUnidadesRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/admin/integracoes': typeof AuthenticatedAdminIntegracoesRoute
   '/_authenticated/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/_authenticated/admin/validacao': typeof AuthenticatedAdminValidacaoRoute
   '/_authenticated/royalties/$unidadeId/$mes': typeof AuthenticatedRoyaltiesUnidadeIdMesRoute
-  '/_authenticated/reforma-tributaria': typeof AuthenticatedReformaTributariaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -349,29 +363,30 @@ export interface FileRouteTypes {
     | '/despesas-cm'
     | '/dre-partners'
     | '/financeiro-partners'
-    | '/fxc'
     | '/funil-receita'
-    | '/reconciliacao'
+    | '/fxc'
     | '/meus-royalties'
     | '/nps'
     | '/operacao'
     | '/pagamentos-unidades'
     | '/painel-unidade'
+    | '/reconciliacao'
     | '/rede'
-    | '/rede-overview'
-    | '/rede-ltv'
     | '/rede-financeiro'
     | '/rede-headcount'
+    | '/rede-ltv'
+    | '/rede-overview'
     | '/rede-realizado'
+    | '/reforma-tributaria'
     | '/royalties'
     | '/simulador-caixa'
     | '/tratativas'
     | '/unidades'
+    | '/admin/integracoes'
     | '/admin/permissoes'
     | '/admin/usuarios'
     | '/admin/validacao'
     | '/royalties/$unidadeId/$mes'
-    | '/reforma-tributaria'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -383,30 +398,31 @@ export interface FileRouteTypes {
     | '/despesas-cm'
     | '/dre-partners'
     | '/financeiro-partners'
-    | '/fxc'
     | '/funil-receita'
-    | '/reconciliacao'
+    | '/fxc'
     | '/meus-royalties'
     | '/nps'
     | '/operacao'
     | '/pagamentos-unidades'
     | '/painel-unidade'
+    | '/reconciliacao'
     | '/rede'
-    | '/rede-overview'
-    | '/rede-ltv'
     | '/rede-financeiro'
     | '/rede-headcount'
+    | '/rede-ltv'
+    | '/rede-overview'
     | '/rede-realizado'
+    | '/reforma-tributaria'
     | '/royalties'
     | '/simulador-caixa'
     | '/tratativas'
     | '/unidades'
     | '/'
+    | '/admin/integracoes'
     | '/admin/permissoes'
     | '/admin/usuarios'
     | '/admin/validacao'
     | '/royalties/$unidadeId/$mes'
-    | '/reforma-tributaria'
   id:
     | '__root__'
     | '/_authenticated'
@@ -419,30 +435,31 @@ export interface FileRouteTypes {
     | '/_authenticated/despesas-cm'
     | '/_authenticated/dre-partners'
     | '/_authenticated/financeiro-partners'
-    | '/_authenticated/fxc'
     | '/_authenticated/funil-receita'
-    | '/_authenticated/reconciliacao'
+    | '/_authenticated/fxc'
     | '/_authenticated/meus-royalties'
     | '/_authenticated/nps'
     | '/_authenticated/operacao'
     | '/_authenticated/pagamentos-unidades'
     | '/_authenticated/painel-unidade'
+    | '/_authenticated/reconciliacao'
     | '/_authenticated/rede'
-    | '/_authenticated/rede-overview'
-    | '/_authenticated/rede-ltv'
     | '/_authenticated/rede-financeiro'
     | '/_authenticated/rede-headcount'
+    | '/_authenticated/rede-ltv'
+    | '/_authenticated/rede-overview'
     | '/_authenticated/rede-realizado'
+    | '/_authenticated/reforma-tributaria'
     | '/_authenticated/royalties'
     | '/_authenticated/simulador-caixa'
     | '/_authenticated/tratativas'
     | '/_authenticated/unidades'
     | '/_authenticated/'
+    | '/_authenticated/admin/integracoes'
     | '/_authenticated/admin/permissoes'
     | '/_authenticated/admin/usuarios'
     | '/_authenticated/admin/validacao'
     | '/_authenticated/royalties/$unidadeId/$mes'
-    | '/_authenticated/reforma-tributaria'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -509,11 +526,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRoyaltiesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/rede': {
-      id: '/_authenticated/rede'
-      path: '/rede'
-      fullPath: '/rede'
-      preLoaderRoute: typeof AuthenticatedRedeRouteImport
+    '/_authenticated/reforma-tributaria': {
+      id: '/_authenticated/reforma-tributaria'
+      path: '/reforma-tributaria'
+      fullPath: '/reforma-tributaria'
+      preLoaderRoute: typeof AuthenticatedReformaTributariaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rede-realizado': {
+      id: '/_authenticated/rede-realizado'
+      path: '/rede-realizado'
+      fullPath: '/rede-realizado'
+      preLoaderRoute: typeof AuthenticatedRedeRealizadoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/rede-overview': {
@@ -530,13 +554,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRedeLtvRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/rede-financeiro': {
-      id: '/_authenticated/rede-financeiro'
-      path: '/rede-financeiro'
-      fullPath: '/rede-financeiro'
-      preLoaderRoute: typeof AuthenticatedRedeFinanceiroRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/rede-headcount': {
       id: '/_authenticated/rede-headcount'
       path: '/rede-headcount'
@@ -544,11 +561,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRedeHeadcountRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/rede-realizado': {
-      id: '/_authenticated/rede-realizado'
-      path: '/rede-realizado'
-      fullPath: '/rede-realizado'
-      preLoaderRoute: typeof AuthenticatedRedeRealizadoRouteImport
+    '/_authenticated/rede-financeiro': {
+      id: '/_authenticated/rede-financeiro'
+      path: '/rede-financeiro'
+      fullPath: '/rede-financeiro'
+      preLoaderRoute: typeof AuthenticatedRedeFinanceiroRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rede': {
+      id: '/_authenticated/rede'
+      path: '/rede'
+      fullPath: '/rede'
+      preLoaderRoute: typeof AuthenticatedRedeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reconciliacao': {
+      id: '/_authenticated/reconciliacao'
+      path: '/reconciliacao'
+      fullPath: '/reconciliacao'
+      preLoaderRoute: typeof AuthenticatedReconciliacaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/painel-unidade': {
@@ -558,18 +589,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPainelUnidadeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/operacao': {
-      id: '/_authenticated/operacao'
-      path: '/operacao'
-      fullPath: '/operacao'
-      preLoaderRoute: typeof AuthenticatedOperacaoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/pagamentos-unidades': {
       id: '/_authenticated/pagamentos-unidades'
       path: '/pagamentos-unidades'
       fullPath: '/pagamentos-unidades'
       preLoaderRoute: typeof AuthenticatedPagamentosUnidadesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/operacao': {
+      id: '/_authenticated/operacao'
+      path: '/operacao'
+      fullPath: '/operacao'
+      preLoaderRoute: typeof AuthenticatedOperacaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/nps': {
@@ -586,6 +617,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMeusRoyaltiesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/fxc': {
+      id: '/_authenticated/fxc'
+      path: '/fxc'
+      fullPath: '/fxc'
+      preLoaderRoute: typeof AuthenticatedFxcRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/funil-receita': {
       id: '/_authenticated/funil-receita'
       path: '/funil-receita'
@@ -593,25 +631,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFunilReceitaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/reconciliacao': {
-      id: '/_authenticated/reconciliacao'
-      path: '/reconciliacao'
-      fullPath: '/reconciliacao'
-      preLoaderRoute: typeof AuthenticatedReconciliacaoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/financeiro-partners': {
       id: '/_authenticated/financeiro-partners'
       path: '/financeiro-partners'
       fullPath: '/financeiro-partners'
       preLoaderRoute: typeof AuthenticatedFinanceiroPartnersRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/fxc': {
-      id: '/_authenticated/fxc'
-      path: '/fxc'
-      fullPath: '/fxc'
-      preLoaderRoute: typeof AuthenticatedFxcRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dre-partners': {
@@ -677,19 +701,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPermissoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/integracoes': {
+      id: '/_authenticated/admin/integracoes'
+      path: '/admin/integracoes'
+      fullPath: '/admin/integracoes'
+      preLoaderRoute: typeof AuthenticatedAdminIntegracoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/royalties/$unidadeId/$mes': {
       id: '/_authenticated/royalties/$unidadeId/$mes'
       path: '/$unidadeId/$mes'
       fullPath: '/royalties/$unidadeId/$mes'
       preLoaderRoute: typeof AuthenticatedRoyaltiesUnidadeIdMesRouteImport
       parentRoute: typeof AuthenticatedRoyaltiesRoute
-    }
-    '/_authenticated/reforma-tributaria': {
-      id: '/_authenticated/reforma-tributaria'
-      path: '/reforma-tributaria'
-      fullPath: '/reforma-tributaria'
-      preLoaderRoute: typeof AuthenticatedReformaTributariaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
@@ -717,29 +741,30 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDespesasCmRoute: typeof AuthenticatedDespesasCmRoute
   AuthenticatedDrePartnersRoute: typeof AuthenticatedDrePartnersRoute
   AuthenticatedFinanceiroPartnersRoute: typeof AuthenticatedFinanceiroPartnersRoute
-  AuthenticatedFxcRoute: typeof AuthenticatedFxcRoute
   AuthenticatedFunilReceitaRoute: typeof AuthenticatedFunilReceitaRoute
-  AuthenticatedReconciliacaoRoute: typeof AuthenticatedReconciliacaoRoute
+  AuthenticatedFxcRoute: typeof AuthenticatedFxcRoute
   AuthenticatedMeusRoyaltiesRoute: typeof AuthenticatedMeusRoyaltiesRoute
   AuthenticatedNpsRoute: typeof AuthenticatedNpsRoute
   AuthenticatedOperacaoRoute: typeof AuthenticatedOperacaoRoute
   AuthenticatedPagamentosUnidadesRoute: typeof AuthenticatedPagamentosUnidadesRoute
   AuthenticatedPainelUnidadeRoute: typeof AuthenticatedPainelUnidadeRoute
+  AuthenticatedReconciliacaoRoute: typeof AuthenticatedReconciliacaoRoute
   AuthenticatedRedeRoute: typeof AuthenticatedRedeRoute
-  AuthenticatedRedeOverviewRoute: typeof AuthenticatedRedeOverviewRoute
-  AuthenticatedRedeLtvRoute: typeof AuthenticatedRedeLtvRoute
   AuthenticatedRedeFinanceiroRoute: typeof AuthenticatedRedeFinanceiroRoute
   AuthenticatedRedeHeadcountRoute: typeof AuthenticatedRedeHeadcountRoute
+  AuthenticatedRedeLtvRoute: typeof AuthenticatedRedeLtvRoute
+  AuthenticatedRedeOverviewRoute: typeof AuthenticatedRedeOverviewRoute
   AuthenticatedRedeRealizadoRoute: typeof AuthenticatedRedeRealizadoRoute
+  AuthenticatedReformaTributariaRoute: typeof AuthenticatedReformaTributariaRoute
   AuthenticatedRoyaltiesRoute: typeof AuthenticatedRoyaltiesRouteWithChildren
   AuthenticatedSimuladorCaixaRoute: typeof AuthenticatedSimuladorCaixaRoute
   AuthenticatedTratativasRoute: typeof AuthenticatedTratativasRoute
   AuthenticatedUnidadesRoute: typeof AuthenticatedUnidadesRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAdminIntegracoesRoute: typeof AuthenticatedAdminIntegracoesRoute
   AuthenticatedAdminPermissoesRoute: typeof AuthenticatedAdminPermissoesRoute
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
   AuthenticatedAdminValidacaoRoute: typeof AuthenticatedAdminValidacaoRoute
-  AuthenticatedReformaTributariaRoute: typeof AuthenticatedReformaTributariaRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -751,29 +776,30 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDespesasCmRoute: AuthenticatedDespesasCmRoute,
   AuthenticatedDrePartnersRoute: AuthenticatedDrePartnersRoute,
   AuthenticatedFinanceiroPartnersRoute: AuthenticatedFinanceiroPartnersRoute,
-  AuthenticatedFxcRoute: AuthenticatedFxcRoute,
   AuthenticatedFunilReceitaRoute: AuthenticatedFunilReceitaRoute,
-  AuthenticatedReconciliacaoRoute: AuthenticatedReconciliacaoRoute,
+  AuthenticatedFxcRoute: AuthenticatedFxcRoute,
   AuthenticatedMeusRoyaltiesRoute: AuthenticatedMeusRoyaltiesRoute,
   AuthenticatedNpsRoute: AuthenticatedNpsRoute,
   AuthenticatedOperacaoRoute: AuthenticatedOperacaoRoute,
   AuthenticatedPagamentosUnidadesRoute: AuthenticatedPagamentosUnidadesRoute,
   AuthenticatedPainelUnidadeRoute: AuthenticatedPainelUnidadeRoute,
+  AuthenticatedReconciliacaoRoute: AuthenticatedReconciliacaoRoute,
   AuthenticatedRedeRoute: AuthenticatedRedeRoute,
-  AuthenticatedRedeOverviewRoute: AuthenticatedRedeOverviewRoute,
-  AuthenticatedRedeLtvRoute: AuthenticatedRedeLtvRoute,
   AuthenticatedRedeFinanceiroRoute: AuthenticatedRedeFinanceiroRoute,
   AuthenticatedRedeHeadcountRoute: AuthenticatedRedeHeadcountRoute,
+  AuthenticatedRedeLtvRoute: AuthenticatedRedeLtvRoute,
+  AuthenticatedRedeOverviewRoute: AuthenticatedRedeOverviewRoute,
   AuthenticatedRedeRealizadoRoute: AuthenticatedRedeRealizadoRoute,
+  AuthenticatedReformaTributariaRoute: AuthenticatedReformaTributariaRoute,
   AuthenticatedRoyaltiesRoute: AuthenticatedRoyaltiesRouteWithChildren,
   AuthenticatedSimuladorCaixaRoute: AuthenticatedSimuladorCaixaRoute,
   AuthenticatedTratativasRoute: AuthenticatedTratativasRoute,
   AuthenticatedUnidadesRoute: AuthenticatedUnidadesRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAdminIntegracoesRoute: AuthenticatedAdminIntegracoesRoute,
   AuthenticatedAdminPermissoesRoute: AuthenticatedAdminPermissoesRoute,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
   AuthenticatedAdminValidacaoRoute: AuthenticatedAdminValidacaoRoute,
-  AuthenticatedReformaTributariaRoute: AuthenticatedReformaTributariaRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
