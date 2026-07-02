@@ -4,7 +4,6 @@ import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { FunilContent } from "@/components/page-content/funil-content";
-import { AuditoriaContent } from "@/components/page-content/auditoria-content";
 import { AuditoriaFaturamentoContent } from "@/components/page-content/auditoria-faturamento-content";
 
 export const Route = createFileRoute("/_authenticated/funil-receita")({
@@ -14,11 +13,10 @@ export const Route = createFileRoute("/_authenticated/funil-receita")({
   component: FunilReceitaPage,
 });
 
-type Tab = "funil" | "vendas-sem-recebimento" | "esperado-recebido";
+type Tab = "funil" | "esperado-recebido";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "funil", label: "Funil" },
-  { key: "vendas-sem-recebimento", label: "Vendas sem recebimento" },
   { key: "esperado-recebido", label: "Esperado × Recebido" },
 ];
 
@@ -50,7 +48,6 @@ function FunilReceitaPage() {
         </div>
       </div>
       {tab === "funil" && <FunilContent />}
-      {tab === "vendas-sem-recebimento" && <AuditoriaContent />}
       {tab === "esperado-recebido" && <AuditoriaFaturamentoContent />}
     </AppShell>
   );
