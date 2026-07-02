@@ -244,6 +244,11 @@ body.edit-mode [data-e][contenteditable="true"]:focus{outline:2px solid var(--g)
 </style>
 </head>
 <body>
+<div class="edit-bar-btm">
+  <span class="eb-notice">✏ Modo edição — clique nos textos destacados para editar</span>
+  <button class="eb-btn eb-dl" onclick="downloadEdited()">Baixar com edições</button>
+  <button class="eb-btn eb-exit" onclick="exitEdit()">Sair da edição</button>
+</div>
 <div class="progress-line" id="pl"></div>
 <nav class="topbar">
   <a href="#" style="display:flex;align-items:center;text-decoration:none;">${logoSvg}</a>
@@ -262,12 +267,12 @@ body.edit-mode [data-e][contenteditable="true"]:focus{outline:2px solid var(--g)
 <section id="hero">
 <div class="container">
   <div class="hero-badge reveal"><span>Mapa da Reforma Tributária</span> · Simulação 2026 a 2033</div>
-  <h1 class="hero-hl reveal d1">
+  <h1 class="hero-hl reveal d1" data-e>
     <span style="color:var(--g)">${d.empresa}</span><br>
     vai pagar <span style="color:var(--r)">+R$ ${Math.round(deltaR / 1000)}k</span><br>
     de imposto por ano.
   </h1>
-  <p class="hero-sub reveal d2">
+  <p class="hero-sub reveal d2" data-e>
     A Reforma Tributária (LC 214) eleva sua carga de <strong>${fmtPct(first.carga)}</strong> para <strong>${fmtPct(last.carga)}</strong> até ${last.ano}. A carga hoje incide sobre <strong>${tributosAtuais}</strong>. Este mapa mostra como esse aumento acontece — ano a ano, imposto a imposto — para que você planeje antes que a conta chegue.
   </p>
   <div class="hero-meta reveal d3">
@@ -285,7 +290,7 @@ body.edit-mode [data-e][contenteditable="true"]:focus{outline:2px solid var(--g)
 <div class="container">
   <div class="reveal"><div class="eyebrow">01 · Premissas</div>
   <h2 class="section-title ruled">Sobre o que esta simulação foi construída</h2>
-  <p class="section-sub">Todo o mapa parte de dados reais da empresa: faturamento, volume de compras e atividade. A carga atual incide sobre ${tributosAtuais} — que a Reforma substitui por CBS e IBS.</p></div>
+  <p class="section-sub" data-e>Todo o mapa parte de dados reais da empresa: faturamento, volume de compras e atividade. A carga atual incide sobre ${tributosAtuais} — que a Reforma substitui por CBS e IBS.</p></div>
   <div class="cg c4" style="margin-top:36px;">
     <div class="card cg-border reveal d1"><div class="cl">Faturamento anual</div><div class="cv">R$ ${(d.faturamento/1e6).toFixed(1)}<span style="font-size:1rem">mi</span></div><div class="cd">Base de cálculo dos tributos sobre a receita</div></div>
     <div class="card reveal d2"><div class="cl">Aquisições anuais</div><div class="cv">R$ ${(d.aquisicoes/1e6).toFixed(1)}<span style="font-size:1rem">mi</span></div><div class="cd">Compras que geram crédito tributário</div></div>
@@ -335,7 +340,7 @@ body.edit-mode [data-e][contenteditable="true"]:focus{outline:2px solid var(--g)
 <div class="container">
   <div class="reveal"><div class="eyebrow">02 · O impacto consolidado</div>
   <h2 class="section-title ruled">Hoje contra o regime final · <span style="color:var(--g)">2026</span> vs <span style="color:var(--c)">${last.ano}</span></h2>
-  <p class="section-sub">A carga sobe, o imposto a pagar sobe, e o resultado operacional cai na mesma proporção.</p></div>
+  <p class="section-sub" data-e>A carga sobe, o imposto a pagar sobe, e o resultado operacional cai na mesma proporção.</p></div>
   <div class="impact-grid reveal">
     <div class="ig"><div class="ig-label cl">Carga efetiva</div>
       <div class="ig-row"><span class="ig-v" style="color:var(--g)">${fmtPct(first.carga)}</span><span class="ig-arrow">→</span><span class="ig-v" style="color:var(--c)">${fmtPct(last.carga)}</span></div>
@@ -364,7 +369,7 @@ body.edit-mode [data-e][contenteditable="true"]:focus{outline:2px solid var(--g)
 <div class="container">
   <div class="reveal"><div class="eyebrow">03 · A transição não é de uma vez</div>
   <h2 class="section-title ruled">Oito anos de <span style="color:var(--g)">subida gradual</span> até o regime final</h2>
-  <p class="section-sub">A carga sobe de forma quase imperceptível até 2032 — e dá o salto maior em 2033, quando o ICMS zera e o IBS assume a alíquota cheia.</p></div>
+  <p class="section-sub" data-e>A carga sobe de forma quase imperceptível até 2032 — e dá o salto maior em 2033, quando o ICMS zera e o IBS assume a alíquota cheia.</p></div>
   <div class="tl reveal">${d.years.map((y,i)=>`<div class="ti${i===d.years.length-1?' ti-last':''}"><div class="ti-year">${y.ano}</div><div class="ti-pct">${fmtPct(y.carga)}</div><div class="ti-val">R$ ${(y.desembolso/1e6).toFixed(2)}mi</div><div class="ti-ph">${getPhase(i)}</div></div>`).join('')}</div>
   <div class="reveal" style="margin-top:40px;">
     <div class="tabs-header">
@@ -389,7 +394,7 @@ body.edit-mode [data-e][contenteditable="true"]:focus{outline:2px solid var(--g)
 <div class="container">
   <div class="reveal"><div class="eyebrow">04 · Progressão anual</div>
   <h2 class="section-title ruled">Desembolso total <span style="color:var(--g)">ano a ano</span></h2>
-  <p class="section-sub">O imposto a pagar cresce gradualmente com a transição e dá o salto maior em 2033, quando o ICMS zera e o IBS assume a alíquota cheia.</p></div>
+  <p class="section-sub" data-e>O imposto a pagar cresce gradualmente com a transição e dá o salto maior em 2033, quando o ICMS zera e o IBS assume a alíquota cheia.</p></div>
   <div class="reveal" style="margin-top:32px;">
     <div class="tabs-header">
       <button class="tab-btn active" onclick="tab('comp','grafico',this)">Gráfico</button>
@@ -413,7 +418,7 @@ body.edit-mode [data-e][contenteditable="true"]:focus{outline:2px solid var(--g)
 <div class="container">
   <div class="reveal"><div class="eyebrow">05 · Base legal</div>
   <h2 class="section-title ruled">O que sustenta os números</h2>
-  <p class="section-sub">A simulação segue integralmente a Lei Complementar 214, que institui o IVA dual (CBS + IBS) e define as regras de transição de 2026 a 2033.</p></div>
+  <p class="section-sub" data-e>A simulação segue integralmente a Lei Complementar 214, que institui o IVA dual (CBS + IBS) e define as regras de transição de 2026 a 2033.</p></div>
   <div class="cg ${isServico ? 'c1' : 'c2'} reveal" style="margin-top:36px;">
     <div class="card cg-border"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;"><div class="cl">Base legal</div><span style="font-size:.95rem;font-weight:800;color:var(--g);">LC 214</span></div><div style="font-size:.88rem;font-weight:700;margin-bottom:8px;">Lei Complementar 214</div><div class="cd">Institui a CBS e o IBS e define as regras de transição entre 2026 e 2033. ${isServico ? 'Para prestadores de serviços, o ISS é substituído pelo IBS em 2033.' : 'O ICMS é reduzido progressivamente de 2029 a 2033.'}</div></div>
     ${!isServico ? '<div class="card cc-border"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;"><div class="cl cl-c">Benefício fiscal estadual</div><span style="font-size:.95rem;font-weight:800;color:var(--c);">Conv. 52/91</span></div><div style="font-size:.88rem;font-weight:700;margin-bottom:8px;">Convênio ICMS 52/91</div><div class="cd">Reduzido de forma escalonada durante a transição, acompanhando a consolidação do IBS.</div></div>' : ''}
@@ -450,8 +455,8 @@ ${d.observacoes ? `
 <div class="container">
   <div class="reveal">
     <div class="eyebrow" style="justify-content:center;display:flex;">O que fazer com este mapa</div>
-    <h2 class="cta-hl">Você tem <span style="color:var(--g)">sete anos</span> para se preparar.<br>O custo de esperar é <span style="color:var(--g)">R$ ${Math.round(deltaR/1000)}k/ano.</span></h2>
-    <p class="cta-sub">A Reforma é gradual e previsível: a carga da ${d.empresa} sobe de ${fmtPct(first.carga)} para ${fmtPct(last.carga)} até ${last.ano}, com o salto maior no último ano. Conhecer essa curva agora permite planejar preço, margem, créditos e fluxo de caixa antes que o aumento chegue. A Planning acompanha cada etapa da transição com você.</p>
+    <h2 class="cta-hl" data-e>Você tem <span style="color:var(--g)">sete anos</span> para se preparar.<br>O custo de esperar é <span style="color:var(--g)">R$ ${Math.round(deltaR/1000)}k/ano.</span></h2>
+    <p class="cta-sub" data-e>A Reforma é gradual e previsível: a carga da ${d.empresa} sobe de ${fmtPct(first.carga)} para ${fmtPct(last.carga)} até ${last.ano}, com o salto maior no último ano. Conhecer essa curva agora permite planejar preço, margem, créditos e fluxo de caixa antes que o aumento chegue. A Planning acompanha cada etapa da transição com você.</p>
   </div>
   <div class="footer-line"></div>
   <div class="footer-txt"><strong style="color:#fff;">Mapa da Reforma Tributária · ${d.empresa}</strong><br>Elaboração: Planning · ${d.referencia} · Confidencial · Base: LC 214</div>
@@ -515,6 +520,40 @@ function initBar(){
               y:{ticks:{color:'#666',font:{size:11},callback:v=>'R$ '+(v/1000).toFixed(0)+'k'},grid:{color:'#1a1a1a'}}}}});
 }
 window.addEventListener('load',()=>setTimeout(initBar,100));
+
+// Edit mode
+function enableEdit(){
+  document.body.classList.add('edit-mode');
+  document.querySelectorAll('[data-e]').forEach(function(el){
+    el.contentEditable='true';
+    el.spellcheck=false;
+  });
+}
+function exitEdit(){
+  document.body.classList.remove('edit-mode');
+  document.querySelectorAll('[data-e]').forEach(function(el){
+    el.removeAttribute('contenteditable');
+  });
+  window.parent.postMessage({type:'reforma-exit-edit-confirm'},'*');
+}
+function downloadEdited(){
+  var was=document.body.classList.contains('edit-mode');
+  if(was){
+    document.body.classList.remove('edit-mode');
+    document.querySelectorAll('[data-e]').forEach(function(el){el.removeAttribute('contenteditable');});
+  }
+  var html='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+  if(was){
+    document.body.classList.add('edit-mode');
+    document.querySelectorAll('[data-e]').forEach(function(el){el.contentEditable='true';el.spellcheck=false;});
+  }
+  window.parent.postMessage({type:'reforma-download',html:html},'*');
+}
+window.addEventListener('message',function(e){
+  if(!e.data) return;
+  if(e.data.type==='reforma-enable-edit') enableEdit();
+  if(e.data.type==='reforma-exit-edit') exitEdit();
+});
 <\/script>
 </body>
 </html>`;

@@ -17,6 +17,7 @@ import {
   RefreshCw,
   FileBarChart2,
   X,
+  Pencil,
 } from 'lucide-react';
 import { DEFAULT_DATA, parseReformaTributariaXlsx, type ReformaTributariaData } from '@/components/reforma-tributaria/xlsx-parser';
 import { generatePresentationHTML } from '@/components/reforma-tributaria/html-generator';
@@ -47,6 +48,7 @@ function ReformaTributariaPage() {
   const [htmlContent, setHtmlContent] = useState('');
   const [previewUpdating, setPreviewUpdating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -61,8 +63,34 @@ function ReformaTributariaPage() {
   }, []);
 
   useEffect(() => {
-    updatePreview(data);
-  }, [data, updatePreview]);
+    if (!editMode) updatePreview(data);
+  }, [data, updatePreview, editMode]);
+
+  // Handle messages from the presentation iframe (edit mode download + exit)
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (!e.data) return;
+      if (e.data.type === 'reforma-download') {
+        const html = e.data.html as string;
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        const slug = data.empresa
+          ? data.empresa.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+          : 'cliente';
+        a.download = `mapa-reforma-tributaria-${slug}.html`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toast.success('Apresentação baixada com edições.');
+        setEditMode(false);
+      }
+      if (e.data.type === 'reforma-exit-edit-confirm') {
+        setEditMode(false);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [data.empresa]);
 
   const processFile = async (file: File) => {
     if (!file.name.match(/\.xlsx?$/i)) {
@@ -128,6 +156,17 @@ function ReformaTributariaPage() {
 
   const handleFullscreen = () => {
     iframeRef.current?.requestFullscreen?.();
+  };
+
+  const handleToggleEdit = () => {
+    if (editMode) {
+      iframeRef.current?.contentWindow?.postMessage({ type: 'reforma-exit-edit' }, '*');
+      setEditMode(false);
+    } else {
+      iframeRef.current?.contentWindow?.postMessage({ type: 'reforma-enable-edit' }, '*');
+      setEditMode(true);
+      toast.info('Clique nos textos destacados para editar. Use "Baixar com edições" na barra inferior da apresentação.');
+    }
   };
 
   const clearFile = () => {
@@ -380,10 +419,17 @@ function ReformaTributariaPage() {
         <div className="p-4 border-t border-border shrink-0 space-y-2">
           <Button
             className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm h-9"
-            onClick={() => updatePreview(data)}
+            onClick={() => {
+              if (editMode) {
+                iframeRef.current?.contentWindow?.postMessage({ type: 'reforma-exit-edit' }, '*');
+                setEditMode(false);
+                toast.warning('Modo edição encerrado. Preview atualizado com dados do formulário.');
+              }
+              updatePreview(data);
+            }}
           >
             <RefreshCw className="h-3.5 w-3.5 mr-2" />
-            Atualizar preview
+            {editMode ? 'Sair da edição e atualizar' : 'Atualizar preview'}
           </Button>
           <div className="grid grid-cols-2 gap-2">
             <Button variant="outline" className="text-sm h-9" onClick={handleDownload}>
@@ -411,6 +457,16 @@ function ReformaTributariaPage() {
             {data.empresa && (
               <Badge variant="outline" className="text-[10px]">{data.empresa}</Badge>
             )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-7 text-xs gap-1.5 ${editMode ? 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/15' : 'text-muted-foreground'}`}
+              onClick={handleToggleEdit}
+              title={editMode ? 'Sair do modo edição' : 'Editar textos da apresentação'}
+            >
+              <Pencil className="h-3 w-3" />
+              {editMode ? 'Sair da edição' : 'Editar'}
+            </Button>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleFullscreen}>
               <Maximize2 className="h-3.5 w-3.5" />
             </Button>
