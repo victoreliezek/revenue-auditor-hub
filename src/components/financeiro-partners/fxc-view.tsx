@@ -1,10 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo, useEffect, Fragment } from "react";
 import { fetchFxcData, FxcData, FxcRecord, buildDre, DRE_GRUPOS } from "@/data/fxcData";
-
-export const Route = createFileRoute("/_authenticated/fxc")({
-  component: FxcPage,
-});
 
 const OLIVE    = "#6b7c3a";
 const OLIVE_BG = "#e8edcc";
@@ -44,7 +39,7 @@ function buildSubRows(grupo: typeof DRE_GRUPOS[number], records: FxcRecord[], un
     .sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
 }
 
-function FxcPage() {
+export function FxcView() {
   const [data, setData] = useState<FxcData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
