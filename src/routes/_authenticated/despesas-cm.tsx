@@ -68,8 +68,8 @@ import {
 import { CadastrosDespesasDialog } from "@/components/despesas/cadastros-dialog";
 
 export const Route = createFileRoute("/_authenticated/despesas-cm")({
-  head: () => ({ meta: [{ title: "Financeiro Partners – Planning" }] }),
-  component: DespesasCmPage,
+  head: () => ({ meta: [{ title: "Despesas Partners – Planning" }] }),
+  component: () => <DespesasCmPage section="despesas" />,
 });
 
 // ---------------- helpers ----------------

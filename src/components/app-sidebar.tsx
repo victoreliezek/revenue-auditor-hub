@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { TrendingUp, Users, ShieldCheck, Building2, Coins, BadgeCheck, Wallet, Smile, MessageSquareWarning, Filter, Gauge, LineChart, Receipt, Activity, BarChart3, GitMerge, FileBarChart2, KeyRound } from "lucide-react";
+import { TrendingUp, TrendingDown, Users, ShieldCheck, Building2, Coins, BadgeCheck, Wallet, Smile, MessageSquareWarning, Filter, Gauge, LineChart, Receipt, Activity, BarChart3, GitMerge, FileBarChart2, KeyRound } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -36,28 +36,28 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
     ],
   },
   {
+    label: "Performance da Rede",
+    items: [
+      { title: "LTV Estimado", url: "/rede-ltv", icon: TrendingUp, permission: "view.clientes" },
+      { title: "Headcount", url: "/rede-headcount", icon: Users, permission: "view.roas" },
+      { title: "Realizado Unidades", url: "/rede-realizado", icon: BarChart3, permission: "view.clientes" },
+    ],
+  },
+  {
     label: "Receita da Rede",
     items: [
       { title: "Funil de Receita", url: "/funil-receita", icon: Filter, permission: "view.roas" },
       { title: "Reconciliação", url: "/reconciliacao", icon: GitMerge, permission: "view.roas" },
       { title: "Contas a Receber", url: "/contas-receber", icon: Wallet, permission: "view.contas_receber" },
-    ],
-  },
-  {
-    label: "Performance da Rede",
-    items: [
-      { title: "LTV Estimado", url: "/rede-ltv", icon: TrendingUp, permission: "view.clientes" },
-      { title: "Financeiro Rede", url: "/rede-financeiro", icon: Receipt, permission: "view.roas" },
-      { title: "Headcount", url: "/rede-headcount", icon: Users, permission: "view.roas" },
-      { title: "Realizado Unidades", url: "/rede-realizado", icon: BarChart3, permission: "view.clientes" },
       { title: "Unidades", url: "/unidades", icon: Coins, permission: "view.auditoria.cac" },
     ],
   },
   {
     label: "Planning Partners",
     items: [
-      { title: "DRE & Caixa", url: "/financeiro-partners", icon: Receipt, permission: "view.roas" },
-      { title: "FCx — Fluxo de Caixa", url: "/fxc", icon: LineChart, permission: "view.roas" },
+      { title: "Financeiro Partners", url: "/financeiro-partners", icon: Receipt, permission: "view.roas" },
+      { title: "Receita Partners", url: "/receita-partners", icon: LineChart, permission: "view.roas" },
+      { title: "Despesas Partners", url: "/despesas-cm", icon: TrendingDown, permission: "view.roas" },
     ],
   },
   {

@@ -22,15 +22,14 @@ import { Route as AuthenticatedRedeRealizadoRouteImport } from './routes/_authen
 import { Route as AuthenticatedRedeOverviewRouteImport } from './routes/_authenticated/rede-overview'
 import { Route as AuthenticatedRedeLtvRouteImport } from './routes/_authenticated/rede-ltv'
 import { Route as AuthenticatedRedeHeadcountRouteImport } from './routes/_authenticated/rede-headcount'
-import { Route as AuthenticatedRedeFinanceiroRouteImport } from './routes/_authenticated/rede-financeiro'
 import { Route as AuthenticatedRedeRouteImport } from './routes/_authenticated/rede'
 import { Route as AuthenticatedReconciliacaoRouteImport } from './routes/_authenticated/reconciliacao'
+import { Route as AuthenticatedReceitaPartnersRouteImport } from './routes/_authenticated/receita-partners'
 import { Route as AuthenticatedPainelUnidadeRouteImport } from './routes/_authenticated/painel-unidade'
 import { Route as AuthenticatedPagamentosUnidadesRouteImport } from './routes/_authenticated/pagamentos-unidades'
 import { Route as AuthenticatedOperacaoRouteImport } from './routes/_authenticated/operacao'
 import { Route as AuthenticatedNpsRouteImport } from './routes/_authenticated/nps'
 import { Route as AuthenticatedMeusRoyaltiesRouteImport } from './routes/_authenticated/meus-royalties'
-import { Route as AuthenticatedFxcRouteImport } from './routes/_authenticated/fxc'
 import { Route as AuthenticatedFunilReceitaRouteImport } from './routes/_authenticated/funil-receita'
 import { Route as AuthenticatedFinanceiroPartnersRouteImport } from './routes/_authenticated/financeiro-partners'
 import { Route as AuthenticatedDrePartnersRouteImport } from './routes/_authenticated/dre-partners'
@@ -114,12 +113,6 @@ const AuthenticatedRedeHeadcountRoute =
     path: '/rede-headcount',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedRedeFinanceiroRoute =
-  AuthenticatedRedeFinanceiroRouteImport.update({
-    id: '/rede-financeiro',
-    path: '/rede-financeiro',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedRedeRoute = AuthenticatedRedeRouteImport.update({
   id: '/rede',
   path: '/rede',
@@ -129,6 +122,12 @@ const AuthenticatedReconciliacaoRoute =
   AuthenticatedReconciliacaoRouteImport.update({
     id: '/reconciliacao',
     path: '/reconciliacao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedReceitaPartnersRoute =
+  AuthenticatedReceitaPartnersRouteImport.update({
+    id: '/receita-partners',
+    path: '/receita-partners',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedPainelUnidadeRoute =
@@ -159,11 +158,6 @@ const AuthenticatedMeusRoyaltiesRoute =
     path: '/meus-royalties',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedFxcRoute = AuthenticatedFxcRouteImport.update({
-  id: '/fxc',
-  path: '/fxc',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedFunilReceitaRoute =
   AuthenticatedFunilReceitaRouteImport.update({
     id: '/funil-receita',
@@ -252,15 +246,14 @@ export interface FileRoutesByFullPath {
   '/dre-partners': typeof AuthenticatedDrePartnersRoute
   '/financeiro-partners': typeof AuthenticatedFinanceiroPartnersRoute
   '/funil-receita': typeof AuthenticatedFunilReceitaRoute
-  '/fxc': typeof AuthenticatedFxcRoute
   '/meus-royalties': typeof AuthenticatedMeusRoyaltiesRoute
   '/nps': typeof AuthenticatedNpsRoute
   '/operacao': typeof AuthenticatedOperacaoRoute
   '/pagamentos-unidades': typeof AuthenticatedPagamentosUnidadesRoute
   '/painel-unidade': typeof AuthenticatedPainelUnidadeRoute
+  '/receita-partners': typeof AuthenticatedReceitaPartnersRoute
   '/reconciliacao': typeof AuthenticatedReconciliacaoRoute
   '/rede': typeof AuthenticatedRedeRoute
-  '/rede-financeiro': typeof AuthenticatedRedeFinanceiroRoute
   '/rede-headcount': typeof AuthenticatedRedeHeadcountRoute
   '/rede-ltv': typeof AuthenticatedRedeLtvRoute
   '/rede-overview': typeof AuthenticatedRedeOverviewRoute
@@ -287,15 +280,14 @@ export interface FileRoutesByTo {
   '/dre-partners': typeof AuthenticatedDrePartnersRoute
   '/financeiro-partners': typeof AuthenticatedFinanceiroPartnersRoute
   '/funil-receita': typeof AuthenticatedFunilReceitaRoute
-  '/fxc': typeof AuthenticatedFxcRoute
   '/meus-royalties': typeof AuthenticatedMeusRoyaltiesRoute
   '/nps': typeof AuthenticatedNpsRoute
   '/operacao': typeof AuthenticatedOperacaoRoute
   '/pagamentos-unidades': typeof AuthenticatedPagamentosUnidadesRoute
   '/painel-unidade': typeof AuthenticatedPainelUnidadeRoute
+  '/receita-partners': typeof AuthenticatedReceitaPartnersRoute
   '/reconciliacao': typeof AuthenticatedReconciliacaoRoute
   '/rede': typeof AuthenticatedRedeRoute
-  '/rede-financeiro': typeof AuthenticatedRedeFinanceiroRoute
   '/rede-headcount': typeof AuthenticatedRedeHeadcountRoute
   '/rede-ltv': typeof AuthenticatedRedeLtvRoute
   '/rede-overview': typeof AuthenticatedRedeOverviewRoute
@@ -325,15 +317,14 @@ export interface FileRoutesById {
   '/_authenticated/dre-partners': typeof AuthenticatedDrePartnersRoute
   '/_authenticated/financeiro-partners': typeof AuthenticatedFinanceiroPartnersRoute
   '/_authenticated/funil-receita': typeof AuthenticatedFunilReceitaRoute
-  '/_authenticated/fxc': typeof AuthenticatedFxcRoute
   '/_authenticated/meus-royalties': typeof AuthenticatedMeusRoyaltiesRoute
   '/_authenticated/nps': typeof AuthenticatedNpsRoute
   '/_authenticated/operacao': typeof AuthenticatedOperacaoRoute
   '/_authenticated/pagamentos-unidades': typeof AuthenticatedPagamentosUnidadesRoute
   '/_authenticated/painel-unidade': typeof AuthenticatedPainelUnidadeRoute
+  '/_authenticated/receita-partners': typeof AuthenticatedReceitaPartnersRoute
   '/_authenticated/reconciliacao': typeof AuthenticatedReconciliacaoRoute
   '/_authenticated/rede': typeof AuthenticatedRedeRoute
-  '/_authenticated/rede-financeiro': typeof AuthenticatedRedeFinanceiroRoute
   '/_authenticated/rede-headcount': typeof AuthenticatedRedeHeadcountRoute
   '/_authenticated/rede-ltv': typeof AuthenticatedRedeLtvRoute
   '/_authenticated/rede-overview': typeof AuthenticatedRedeOverviewRoute
@@ -364,15 +355,14 @@ export interface FileRouteTypes {
     | '/dre-partners'
     | '/financeiro-partners'
     | '/funil-receita'
-    | '/fxc'
     | '/meus-royalties'
     | '/nps'
     | '/operacao'
     | '/pagamentos-unidades'
     | '/painel-unidade'
+    | '/receita-partners'
     | '/reconciliacao'
     | '/rede'
-    | '/rede-financeiro'
     | '/rede-headcount'
     | '/rede-ltv'
     | '/rede-overview'
@@ -399,15 +389,14 @@ export interface FileRouteTypes {
     | '/dre-partners'
     | '/financeiro-partners'
     | '/funil-receita'
-    | '/fxc'
     | '/meus-royalties'
     | '/nps'
     | '/operacao'
     | '/pagamentos-unidades'
     | '/painel-unidade'
+    | '/receita-partners'
     | '/reconciliacao'
     | '/rede'
-    | '/rede-financeiro'
     | '/rede-headcount'
     | '/rede-ltv'
     | '/rede-overview'
@@ -436,15 +425,14 @@ export interface FileRouteTypes {
     | '/_authenticated/dre-partners'
     | '/_authenticated/financeiro-partners'
     | '/_authenticated/funil-receita'
-    | '/_authenticated/fxc'
     | '/_authenticated/meus-royalties'
     | '/_authenticated/nps'
     | '/_authenticated/operacao'
     | '/_authenticated/pagamentos-unidades'
     | '/_authenticated/painel-unidade'
+    | '/_authenticated/receita-partners'
     | '/_authenticated/reconciliacao'
     | '/_authenticated/rede'
-    | '/_authenticated/rede-financeiro'
     | '/_authenticated/rede-headcount'
     | '/_authenticated/rede-ltv'
     | '/_authenticated/rede-overview'
@@ -561,13 +549,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRedeHeadcountRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/rede-financeiro': {
-      id: '/_authenticated/rede-financeiro'
-      path: '/rede-financeiro'
-      fullPath: '/rede-financeiro'
-      preLoaderRoute: typeof AuthenticatedRedeFinanceiroRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/rede': {
       id: '/_authenticated/rede'
       path: '/rede'
@@ -580,6 +561,13 @@ declare module '@tanstack/react-router' {
       path: '/reconciliacao'
       fullPath: '/reconciliacao'
       preLoaderRoute: typeof AuthenticatedReconciliacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/receita-partners': {
+      id: '/_authenticated/receita-partners'
+      path: '/receita-partners'
+      fullPath: '/receita-partners'
+      preLoaderRoute: typeof AuthenticatedReceitaPartnersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/painel-unidade': {
@@ -615,13 +603,6 @@ declare module '@tanstack/react-router' {
       path: '/meus-royalties'
       fullPath: '/meus-royalties'
       preLoaderRoute: typeof AuthenticatedMeusRoyaltiesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/fxc': {
-      id: '/_authenticated/fxc'
-      path: '/fxc'
-      fullPath: '/fxc'
-      preLoaderRoute: typeof AuthenticatedFxcRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/funil-receita': {
@@ -742,15 +723,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDrePartnersRoute: typeof AuthenticatedDrePartnersRoute
   AuthenticatedFinanceiroPartnersRoute: typeof AuthenticatedFinanceiroPartnersRoute
   AuthenticatedFunilReceitaRoute: typeof AuthenticatedFunilReceitaRoute
-  AuthenticatedFxcRoute: typeof AuthenticatedFxcRoute
   AuthenticatedMeusRoyaltiesRoute: typeof AuthenticatedMeusRoyaltiesRoute
   AuthenticatedNpsRoute: typeof AuthenticatedNpsRoute
   AuthenticatedOperacaoRoute: typeof AuthenticatedOperacaoRoute
   AuthenticatedPagamentosUnidadesRoute: typeof AuthenticatedPagamentosUnidadesRoute
   AuthenticatedPainelUnidadeRoute: typeof AuthenticatedPainelUnidadeRoute
+  AuthenticatedReceitaPartnersRoute: typeof AuthenticatedReceitaPartnersRoute
   AuthenticatedReconciliacaoRoute: typeof AuthenticatedReconciliacaoRoute
   AuthenticatedRedeRoute: typeof AuthenticatedRedeRoute
-  AuthenticatedRedeFinanceiroRoute: typeof AuthenticatedRedeFinanceiroRoute
   AuthenticatedRedeHeadcountRoute: typeof AuthenticatedRedeHeadcountRoute
   AuthenticatedRedeLtvRoute: typeof AuthenticatedRedeLtvRoute
   AuthenticatedRedeOverviewRoute: typeof AuthenticatedRedeOverviewRoute
@@ -777,15 +757,14 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDrePartnersRoute: AuthenticatedDrePartnersRoute,
   AuthenticatedFinanceiroPartnersRoute: AuthenticatedFinanceiroPartnersRoute,
   AuthenticatedFunilReceitaRoute: AuthenticatedFunilReceitaRoute,
-  AuthenticatedFxcRoute: AuthenticatedFxcRoute,
   AuthenticatedMeusRoyaltiesRoute: AuthenticatedMeusRoyaltiesRoute,
   AuthenticatedNpsRoute: AuthenticatedNpsRoute,
   AuthenticatedOperacaoRoute: AuthenticatedOperacaoRoute,
   AuthenticatedPagamentosUnidadesRoute: AuthenticatedPagamentosUnidadesRoute,
   AuthenticatedPainelUnidadeRoute: AuthenticatedPainelUnidadeRoute,
+  AuthenticatedReceitaPartnersRoute: AuthenticatedReceitaPartnersRoute,
   AuthenticatedReconciliacaoRoute: AuthenticatedReconciliacaoRoute,
   AuthenticatedRedeRoute: AuthenticatedRedeRoute,
-  AuthenticatedRedeFinanceiroRoute: AuthenticatedRedeFinanceiroRoute,
   AuthenticatedRedeHeadcountRoute: AuthenticatedRedeHeadcountRoute,
   AuthenticatedRedeLtvRoute: AuthenticatedRedeLtvRoute,
   AuthenticatedRedeOverviewRoute: AuthenticatedRedeOverviewRoute,
