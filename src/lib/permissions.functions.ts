@@ -26,6 +26,9 @@ export const KNOWN_PERMISSIONS: { key: string; label: string; description: strin
   { key: "view.admin.integracoes", label: "Gerenciar integrações", description: "Cadastrar credenciais de APIs externas (ex: Omie por unidade).", group: "Administração" },
   { key: "data.scope.own_unit_only", label: "Restringe à própria unidade", description: "Filtra todos os dados pela unidade do usuário.", group: "Dados" },
   { key: "manage.repasses", label: "Lançar repasses (Royalties/CAC)", description: "Importar planilha e lançar/excluir repasses recebidos das unidades.", group: "Auditoria" },
+  { key: "view.financeiro_partners", label: "Acessar Financeiro Partners", description: "DRE Projetada, DFC e FCx da Planning Partners.", group: "Planning Partners" },
+  { key: "view.receita_partners", label: "Acessar Receita Partners", description: "Financeiro — Gestão da Rede e Receitas da Planning Partners.", group: "Planning Partners" },
+  { key: "view.despesas_partners", label: "Acessar Despesas Partners", description: "Despesas (Confronto Mensal) da Planning Partners.", group: "Planning Partners" },
 ];
 
 export const ALL_ROLES: AppRole[] = ["admin", "diretor", "socio", "head", "auditor", "socio_franqueado"];
