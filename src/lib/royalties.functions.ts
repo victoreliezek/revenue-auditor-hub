@@ -193,8 +193,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
       .select("id,cnpj,titulo,mrr_mensal")
       .eq("unidade", unidadeNome)
       .eq("tipo_unidade", "franquia")
-      .eq("status_contrato", "Ativo")
-      .not("cnpj", "is", null);
+      .eq("status_contrato", "Ativo");
     if (kErr) throw new Error(kErr.message);
 
     // contas_receber agregado por cnpj
@@ -218,9 +217,28 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
     }
 
     const contratoMap = new Map<string, { id: number; titulo: string; mrr: number; cnpj: string }>();
+    const itensSemCnpj: any[] = [];
     for (const c of contratos ?? []) {
       const k = digits(c.cnpj);
-      if (!k) continue;
+      if (!k) {
+        // Contrato sem CNPJ cadastrado nunca pode ser cruzado com o Omie (join é por CNPJ).
+        // Sem isso, o contrato desaparece silenciosamente da apuração inteira.
+        itensSemCnpj.push({
+          apuracao_id: data.apuracao_id,
+          cnpj: null,
+          razao_social: c.titulo ?? "—",
+          contrato_id: c.id,
+          categoria: "royalties",
+          mrr_contratado: Number(c.mrr_mensal ?? 0),
+          valor_omie: null,
+          valor_confirmado: null,
+          fonte: "pipedrive",
+          status_match: "so_pipedrive",
+          observacao: "Contrato sem CNPJ cadastrado — não foi possível conciliar com o Omie.",
+          confirmado: false,
+        });
+        continue;
+      }
       contratoMap.set(k, { id: c.id, titulo: c.titulo ?? "—", mrr: Number(c.mrr_mensal ?? 0), cnpj: k });
     }
 
@@ -240,7 +258,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
       }
     }
 
-    const itens: any[] = [];
+    const itens: any[] = [...itensSemCnpj];
 
     // Matched + so_pipedrive (com expansão por filiais vinculadas)
     for (const [k, c] of contratoMap) {
