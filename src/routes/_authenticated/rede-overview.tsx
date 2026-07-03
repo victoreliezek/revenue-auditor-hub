@@ -347,9 +347,9 @@ function RedeOverviewPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Unidade</TableHead>
+                <TableHead className="text-right">Clientes</TableHead>
                 <TableHead className="text-right">MRR Atual</TableHead>
                 <TableHead className="text-right">Recebido</TableHead>
-                <TableHead className="text-right">Clientes</TableHead>
                 <TableHead className="text-right">ARPA</TableHead>
               </TableRow>
             </TableHeader>
@@ -357,9 +357,9 @@ function RedeOverviewPage() {
               {byUnidade.map((u) => (
                 <TableRow key={u.unidade}>
                   <TableCell className="font-medium">{u.unidade}</TableCell>
+                  <TableCell className="text-right">{u.contratos || "—"}</TableCell>
                   <TableCell className="text-right">{fmtBRL(u.mrr)}</TableCell>
                   <TableCell className="text-right">{fmtBRL(u.recebido)}</TableCell>
-                  <TableCell className="text-right">{u.contratos || "—"}</TableCell>
                   <TableCell className="text-right">
                     {u.contratos > 0 ? fmtBRL(u.mrr / u.contratos) : "—"}
                   </TableCell>
