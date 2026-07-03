@@ -38,8 +38,11 @@ export interface AuditRegistro {
   dias_ate_primeiro_pag: number | null;
   meses_pagos: number | null;
   total_pago: number | null;
+  valor_primeiro_pag: number | null;
   pagamentos_mensais: PagamentoMensal[] | null;
   inicio_contrato: string | null;
+  closer: string | null;
+  sdr: string | null;
 }
 
 export interface Unidade {
@@ -77,4 +80,6 @@ export interface ContratoLite {
   titulo: string | null;
   tipo?: string | null;
   produto?: string | null;
+  closer?: string | null;
+  sdr?: string | null;
 }

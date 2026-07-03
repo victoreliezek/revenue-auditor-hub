@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { TrendingUp, TrendingDown, Users, ShieldCheck, Building2, Coins, BadgeCheck, Wallet, Smile, MessageSquareWarning, Filter, Gauge, LineChart, Receipt, Activity, BarChart3, GitMerge, FileBarChart2, KeyRound } from "lucide-react";
+import { TrendingUp, TrendingDown, Users, ShieldCheck, Building2, Coins, BadgeCheck, Wallet, Smile, MessageSquareWarning, Filter, Gauge, LineChart, Receipt, Activity, BarChart3, GitMerge, FileBarChart2, KeyRound, Percent } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -49,6 +49,7 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
       { title: "Funil de Receita", url: "/funil-receita", icon: Filter, permission: "view.roas" },
       { title: "Reconciliação", url: "/reconciliacao", icon: GitMerge, permission: "view.roas" },
       { title: "Contas a Receber", url: "/contas-receber", icon: Wallet, permission: "view.contas_receber" },
+      { title: "Comissões", url: "/comissoes", icon: Percent, permission: "view.comissoes" },
       { title: "Unidades", url: "/unidades", icon: Coins, permission: "view.auditoria.cac" },
     ],
   },

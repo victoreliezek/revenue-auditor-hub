@@ -166,18 +166,23 @@ function buildRegistros(
     let produto: string | null = null;
     let data_ganho: string | null = null;
     let deal_titulo: string | null = e.titulo ?? null;
+    let closer: string | null = null;
+    let sdr: string | null = null;
     for (const c of cs) {
       mrr += Number(c.mrr ?? 0) || 0;
       valor_contrato += Number(c.valor_total ?? 0) || 0;
       if (!tipo_contrato && c.tipo) tipo_contrato = c.tipo;
       if (!produto && c.produto) produto = c.produto;
       if (!deal_titulo && c.titulo) deal_titulo = c.titulo;
+      if (!closer && c.closer) closer = c.closer;
+      if (!sdr && c.sdr) sdr = c.sdr;
       if (c.ganho_em && (!data_ganho || c.ganho_em < data_ganho)) data_ganho = c.ganho_em;
     }
 
     // Agrega contas a receber
     let total_pago = 0;
     let data_primeiro_pag: string | null = null;
+    let valor_primeiro_pag: number | null = null;
     let hasAtrasado = false;
     let hasRecebido = false;
     const pagosPorMes = new Map<string, number>();
@@ -190,6 +195,7 @@ function buildRegistros(
         total_pago += v;
         if (!data_primeiro_pag || f.data_pagamento < data_primeiro_pag) {
           data_primeiro_pag = f.data_pagamento;
+          valor_primeiro_pag = v;
         }
         const month = f.data_pagamento.slice(0, 7);
         pagosPorMes.set(month, (pagosPorMes.get(month) ?? 0) + v);
@@ -236,8 +242,11 @@ function buildRegistros(
       dias_ate_primeiro_pag,
       meses_pagos: pagamentos_mensais.length,
       total_pago: total_pago || null,
+      valor_primeiro_pag,
       pagamentos_mensais: pagamentos_mensais.length ? pagamentos_mensais : null,
       inicio_contrato: data_ganho,
+      closer,
+      sdr,
     });
   }
   return registros;
@@ -256,7 +265,7 @@ async function fetchAll(): Promise<RawData> {
     supabase
       .from("contratos")
       .select(
-        "id, cnpj, mrr_mensal, valor_total, status_contrato, pipedrive_deal_id, ganho_em, titulo, tipo, produto",
+        "id, cnpj, mrr_mensal, valor_total, status_contrato, pipedrive_deal_id, ganho_em, titulo, tipo, produto, closer, sdr",
       )
       .eq("tipo_unidade", "franquia")
       .limit(10000),
@@ -274,7 +283,7 @@ async function fetchAll(): Promise<RawData> {
   const empresas = (empresasRes.data ?? []) as unknown as Empresa[];
   // Mapeia mrr_mensal (coluna gerada = mrr/12) para o campo `mrr` que o módulo
   // de auditoria trata semanticamente como MRR mensal.
-  const contratos = ((contratosRes.data ?? []) as Array<
+  const contratos = ((contratosRes.data ?? []) as unknown as Array<
     Omit<ContratoLite, "mrr"> & { mrr_mensal: number | null }
   >).map((r) => ({
     ...r,

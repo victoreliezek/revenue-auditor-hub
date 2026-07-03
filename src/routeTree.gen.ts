@@ -35,6 +35,7 @@ import { Route as AuthenticatedFinanceiroPartnersRouteImport } from './routes/_a
 import { Route as AuthenticatedDrePartnersRouteImport } from './routes/_authenticated/dre-partners'
 import { Route as AuthenticatedDespesasCmRouteImport } from './routes/_authenticated/despesas-cm'
 import { Route as AuthenticatedContasReceberRouteImport } from './routes/_authenticated/contas-receber'
+import { Route as AuthenticatedComissoesRouteImport } from './routes/_authenticated/comissoes'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedAuditoriaFaturamentoRouteImport } from './routes/_authenticated/auditoria-faturamento'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
@@ -187,6 +188,11 @@ const AuthenticatedContasReceberRoute =
     path: '/contas-receber',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedComissoesRoute = AuthenticatedComissoesRouteImport.update({
+  id: '/comissoes',
+  path: '/comissoes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
   id: '/clientes',
   path: '/clientes',
@@ -241,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/auditoria-faturamento': typeof AuthenticatedAuditoriaFaturamentoRoute
   '/clientes': typeof AuthenticatedClientesRoute
+  '/comissoes': typeof AuthenticatedComissoesRoute
   '/contas-receber': typeof AuthenticatedContasReceberRoute
   '/despesas-cm': typeof AuthenticatedDespesasCmRoute
   '/dre-partners': typeof AuthenticatedDrePartnersRoute
@@ -275,6 +282,7 @@ export interface FileRoutesByTo {
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/auditoria-faturamento': typeof AuthenticatedAuditoriaFaturamentoRoute
   '/clientes': typeof AuthenticatedClientesRoute
+  '/comissoes': typeof AuthenticatedComissoesRoute
   '/contas-receber': typeof AuthenticatedContasReceberRoute
   '/despesas-cm': typeof AuthenticatedDespesasCmRoute
   '/dre-partners': typeof AuthenticatedDrePartnersRoute
@@ -312,6 +320,7 @@ export interface FileRoutesById {
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
   '/_authenticated/auditoria-faturamento': typeof AuthenticatedAuditoriaFaturamentoRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
+  '/_authenticated/comissoes': typeof AuthenticatedComissoesRoute
   '/_authenticated/contas-receber': typeof AuthenticatedContasReceberRoute
   '/_authenticated/despesas-cm': typeof AuthenticatedDespesasCmRoute
   '/_authenticated/dre-partners': typeof AuthenticatedDrePartnersRoute
@@ -350,6 +359,7 @@ export interface FileRouteTypes {
     | '/auditoria'
     | '/auditoria-faturamento'
     | '/clientes'
+    | '/comissoes'
     | '/contas-receber'
     | '/despesas-cm'
     | '/dre-partners'
@@ -384,6 +394,7 @@ export interface FileRouteTypes {
     | '/auditoria'
     | '/auditoria-faturamento'
     | '/clientes'
+    | '/comissoes'
     | '/contas-receber'
     | '/despesas-cm'
     | '/dre-partners'
@@ -420,6 +431,7 @@ export interface FileRouteTypes {
     | '/_authenticated/auditoria'
     | '/_authenticated/auditoria-faturamento'
     | '/_authenticated/clientes'
+    | '/_authenticated/comissoes'
     | '/_authenticated/contas-receber'
     | '/_authenticated/despesas-cm'
     | '/_authenticated/dre-partners'
@@ -640,6 +652,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedContasReceberRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/comissoes': {
+      id: '/_authenticated/comissoes'
+      path: '/comissoes'
+      fullPath: '/comissoes'
+      preLoaderRoute: typeof AuthenticatedComissoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clientes': {
       id: '/_authenticated/clientes'
       path: '/clientes'
@@ -718,6 +737,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
   AuthenticatedAuditoriaFaturamentoRoute: typeof AuthenticatedAuditoriaFaturamentoRoute
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
+  AuthenticatedComissoesRoute: typeof AuthenticatedComissoesRoute
   AuthenticatedContasReceberRoute: typeof AuthenticatedContasReceberRoute
   AuthenticatedDespesasCmRoute: typeof AuthenticatedDespesasCmRoute
   AuthenticatedDrePartnersRoute: typeof AuthenticatedDrePartnersRoute
@@ -752,6 +772,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAuditoriaFaturamentoRoute:
     AuthenticatedAuditoriaFaturamentoRoute,
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
+  AuthenticatedComissoesRoute: AuthenticatedComissoesRoute,
   AuthenticatedContasReceberRoute: AuthenticatedContasReceberRoute,
   AuthenticatedDespesasCmRoute: AuthenticatedDespesasCmRoute,
   AuthenticatedDrePartnersRoute: AuthenticatedDrePartnersRoute,

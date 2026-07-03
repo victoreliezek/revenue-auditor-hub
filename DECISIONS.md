@@ -17,6 +17,13 @@ Formato de cada entrada:
 
 ---
 
+## [2026-07-03] Página de Apuração de Comissões (Closer/SDR) + closer/sdr sincronizados em `contratos`
+
+**Contexto:** era preciso conferir, venda a venda, se ela foi realizada e paga antes de calcular comissão de Closer/SDR. O módulo de Auditoria já cobria quase tudo (razão social, CNPJ, data de fechamento, status/valor/data do 1º pagamento), mas Closer e SDR não existiam em nenhuma tabela do Supabase — só como campos customizados do deal no Pipedrive (`Closer Responsável` = chave `82f35432010d0c95fceeaa0b5bce5f8e7542a795`, `SDR responsável` = chave `216740813ecdc3d64c03e5e1d5685050048a01d1`, ambos `enum`).
+**Decisão:** trazer Closer/SDR pelo sync diário existente (`/Users/victoreliezek/sync_pipedrive_contratos.py`, roda às 07:00 via LaunchAgent `com.victoreliezek.pipedrive-sync`), não ao vivo do Pipedrive nem em branco — consistente com a arquitetura de fonte única já estabelecida. Duas colunas novas (`closer`, `sdr`, nullable) em `contratos`. Página nova (não uma aba dentro de Auditoria) em `/comissoes`, com permissão própria `view.comissoes`, seguindo o padrão de página de conteúdo sem `beforeLoad` (visibilidade só via sidebar, igual `funil-receita`/`contas-receber`). Coluna "Nome" da tabela usa `deal_titulo` (nome do negócio no Pipedrive); "Valor/Data do Pagamento" usa o **primeiro** pagamento RECEBIDO em `contas_receber` (novo campo `valor_primeiro_pag` em `AuditRegistro`, análogo ao `data_primeiro_pag` já existente), não o total acumulado.
+**Status:** implementado. Migration `supabase/migrations/20260703173326_contratos_closer_sdr.sql` já aplicada em produção via Supabase Management API; sync rodado manualmente uma vez para backfill (119/310 contratos com closer/sdr preenchidos — o resto reflete deals do Pipedrive sem esses campos preenchidos, não é bug). Arquivos: `src/lib/audit-types.ts`, `src/components/audit/data-context.tsx`, `src/lib/permissions.functions.ts`, `src/components/app-sidebar.tsx`, `src/components/page-content/comissoes-content.tsx`, `src/routes/_authenticated/comissoes.tsx`.
+**Próximos passos:** nenhum pendente. Se no futuro quiserem apurar comissão sobre parcelas além da primeira, o dado (`pagamentos_mensais`) já existe em `AuditRegistro` e só falta expor na UI.
+
 ## [2026-07-03] Correção: contrato sem CNPJ desaparecia da apuração de royalties
 
 **Contexto:** clientes com `mrr_mensal > 0` e recebimento no Omie não apareciam na apuração de royalties. Causa raiz: `gerarItensApuracao` (`src/lib/royalties.functions.ts`) filtrava `.not("cnpj", "is", null)` e também pulava contratos com CNPJ vazio na montagem do `contratoMap` — o contrato sumia da apuração inteira em vez de aparecer como pendência.
