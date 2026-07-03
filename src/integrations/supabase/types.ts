@@ -59,8 +59,10 @@ export type Database = {
       central_tratativas: {
         Row: {
           created_at: string | null
+          data_churn: string | null
           estagio: string | null
           id: number
+          motivo: string | null
           mrr: number | null
           pipedrive_deal_id: number | null
           pipefy_card_id: string | null
@@ -72,8 +74,10 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          data_churn?: string | null
           estagio?: string | null
           id?: number
+          motivo?: string | null
           mrr?: number | null
           pipedrive_deal_id?: number | null
           pipefy_card_id?: string | null
@@ -85,8 +89,10 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          data_churn?: string | null
           estagio?: string | null
           id?: number
+          motivo?: string | null
           mrr?: number | null
           pipedrive_deal_id?: number | null
           pipefy_card_id?: string | null
@@ -190,6 +196,7 @@ export type Database = {
       }
       contratos: {
         Row: {
+          closer: string | null
           cnpj: string | null
           created_at: string | null
           empresa_id: number | null
@@ -197,12 +204,16 @@ export type Database = {
           id: number
           mrr: number | null
           mrr_mensal: number | null
+          na_planilha_ana: boolean | null
+          obs_reconciliacao: string | null
           pipedrive_deal_id: string | null
           preco_unitario: number | null
           produto: string | null
           quantidade: number | null
+          sdr: string | null
           segmento: string | null
           status_contrato: string | null
+          status_reconciliacao: string | null
           subtotal_produto: number | null
           tipo: string | null
           tipo_unidade: string | null
@@ -211,6 +222,7 @@ export type Database = {
           valor_total: number | null
         }
         Insert: {
+          closer?: string | null
           cnpj?: string | null
           created_at?: string | null
           empresa_id?: number | null
@@ -218,12 +230,16 @@ export type Database = {
           id?: number
           mrr?: number | null
           mrr_mensal?: number | null
+          na_planilha_ana?: boolean | null
+          obs_reconciliacao?: string | null
           pipedrive_deal_id?: string | null
           preco_unitario?: number | null
           produto?: string | null
           quantidade?: number | null
+          sdr?: string | null
           segmento?: string | null
           status_contrato?: string | null
+          status_reconciliacao?: string | null
           subtotal_produto?: number | null
           tipo?: string | null
           tipo_unidade?: string | null
@@ -232,6 +248,7 @@ export type Database = {
           valor_total?: number | null
         }
         Update: {
+          closer?: string | null
           cnpj?: string | null
           created_at?: string | null
           empresa_id?: number | null
@@ -239,12 +256,16 @@ export type Database = {
           id?: number
           mrr?: number | null
           mrr_mensal?: number | null
+          na_planilha_ana?: boolean | null
+          obs_reconciliacao?: string | null
           pipedrive_deal_id?: string | null
           preco_unitario?: number | null
           produto?: string | null
           quantidade?: number | null
+          sdr?: string | null
           segmento?: string | null
           status_contrato?: string | null
+          status_reconciliacao?: string | null
           subtotal_produto?: number | null
           tipo?: string | null
           tipo_unidade?: string | null
@@ -693,6 +714,84 @@ export type Database = {
           },
         ]
       }
+      empresas_backup_20260703: {
+        Row: {
+          cnpj: string | null
+          created_at: string | null
+          email_fiscal: string | null
+          erp: string | null
+          fonte_cadastro: string | null
+          grupo_id: number | null
+          id: number | null
+          omie_codigo_cliente: string | null
+          omie_inativo: string | null
+          omie_unidade: string | null
+          origem_da_base: string | null
+          origem_venda: string | null
+          pipedrive_id: string | null
+          pipefy_record_id: string | null
+          razao_social: string | null
+          regime_tributario: string | null
+          segmento: string | null
+          status_financeiro: string | null
+          telefone: string | null
+          tipo_unidade: string | null
+          titulo: string | null
+          uf: string | null
+          unidade: string | null
+        }
+        Insert: {
+          cnpj?: string | null
+          created_at?: string | null
+          email_fiscal?: string | null
+          erp?: string | null
+          fonte_cadastro?: string | null
+          grupo_id?: number | null
+          id?: number | null
+          omie_codigo_cliente?: string | null
+          omie_inativo?: string | null
+          omie_unidade?: string | null
+          origem_da_base?: string | null
+          origem_venda?: string | null
+          pipedrive_id?: string | null
+          pipefy_record_id?: string | null
+          razao_social?: string | null
+          regime_tributario?: string | null
+          segmento?: string | null
+          status_financeiro?: string | null
+          telefone?: string | null
+          tipo_unidade?: string | null
+          titulo?: string | null
+          uf?: string | null
+          unidade?: string | null
+        }
+        Update: {
+          cnpj?: string | null
+          created_at?: string | null
+          email_fiscal?: string | null
+          erp?: string | null
+          fonte_cadastro?: string | null
+          grupo_id?: number | null
+          id?: number | null
+          omie_codigo_cliente?: string | null
+          omie_inativo?: string | null
+          omie_unidade?: string | null
+          origem_da_base?: string | null
+          origem_venda?: string | null
+          pipedrive_id?: string | null
+          pipefy_record_id?: string | null
+          razao_social?: string | null
+          regime_tributario?: string | null
+          segmento?: string | null
+          status_financeiro?: string | null
+          telefone?: string | null
+          tipo_unidade?: string | null
+          titulo?: string | null
+          uf?: string | null
+          unidade?: string | null
+        }
+        Relationships: []
+      }
       grupos: {
         Row: {
           cnpj_raiz: string | null
@@ -720,6 +819,39 @@ export type Database = {
           id?: number
           nome?: string
           segmento?: string | null
+        }
+        Relationships: []
+      }
+      headcount_mensal: {
+        Row: {
+          admissoes: number
+          created_at: string | null
+          demissoes: number
+          headcount: number
+          id: number
+          mes: string
+          unidade: string
+          updated_at: string | null
+        }
+        Insert: {
+          admissoes?: number
+          created_at?: string | null
+          demissoes?: number
+          headcount?: number
+          id?: number
+          mes: string
+          unidade: string
+          updated_at?: string | null
+        }
+        Update: {
+          admissoes?: number
+          created_at?: string | null
+          demissoes?: number
+          headcount?: number
+          id?: number
+          mes?: string
+          unidade?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -978,6 +1110,24 @@ export type Database = {
         }
         Relationships: []
       }
+      partners_financeiro_unidade_map: {
+        Row: {
+          created_at: string
+          razao_social: string
+          unidade: string
+        }
+        Insert: {
+          created_at?: string
+          razao_social: string
+          unidade: string
+        }
+        Update: {
+          created_at?: string
+          razao_social?: string
+          unidade?: string
+        }
+        Relationships: []
+      }
       partners_orcamento: {
         Row: {
           categoria: string | null
@@ -1070,6 +1220,7 @@ export type Database = {
       }
       recebimentos_franquias: {
         Row: {
+          categoria_omie: string | null
           cliente: string | null
           cnpj: string | null
           codigo_omie: number
@@ -1087,6 +1238,7 @@ export type Database = {
           valor: number | null
         }
         Insert: {
+          categoria_omie?: string | null
           cliente?: string | null
           cnpj?: string | null
           codigo_omie: number
@@ -1104,6 +1256,7 @@ export type Database = {
           valor?: number | null
         }
         Update: {
+          categoria_omie?: string | null
           cliente?: string | null
           cnpj?: string | null
           codigo_omie?: number
@@ -1140,6 +1293,7 @@ export type Database = {
           rateio_custom: Json | null
           rateio_regra: string | null
           tipo: string
+          unidade: string | null
           updated_at: string
           valor_base: number
         }
@@ -1160,6 +1314,7 @@ export type Database = {
           rateio_custom?: Json | null
           rateio_regra?: string | null
           tipo?: string
+          unidade?: string | null
           updated_at?: string
           valor_base?: number
         }
@@ -1180,6 +1335,7 @@ export type Database = {
           rateio_custom?: Json | null
           rateio_regra?: string | null
           tipo?: string
+          unidade?: string | null
           updated_at?: string
           valor_base?: number
         }
@@ -1575,6 +1731,8 @@ export type Database = {
         Row: {
           apuracao_id: number
           categoria: string
+          churn_pipefy_card_id: string | null
+          churn_reportado_em: string | null
           cnpj: string | null
           confirmado: boolean | null
           contrato_id: number | null
@@ -1593,6 +1751,8 @@ export type Database = {
         Insert: {
           apuracao_id: number
           categoria?: string
+          churn_pipefy_card_id?: string | null
+          churn_reportado_em?: string | null
           cnpj?: string | null
           confirmado?: boolean | null
           contrato_id?: number | null
@@ -1611,6 +1771,8 @@ export type Database = {
         Update: {
           apuracao_id?: number
           categoria?: string
+          churn_pipefy_card_id?: string | null
+          churn_reportado_em?: string | null
           cnpj?: string | null
           confirmado?: boolean | null
           contrato_id?: number | null
@@ -2093,6 +2255,7 @@ export type Database = {
           ja_existiam: number
         }[]
       }
+      is_custom_role: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role:
