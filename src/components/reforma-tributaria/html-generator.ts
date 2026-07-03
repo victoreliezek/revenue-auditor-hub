@@ -542,7 +542,7 @@ function downloadEdited(){
     document.body.classList.remove('edit-mode');
     document.querySelectorAll('[data-e]').forEach(function(el){el.removeAttribute('contenteditable');});
   }
-  var html='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+  var html='<!DOCTYPE html>'+document.documentElement.outerHTML;
   if(was){
     document.body.classList.add('edit-mode');
     document.querySelectorAll('[data-e]').forEach(function(el){el.contentEditable='true';el.spellcheck=false;});
