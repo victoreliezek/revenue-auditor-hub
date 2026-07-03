@@ -49,8 +49,13 @@ export function useGetOrCreate() {
 
 export function useGerarItens() {
   const fn = useServerFn(gerarItensApuracao);
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (vars: { apuracao_id: number; force?: boolean }) => fn({ data: vars }),
+    onSuccess: (_res, vars) => {
+      qc.invalidateQueries({ queryKey: ["royalties", "apuracao", vars.apuracao_id] });
+      qc.invalidateQueries({ queryKey: ["royalties", "unidades"] });
+    },
     onError: defaultOnError,
   });
 }

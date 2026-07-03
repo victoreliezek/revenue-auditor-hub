@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Info, Link2, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Info, Link2, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { GruposFiliaisDialog } from "@/components/royalties/grupos-filiais-dialog";
 
 import {
@@ -43,6 +43,8 @@ import {
   useUpdateApuracao,
   useUpdateItem,
 } from "@/hooks/use-royalties";
+import { useRegerarMatch } from "@/hooks/use-grupos-filiais";
+import { cn } from "@/lib/utils";
 import type { ApuracaoItem } from "@/lib/royalties.functions";
 
 export const Route = createFileRoute("/_authenticated/royalties/$unidadeId/$mes")({
@@ -132,6 +134,20 @@ function ApuracaoLoaded({
   const reabrir = useReabrirApuracao(apuracaoId);
   const addItem = useAddItem(apuracaoId);
   const deleteItem = useDeleteItem(apuracaoId);
+  const gerar = useGerarItens();
+  const regerar = useRegerarMatch();
+
+  const forcarAtualizacao = async () => {
+    try {
+      // Remove primeiro os itens automáticos não confirmados (fonte pipedrive/omie);
+      // sem isso o insert do gerarItensApuracao duplicaria os itens já existentes.
+      await regerar.mutateAsync({ apuracao_id: apuracaoId });
+      const res = await gerar.mutateAsync({ apuracao_id: apuracaoId, force: true });
+      toast.success(`Apuração atualizada: ${res.created} item(ns) recalculado(s).`);
+    } catch {
+      // erro já tratado pelo onError padrão dos hooks
+    }
+  };
 
   // optimistic local edits (debounced flush)
   const [localValor, setLocalValor] = useState<Record<number, string>>({});
@@ -214,6 +230,30 @@ function ApuracaoLoaded({
               <div className="text-base font-semibold flex items-center gap-2">
                 {u.nome_da_praca} — <span className="capitalize">{formatMesLabel(mes)}</span>
                 <Badge className={badge.cls}>{badge.label}</Badge>
+                {!readOnly && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 gap-1.5"
+                          disabled={regerar.isPending || gerar.isPending}
+                          onClick={forcarAtualizacao}
+                        >
+                          <RefreshCw
+                            className={cn("h-3.5 w-3.5", (regerar.isPending || gerar.isPending) && "animate-spin")}
+                          />
+                          Forçar atualização
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        Reprocessa contratos e recebimentos do Omie do zero, mantendo itens já confirmados ou
+                        adicionados manualmente. Use quando um pagamento/contrato recente não aparecer na lista.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
                 {u.observacoes_financeiras && (
                   <TooltipProvider>
                     <Tooltip>
