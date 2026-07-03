@@ -72,6 +72,8 @@ export interface ApuracaoItem {
   confirmado: boolean | null;
   observacao: string | null;
   filiais_count?: number;
+  churn_pipefy_card_id: string | null;
+  churn_reportado_em: string | null;
 }
 
 
@@ -473,7 +475,7 @@ export const marcarChurn = createServerFn({ method: "POST" })
     const { data: item, error: iErr } = await supabase
       .from("royalties_itens")
       .select(
-        "id,razao_social,mrr_contratado,contrato_id,churn_pipefy_card_id,apuracao:royalties_apuracao!inner(status,unidade:unidades!inner(nome_da_praca))",
+        "id,razao_social,mrr_contratado,contrato_id,churn_pipefy_card_id,apuracao:royalties_apuracao!inner(status,unidade:unidades!inner(nome_da_praca)),contrato:contratos(pipedrive_deal_id)",
       )
       .eq("id", data.item_id)
       .single();
@@ -490,6 +492,7 @@ export const marcarChurn = createServerFn({ method: "POST" })
     if (!pipefyToken) throw new Error("PIPEFY_TOKEN não configurado no servidor.");
 
     const unidadeNome: string = (item as any).apuracao.unidade.nome_da_praca;
+    const pipedriveDealId: string | number | null = (item as any).contrato?.pipedrive_deal_id ?? null;
 
     const mutation = `
       mutation($fields: [FieldValueInput!]) {
@@ -501,14 +504,19 @@ export const marcarChurn = createServerFn({ method: "POST" })
         }) { card { id } }
       }
     `;
-    const variables = {
-      fields: [
-        { field_id: "unidade_de_neg_cio", field_value: [unidadeNome] },
-        { field_id: "mrr_r", field_value: [String(item.mrr_contratado ?? 0)] },
-        { field_id: "motivo_do_churn", field_value: [data.motivo.trim()] },
-        { field_id: "data_do_churn", field_value: [data.data_churn] },
-      ],
-    };
+    const fields = [
+      { field_id: "unidade_de_neg_cio", field_value: [unidadeNome] },
+      { field_id: "mrr_r", field_value: [String(item.mrr_contratado ?? 0)] },
+      { field_id: "motivo_do_churn", field_value: [data.motivo.trim()] },
+      { field_id: "data_do_churn", field_value: [data.data_churn] },
+    ];
+    // Link de volta pro deal do Pipedrive — é o que clientes.tsx usa pra cruzar
+    // central_tratativas.pipedrive_deal_id com empresas.pipedrive_id e mostrar o
+    // badge de churn. Sem isso o card fica órfão (Tratativas mostra, Clientes não).
+    if (pipedriveDealId != null) {
+      fields.push({ field_id: "id_deal_pipedrive", field_value: [String(pipedriveDealId)] });
+    }
+    const variables = { fields };
 
     const resp = await fetch("https://api.pipefy.com/graphql", {
       method: "POST",
@@ -519,11 +527,40 @@ export const marcarChurn = createServerFn({ method: "POST" })
     if (body.errors) throw new Error(`Pipefy: ${body.errors[0]?.message ?? "erro desconhecido"}`);
     const cardId: string = body.data.createCard.card.id;
 
+    const churnReportadoEm = new Date().toISOString();
     const { error: uErr } = await supabase
       .from("royalties_itens")
-      .update({ churn_pipefy_card_id: cardId, churn_reportado_em: new Date().toISOString() })
+      .update({ churn_pipefy_card_id: cardId, churn_reportado_em: churnReportadoEm })
       .eq("id", data.item_id);
     if (uErr) throw new Error(uErr.message);
+
+    // Propaga o churn pros itens do mesmo contrato em OUTRAS apurações (meses).
+    // royalties_itens é gerado por apuração (uma linha por mês) — sem isso, marcar
+    // churn só valeria pro mês em que o botão foi clicado, e o cliente continuaria
+    // aparecendo pra apurar normalmente nos demais meses (inclusive meses passados
+    // anteriores ao clique, mas posteriores à data do churn escolhida).
+    const churnMonthStart = `${data.data_churn.slice(0, 7)}-01`;
+    const { data: siblings, error: sErr } = await supabase
+      .from("royalties_itens")
+      .select("id, apuracao:royalties_apuracao!inner(status,mes_referencia)")
+      .eq("contrato_id", item.contrato_id)
+      .is("churn_pipefy_card_id", null)
+      .neq("id", data.item_id);
+    if (sErr) throw new Error(sErr.message);
+    const idsParaPropagar = (siblings ?? [])
+      .filter((s: any) => {
+        const ap = s.apuracao;
+        if (ap.status === "confirmado" || ap.status === "faturado") return false;
+        return String(ap.mes_referencia) >= churnMonthStart;
+      })
+      .map((s: any) => s.id);
+    if (idsParaPropagar.length > 0) {
+      const { error: propErr } = await supabase
+        .from("royalties_itens")
+        .update({ churn_pipefy_card_id: cardId, churn_reportado_em: churnReportadoEm })
+        .in("id", idsParaPropagar);
+      if (propErr) throw new Error(propErr.message);
+    }
 
     return { ok: true, pipefy_card_id: cardId };
   });
