@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   addItemManual,
+  atualizarCnpjContrato,
   deleteItem,
   fecharApuracao,
   gerarItensApuracao,
@@ -67,6 +68,16 @@ export function useUpdateItem(apuracaoId: number) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (vars: Parameters<typeof updateItem>[0]["data"]) => fn({ data: vars }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["royalties", "apuracao", apuracaoId] }),
+    onError: defaultOnError,
+  });
+}
+
+export function useAtualizarCnpjContrato(apuracaoId: number) {
+  const fn = useServerFn(atualizarCnpjContrato);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: Parameters<typeof atualizarCnpjContrato>[0]["data"]) => fn({ data: vars }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["royalties", "apuracao", apuracaoId] }),
     onError: defaultOnError,
   });

@@ -434,6 +434,25 @@ export const updateItem = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ============ atualizarCnpjContrato ============
+// Preenche/corrige o CNPJ de um contrato direto na tela de apuração (item "Só
+// no Pipedrive" sem CNPJ cadastrado). O CNPJ é o campo que gerarItensApuracao
+// usa pra cruzar com contas_receber — sem ele o contrato nunca casa com o Omie.
+export const atualizarCnpjContrato = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { contrato_id: number; cnpj: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+
+    const cnpj = digits(data.cnpj);
+    if (cnpj.length !== 14) throw new Error("CNPJ inválido — precisa ter 14 dígitos.");
+
+    const { error } = await supabase.from("contratos").update({ cnpj }).eq("id", data.contrato_id);
+    if (error) throw new Error(error.message);
+    return { ok: true, cnpj };
+  });
+
 // ============ marcarChurn ============
 // Cria um card no pipe Pipefy "Tratativas" (307196408) já na fase "Perdido"
 // (343394578), com motivo e data preenchidos. O card sincroniza de volta pra

@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Info, Link2, Plus, RefreshCw, Trash2, UserX } from "lucide-react";
+import { ArrowLeft, Info, Link2, Pencil, Plus, RefreshCw, Trash2, UserX } from "lucide-react";
 import { GruposFiliaisDialog } from "@/components/royalties/grupos-filiais-dialog";
 
 import {
@@ -35,6 +35,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 import {
   useAddItem,
   useApuracao,
+  useAtualizarCnpjContrato,
   useDeleteItem,
   useFecharApuracao,
   useGerarItens,
@@ -138,6 +139,7 @@ function ApuracaoLoaded({
   const gerar = useGerarItens();
   const regerar = useRegerarMatch();
   const marcarChurn = useMarcarChurn(apuracaoId);
+  const atualizarCnpj = useAtualizarCnpjContrato(apuracaoId);
 
   const handleMarcarChurn = (it: ApuracaoItem, motivo: string, dataChurn: string) => {
     marcarChurn.mutate(
@@ -155,6 +157,19 @@ function ApuracaoLoaded({
       await regerar.mutateAsync({ apuracao_id: apuracaoId });
       const res = await gerar.mutateAsync({ apuracao_id: apuracaoId, force: true });
       toast.success(`Apuração atualizada: ${res.created} item(ns) recalculado(s).`);
+    } catch {
+      // erro já tratado pelo onError padrão dos hooks
+    }
+  };
+
+  const handleSalvarCnpj = async (it: ApuracaoItem, cnpj: string) => {
+    if (!it.contrato_id) return;
+    try {
+      await atualizarCnpj.mutateAsync({ contrato_id: it.contrato_id, cnpj });
+      // Mesmo fluxo do "Forçar atualização": regera o match com o CNPJ novo já salvo.
+      await regerar.mutateAsync({ apuracao_id: apuracaoId });
+      await gerar.mutateAsync({ apuracao_id: apuracaoId, force: true });
+      toast.success(`CNPJ salvo para ${it.razao_social} — apuração atualizada.`);
     } catch {
       // erro já tratado pelo onError padrão dos hooks
     }
@@ -350,6 +365,8 @@ function ApuracaoLoaded({
             onDelete={(it) => deleteItem.mutate({ id: it.id })}
             onMarcarChurn={handleMarcarChurn}
             churnPending={marcarChurn.isPending}
+            onEditarCnpj={handleSalvarCnpj}
+            editarCnpjPending={atualizarCnpj.isPending || regerar.isPending || gerar.isPending}
           />
           {!isCscVariavel && (
             <SecaoGrupo
@@ -565,6 +582,8 @@ interface GrupoProps {
   extraHeader?: React.ReactNode;
   onMarcarChurn?: (it: ApuracaoItem, motivo: string, dataChurn: string) => void;
   churnPending?: boolean;
+  onEditarCnpj?: (it: ApuracaoItem, cnpj: string) => void;
+  editarCnpjPending?: boolean;
 }
 
 function MarcarChurnButton({
@@ -630,6 +649,75 @@ function MarcarChurnButton({
           </Button>
           <Button variant="destructive" onClick={submit} disabled={pending}>
             {pending ? "Enviando…" : "Confirmar churn"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditarCnpjButton({
+  it,
+  onSave,
+  pending,
+}: {
+  it: ApuracaoItem;
+  onSave: (cnpj: string) => void;
+  pending: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [cnpj, setCnpj] = useState("");
+
+  const digitsOnly = cnpj.replace(/\D/g, "");
+  const valido = digitsOnly.length === 14;
+
+  const submit = () => {
+    if (!valido) {
+      toast.error("CNPJ precisa ter 14 dígitos.");
+      return;
+    }
+    onSave(digitsOnly);
+    setOpen(false);
+    setCnpj("");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 gap-1 px-1.5 text-xs text-muted-foreground hover:text-foreground"
+          title="Adicionar CNPJ"
+        >
+          <Pencil className="h-3 w-3" /> —
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Adicionar CNPJ — {it.razao_social}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>CNPJ</Label>
+            <Input
+              value={cnpj}
+              onChange={(e) => setCnpj(e.target.value)}
+              placeholder="00.000.000/0000-00"
+              autoFocus
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Ao salvar, a apuração é recalculada automaticamente — se o Omie já tiver um recebimento com esse CNPJ, o
+            item sai de "Só no Pipedrive" e vira "Matched" na hora.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={submit} disabled={pending || !valido}>
+            {pending ? "Salvando…" : "Salvar e atualizar"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -706,6 +794,8 @@ function SecaoGrupo({
   extraHeader,
   onMarcarChurn,
   churnPending,
+  onEditarCnpj,
+  editarCnpjPending,
 }: GrupoProps) {
   const [open, setOpen] = useState(true);
   if (itens.length === 0 && !extraHeader) return null;
@@ -771,7 +861,19 @@ function SecaoGrupo({
                             readOnly={readOnly}
                           />
                         </td>
-                        <td className="px-3 py-2 text-xs text-muted-foreground">{it.cnpj ?? "—"}</td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground">
+                          {it.cnpj ? (
+                            it.cnpj
+                          ) : !readOnly && it.contrato_id != null && onEditarCnpj ? (
+                            <EditarCnpjButton
+                              it={it}
+                              pending={!!editarCnpjPending}
+                              onSave={(cnpj) => onEditarCnpj(it, cnpj)}
+                            />
+                          ) : (
+                            "—"
+                          )}
+                        </td>
                         {showMrr && (
                           <td className="px-3 py-2 text-right">
                             {it.mrr_contratado != null ? brl(it.mrr_contratado) : "—"}
