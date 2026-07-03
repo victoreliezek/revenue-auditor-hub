@@ -6,7 +6,6 @@ import { ShieldCheck } from "lucide-react";
 import {
   listRolePermissions,
   upsertRolePermission,
-  type AppRole,
 } from "@/lib/permissions.functions";
 import { AppShell } from "@/components/app-shell";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -29,16 +28,6 @@ export const Route = createFileRoute("/_authenticated/admin/permissoes")({
   },
   component: PermissionsPage,
 });
-
-const ROLE_LABEL: Record<AppRole, string> = { admin: "Admin", diretor: "Diretor", socio: "Sócio", head: "Head", auditor: "Auditor", socio_franqueado: "Sócio Franqueado" };
-const ROLE_DESC: Record<AppRole, string> = {
-  admin: "Acesso total ao painel.",
-  diretor: "Acesso amplo de leitura à rede.",
-  socio: "Sócio de unidade — vê só sua unidade + benchmarks.",
-  head: "Head (mkt/vendas) — Início, Rede e Negócio.",
-  auditor: "Auditor — Início e Rede.",
-  socio_franqueado: "Sócio Franqueado — gerencia uma unidade, só vê dados dessa unidade.",
-};
 
 function PermissionsPage() {
   const navigate = useNavigate();
@@ -68,7 +57,7 @@ function PermissionsPage() {
   const [pending, setPending] = useState<Set<string>>(new Set());
 
   const mut = useMutation({
-    mutationFn: (vars: { role: AppRole; permission_key: string; allowed: boolean }) =>
+    mutationFn: (vars: { role: string; permission_key: string; allowed: boolean }) =>
       upsertFn({ data: vars }),
     onMutate: (vars) => {
       const k = `${vars.role}__${vars.permission_key}`;
@@ -106,11 +95,13 @@ function PermissionsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 text-center text-xs">
+        <div className="grid gap-3 text-center text-xs sm:grid-cols-3">
           {roles.map((r) => (
-            <div key={r} className="rounded-lg border bg-card px-3 py-2">
-              <p className="font-semibold text-foreground">{ROLE_LABEL[r]}</p>
-              <p className="mt-0.5 text-muted-foreground">{ROLE_DESC[r]}</p>
+            <div key={r.key} className="rounded-lg border bg-card px-3 py-2">
+              <p className="font-semibold text-foreground">
+                {r.label} {!r.is_system && <span className="font-normal text-muted-foreground">(customizado)</span>}
+              </p>
+              <p className="mt-0.5 text-muted-foreground">{r.description}</p>
             </div>
           ))}
         </div>
@@ -127,8 +118,8 @@ function PermissionsPage() {
                 <tr>
                   <th className="px-4 py-2 text-left">Permissão</th>
                   {roles.map((r) => (
-                    <th key={r} className="px-3 py-2 text-center w-24">
-                      {ROLE_LABEL[r]}
+                    <th key={r.key} className="px-3 py-2 text-center w-24">
+                      {r.label}
                     </th>
                   ))}
                 </tr>
@@ -143,18 +134,18 @@ function PermissionsPage() {
                         <div className="text-xs text-muted-foreground">{p.description}</div>
                       </td>
                       {roles.map((r) => {
-                        const k = `${r}__${p.key}`;
+                        const k = `${r.key}__${p.key}`;
                         const allowed = matrix.get(k) ?? false;
                         const busy = pending.has(k);
-                        const restrictedToSocio = p.key === "data.scope.own_unit_only" && r !== "socio";
+                        const restrictedToSocio = p.key === "data.scope.own_unit_only" && r.key !== "socio";
                         return (
-                          <td key={r} className="px-3 py-3 text-center">
+                          <td key={r.key} className="px-3 py-3 text-center">
                             <input
                               type="checkbox"
                               disabled={busy || restrictedToSocio}
                               checked={allowed}
                               onChange={(e) =>
-                                mut.mutate({ role: r, permission_key: p.key, allowed: e.target.checked })
+                                mut.mutate({ role: r.key, permission_key: p.key, allowed: e.target.checked })
                               }
                               className={cn(
                                 "h-4 w-4 cursor-pointer rounded border-input accent-primary",

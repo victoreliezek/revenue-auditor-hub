@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Info, Link2, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowLeft, Info, Link2, Plus, RefreshCw, Trash2, UserX } from "lucide-react";
 import { GruposFiliaisDialog } from "@/components/royalties/grupos-filiais-dialog";
 
 import {
@@ -39,6 +39,7 @@ import {
   useFecharApuracao,
   useGerarItens,
   useGetOrCreate,
+  useMarcarChurn,
   useReabrirApuracao,
   useUpdateApuracao,
   useUpdateItem,
@@ -136,6 +137,16 @@ function ApuracaoLoaded({
   const deleteItem = useDeleteItem(apuracaoId);
   const gerar = useGerarItens();
   const regerar = useRegerarMatch();
+  const marcarChurn = useMarcarChurn(apuracaoId);
+
+  const handleMarcarChurn = (it: ApuracaoItem, motivo: string, dataChurn: string) => {
+    marcarChurn.mutate(
+      { item_id: it.id, motivo, data_churn: dataChurn },
+      {
+        onSuccess: () => toast.success(`Churn registrado para ${it.razao_social}.`),
+      },
+    );
+  };
 
   const forcarAtualizacao = async () => {
     try {
@@ -318,6 +329,8 @@ function ApuracaoLoaded({
             flushValor={flushValor}
             toggleConfirm={toggleConfirm}
             onDelete={(it) => deleteItem.mutate({ id: it.id })}
+            onMarcarChurn={handleMarcarChurn}
+            churnPending={marcarChurn.isPending}
           />
           <SecaoGrupo
             title="⚠️ Só no Pipedrive"
@@ -335,6 +348,8 @@ function ApuracaoLoaded({
             flushValor={flushValor}
             toggleConfirm={toggleConfirm}
             onDelete={(it) => deleteItem.mutate({ id: it.id })}
+            onMarcarChurn={handleMarcarChurn}
+            churnPending={marcarChurn.isPending}
           />
           {!isCscVariavel && (
             <SecaoGrupo
@@ -548,6 +563,78 @@ interface GrupoProps {
   toggleConfirm: (it: ApuracaoItem, c: boolean) => void;
   onDelete: (it: ApuracaoItem) => void;
   extraHeader?: React.ReactNode;
+  onMarcarChurn?: (it: ApuracaoItem, motivo: string, dataChurn: string) => void;
+  churnPending?: boolean;
+}
+
+function MarcarChurnButton({
+  it,
+  onConfirm,
+  pending,
+}: {
+  it: ApuracaoItem;
+  onConfirm: (motivo: string, dataChurn: string) => void;
+  pending: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [motivo, setMotivo] = useState("");
+  const [dataChurn, setDataChurn] = useState(() => new Date().toISOString().slice(0, 10));
+
+  const submit = () => {
+    if (!motivo.trim()) {
+      toast.error("Informe o motivo do churn.");
+      return;
+    }
+    onConfirm(motivo.trim(), dataChurn);
+    setOpen(false);
+    setMotivo("");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-red-600 hover:text-red-700 dark:text-red-400"
+          title="Marcar churn"
+        >
+          <UserX className="h-3.5 w-3.5" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Marcar churn — {it.razao_social}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>Data do churn</Label>
+            <Input type="date" value={dataChurn} onChange={(e) => setDataChurn(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label>Motivo</Label>
+            <Textarea
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Por que o cliente saiu?"
+              rows={3}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Isso cria um card no pipe Tratativas do Pipefy já na fase "Perdido". Não é possível desfazer por aqui.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancelar
+          </Button>
+          <Button variant="destructive" onClick={submit} disabled={pending}>
+            {pending ? "Enviando…" : "Confirmar churn"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function FiliaisCell({
@@ -617,6 +704,8 @@ function SecaoGrupo({
   toggleConfirm,
   onDelete,
   extraHeader,
+  onMarcarChurn,
+  churnPending,
 }: GrupoProps) {
   const [open, setOpen] = useState(true);
   if (itens.length === 0 && !extraHeader) return null;
@@ -665,7 +754,14 @@ function SecaoGrupo({
                     const royal = (valor * pct) / 100;
                     return (
                       <tr key={it.id} className="border-t">
-                        <td className="px-3 py-2">{it.razao_social}</td>
+                        <td className="px-3 py-2">
+                          {it.razao_social}
+                          {it.churn_pipefy_card_id && (
+                            <Badge className="ml-2 bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300 text-[10px] px-1.5 py-0 align-middle">
+                              churn
+                            </Badge>
+                          )}
+                        </td>
                         <td className="px-3 py-2 text-center">
                           <FiliaisCell
                             it={it}
@@ -707,7 +803,14 @@ function SecaoGrupo({
                             onCheckedChange={(c) => toggleConfirm(it, Boolean(c))}
                           />
                         </td>
-                        <td className="px-3 py-2 text-right">
+                        <td className="px-3 py-2 text-right whitespace-nowrap">
+                          {!readOnly && !it.churn_pipefy_card_id && it.contrato_id != null && onMarcarChurn && (
+                            <MarcarChurnButton
+                              it={it}
+                              pending={!!churnPending}
+                              onConfirm={(motivo, dataChurn) => onMarcarChurn(it, motivo, dataChurn)}
+                            />
+                          )}
                           {!readOnly && it.fonte === "manual" && (
                             <Button
                               size="icon"

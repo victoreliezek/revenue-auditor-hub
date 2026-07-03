@@ -9,6 +9,7 @@ import {
   getApuracao,
   getOrCreateApuracao,
   listRoyaltiesUnidades,
+  marcarChurn,
   reabrirApuracao,
   updateApuracao,
   updateItem,
@@ -66,6 +67,16 @@ export function useUpdateItem(apuracaoId: number) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (vars: Parameters<typeof updateItem>[0]["data"]) => fn({ data: vars }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["royalties", "apuracao", apuracaoId] }),
+    onError: defaultOnError,
+  });
+}
+
+export function useMarcarChurn(apuracaoId: number) {
+  const fn = useServerFn(marcarChurn);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: Parameters<typeof marcarChurn>[0]["data"]) => fn({ data: vars }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["royalties", "apuracao", apuracaoId] }),
     onError: defaultOnError,
   });

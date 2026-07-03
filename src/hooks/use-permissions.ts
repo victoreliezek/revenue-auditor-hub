@@ -42,7 +42,7 @@ export function usePermissions(): PermissionsState {
               ? "socio_franqueado"
               : roles.includes("socio")
                 ? "socio"
-                : null;
+                : (roles[0] ?? null);
     return {
       loading: permsLoading,
       roles,

@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertAdmin } from "@/lib/server-utils";
 
 
-export type AppRole = "admin" | "diretor" | "socio" | "head" | "auditor" | "socio_franqueado";
+export type AppRole = string;
 
 export const KNOWN_PERMISSIONS: { key: string; label: string; description: string; group: string }[] = [
   { key: "view.hub", label: "Acessar Hub inicial", description: "Página inicial / portal de módulos.", group: "Acesso" },
@@ -23,6 +23,7 @@ export const KNOWN_PERMISSIONS: { key: string; label: string; description: strin
   { key: "view.reforma_tributaria", label: "Acessar Reforma Tributária", description: "Gerador de mapa da reforma tributária para clientes.", group: "Ferramentas" },
   { key: "view.network.benchmarks", label: "Benchmarks da rede", description: "Permite ver médias e comparativos agregados da rede.", group: "Dados" },
   { key: "view.admin.users", label: "Gerenciar usuários", description: "Cadastrar, editar e excluir usuários.", group: "Administração" },
+  { key: "view.admin.profiles", label: "Gerenciar perfis", description: "Criar, editar e excluir perfis de usuário customizados.", group: "Administração" },
   { key: "view.admin.permissions", label: "Configurar permissões", description: "Editar a matriz de permissões por papel.", group: "Administração" },
   { key: "view.admin.integracoes", label: "Gerenciar integrações", description: "Cadastrar credenciais de APIs externas (ex: Omie por unidade).", group: "Administração" },
   { key: "data.scope.own_unit_only", label: "Restringe à própria unidade", description: "Filtra todos os dados pela unidade do usuário.", group: "Dados" },
@@ -31,8 +32,6 @@ export const KNOWN_PERMISSIONS: { key: string; label: string; description: strin
   { key: "view.receita_partners", label: "Acessar Receita Partners", description: "Financeiro — Gestão da Rede e Receitas da Planning Partners.", group: "Planning Partners" },
   { key: "view.despesas_partners", label: "Acessar Despesas Partners", description: "Despesas (Confronto Mensal) da Planning Partners.", group: "Planning Partners" },
 ];
-
-export const ALL_ROLES: AppRole[] = ["admin", "diretor", "socio", "head", "auditor", "socio_franqueado"];
 
 // (admin check usa helper compartilhado em @/lib/server-utils)
 
@@ -63,22 +62,30 @@ export const listRolePermissions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
-    const { data, error } = await context.supabase
-      .from("role_permissions")
-      .select("role, permission_key, allowed");
-    if (error) throw new Error("Erro ao carregar permissões.");
-    return { rows: data ?? [], permissions: KNOWN_PERMISSIONS, roles: ALL_ROLES };
+    const [{ data, error }, { data: roleRows, error: rolesErr }] = await Promise.all([
+      context.supabase.from("role_permissions").select("role, permission_key, allowed"),
+      context.supabase
+        .from("roles")
+        .select("key, label, description, is_system")
+        .order("is_system", { ascending: false })
+        .order("label", { ascending: true }),
+    ]);
+    if (error || rolesErr) throw new Error("Erro ao carregar permissões.");
+    return { rows: data ?? [], permissions: KNOWN_PERMISSIONS, roles: roleRows ?? [] };
   });
 
 export const upsertRolePermission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { role: AppRole; permission_key: string; allowed: boolean }) => {
-    if (!ALL_ROLES.includes(input.role)) throw new Error("Papel inválido.");
+    const role = (input?.role ?? "").trim();
+    if (!role) throw new Error("Papel inválido.");
     if (!input.permission_key) throw new Error("Permissão inválida.");
-    return { role: input.role, permission_key: input.permission_key, allowed: !!input.allowed };
+    return { role, permission_key: input.permission_key, allowed: !!input.allowed };
   })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
+    const { data: role } = await context.supabase.from("roles").select("key").eq("key", data.role).maybeSingle();
+    if (!role) throw new Error("Papel inválido.");
     const { error } = await context.supabase
       .from("role_permissions")
       .upsert(

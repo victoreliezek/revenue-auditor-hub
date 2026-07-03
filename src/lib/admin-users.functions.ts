@@ -1,9 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-type Role = "admin" | "diretor" | "socio" | "head" | "auditor" | "socio_franqueado";
+type Role = string;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ROLE_PRECEDENCE = ["admin", "head", "auditor", "socio_franqueado", "socio", "diretor"];
 
 async function ensureAdmin(userId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -21,12 +22,11 @@ async function ensureAdmin(userId: string) {
 }
 
 function pickPrimaryRole(roles: Role[]): Role {
-  if (roles.includes("admin")) return "admin";
-  if (roles.includes("head")) return "head";
-  if (roles.includes("auditor")) return "auditor";
-  if (roles.includes("socio_franqueado")) return "socio_franqueado";
-  if (roles.includes("socio")) return "socio";
-  return "diretor";
+  if (roles.length === 1) return roles[0];
+  for (const r of ROLE_PRECEDENCE) {
+    if (roles.includes(r)) return r;
+  }
+  return roles[0] ?? "diretor";
 }
 
 
@@ -92,13 +92,16 @@ export const adminCreateUser = createServerFn({ method: "POST" })
     const password = input?.password ?? "";
     if (!nome) throw new Error("Nome é obrigatório.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Email inválido.");
-    if (role !== "admin" && role !== "diretor" && role !== "socio" && role !== "head" && role !== "auditor" && role !== "socio_franqueado") throw new Error("Papel inválido.");
+    if (!role) throw new Error("Papel inválido.");
     if (password.length < 8) throw new Error("Senha deve ter pelo menos 8 caracteres.");
     return { nome, email, role, password };
   })
   .handler(async ({ data, context }) => {
     await ensureAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: roleRow } = await supabaseAdmin.from("roles").select("key").eq("key", data.role).maybeSingle();
+    if (!roleRow) throw new Error("Papel inválido.");
 
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,

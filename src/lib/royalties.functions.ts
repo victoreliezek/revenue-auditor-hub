@@ -434,6 +434,81 @@ export const updateItem = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ============ marcarChurn ============
+// Cria um card no pipe Pipefy "Tratativas" (307196408) já na fase "Perdido"
+// (343394578), com motivo e data preenchidos. O card sincroniza de volta pra
+// central_tratativas via sync_pipefy_tratativas.py (roda a cada 15min).
+const PIPEFY_PIPE_TRATATIVAS = "307196408";
+const PIPEFY_FASE_PERDIDO = "343394578";
+
+export const marcarChurn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { item_id: number; motivo: string; data_churn: string }) => d)
+  .handler(async ({ data, context }): Promise<{ ok: true; pipefy_card_id: string }> => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+
+    if (!data.motivo?.trim()) throw new Error("Motivo do churn é obrigatório.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data.data_churn)) throw new Error("Data do churn inválida.");
+
+    const { data: item, error: iErr } = await supabase
+      .from("royalties_itens")
+      .select(
+        "id,razao_social,mrr_contratado,contrato_id,churn_pipefy_card_id,apuracao:royalties_apuracao!inner(status,unidade:unidades!inner(nome_da_praca))",
+      )
+      .eq("id", data.item_id)
+      .single();
+    if (iErr) throw new Error(iErr.message);
+
+    const status = (item as any).apuracao.status;
+    if (status === "confirmado" || status === "faturado") {
+      throw new Error("Apuração fechada — reabra antes de marcar churn.");
+    }
+    if (!item.contrato_id) throw new Error("Só é possível marcar churn em itens com contrato vinculado.");
+    if (item.churn_pipefy_card_id) throw new Error("Este cliente já tem churn registrado.");
+
+    const pipefyToken = process.env.PIPEFY_TOKEN;
+    if (!pipefyToken) throw new Error("PIPEFY_TOKEN não configurado no servidor.");
+
+    const unidadeNome: string = (item as any).apuracao.unidade.nome_da_praca;
+
+    const mutation = `
+      mutation($fields: [FieldValueInput!]) {
+        createCard(input: {
+          pipe_id: "${PIPEFY_PIPE_TRATATIVAS}"
+          phase_id: "${PIPEFY_FASE_PERDIDO}"
+          title: ${JSON.stringify(item.razao_social ?? "—")}
+          fields_attributes: $fields
+        }) { card { id } }
+      }
+    `;
+    const variables = {
+      fields: [
+        { field_id: "unidade_de_neg_cio", field_value: [unidadeNome] },
+        { field_id: "mrr_r", field_value: [String(item.mrr_contratado ?? 0)] },
+        { field_id: "motivo_do_churn", field_value: [data.motivo.trim()] },
+        { field_id: "data_do_churn", field_value: [data.data_churn] },
+      ],
+    };
+
+    const resp = await fetch("https://api.pipefy.com/graphql", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${pipefyToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query: mutation, variables }),
+    });
+    const body = await resp.json();
+    if (body.errors) throw new Error(`Pipefy: ${body.errors[0]?.message ?? "erro desconhecido"}`);
+    const cardId: string = body.data.createCard.card.id;
+
+    const { error: uErr } = await supabase
+      .from("royalties_itens")
+      .update({ churn_pipefy_card_id: cardId, churn_reportado_em: new Date().toISOString() })
+      .eq("id", data.item_id);
+    if (uErr) throw new Error(uErr.message);
+
+    return { ok: true, pipefy_card_id: cardId };
+  });
+
 // ============ addItemManual ============
 export const addItemManual = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

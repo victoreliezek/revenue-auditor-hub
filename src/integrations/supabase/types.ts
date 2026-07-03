@@ -1445,20 +1445,55 @@ export type Database = {
         Row: {
           allowed: boolean
           permission_key: string
-          role: Database["public"]["Enums"]["app_role"]
+          role: string
           updated_at: string
         }
         Insert: {
           allowed?: boolean
           permission_key: string
-          role: Database["public"]["Enums"]["app_role"]
+          role: string
           updated_at?: string
         }
         Update: {
           allowed?: boolean
           permission_key?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role?: string
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_role_fkey"
+            columns: ["role"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          key: string
+          label: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          key: string
+          label: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          key?: string
+          label?: string
         }
         Relationships: []
       }
@@ -1790,22 +1825,30 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          role: Database["public"]["Enums"]["app_role"]
+          role: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role?: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_role_fkey"
+            columns: ["role"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["key"]
+          },
+        ]
       }
     }
     Views: {

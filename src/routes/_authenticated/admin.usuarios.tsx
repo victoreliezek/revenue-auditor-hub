@@ -10,6 +10,7 @@ import {
   adminUpdateUser,
 } from "@/lib/admin-users.functions";
 import { getSocioUnidadeByEmail } from "@/lib/permissions.functions";
+import { listRoles } from "@/lib/roles.functions";
 import { generatePassword } from "@/lib/password-utils";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -33,16 +34,17 @@ export const Route = createFileRoute("/_authenticated/admin/usuarios")({
   component: UsersPage,
 });
 
-type Role = "admin" | "diretor" | "socio" | "head" | "auditor";
+type Role = string;
 
-const ROLE_LABEL: Record<Role, string> = { admin: "Admin", diretor: "Diretor", socio: "Sócio", head: "Head", auditor: "Auditor" };
-const ROLE_PILL: Record<Role, string> = {
+const SYSTEM_ROLE_PILL: Record<string, string> = {
   admin: "bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-200",
   diretor: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200",
   socio: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
   head: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200",
   auditor: "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200",
+  socio_franqueado: "bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-200",
 };
+const CUSTOM_ROLE_PILL = "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200";
 
 function UsersPage() {
   const navigate = useNavigate();
@@ -56,6 +58,7 @@ function UsersPage() {
   const deleteFn = useServerFn(adminDeleteUser);
   const updateFn = useServerFn(adminUpdateUser);
   const lookupFn = useServerFn(getSocioUnidadeByEmail);
+  const rolesFn = useServerFn(listRoles);
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) navigate({ to: "/" });
@@ -66,6 +69,15 @@ function UsersPage() {
     queryFn: () => listFn(),
     enabled: isAdmin,
   });
+
+  const rolesQuery = useQuery({
+    queryKey: ["admin-roles"],
+    queryFn: () => rolesFn(),
+    enabled: isAdmin,
+  });
+  const roles = rolesQuery.data ?? [];
+  const roleLabel = (key: string) => roles.find((r) => r.key === key)?.label ?? key;
+  const rolePill = (key: string) => SYSTEM_ROLE_PILL[key] ?? CUSTOM_ROLE_PILL;
 
   const [showForm, setShowForm] = useState(false);
   const [nome, setNome] = useState("");
@@ -226,11 +238,12 @@ function UsersPage() {
             <div className="sm:col-span-1">
               <label className="block text-xs font-medium text-foreground">Papel</label>
               <select value={role} onChange={(e) => setRole(e.target.value as Role)} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
-                <option value="diretor">Diretor</option>
-                <option value="socio">Sócio</option>
-                <option value="head">Head (mkt/vendas)</option>
-                <option value="auditor">Auditor</option>
-                <option value="admin">Admin</option>
+                {roles.map((r) => (
+                  <option key={r.key} value={r.key}>
+                    {r.label}
+                    {!r.is_system ? " (customizado)" : ""}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="sm:col-span-4 flex justify-end">
@@ -276,12 +289,14 @@ function UsersPage() {
                   </td>
                   <td className="px-4 py-2 text-foreground">{u.email}</td>
                   <td className="px-4 py-2">
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${ROLE_PILL[u.role as Role]}`}>
-                      {ROLE_LABEL[u.role as Role]}
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${rolePill(u.role)}`}>
+                      {roleLabel(u.role)}
                     </span>
                   </td>
                   <td className="px-4 py-2 text-xs text-muted-foreground">
-                    {u.role === "socio" ? (u.unidade ?? <span className="text-amber-600">não vinculada</span>) : "—"}
+                    {u.role === "socio" || u.role === "socio_franqueado"
+                      ? (u.unidade ?? <span className="text-amber-600">não vinculada</span>)
+                      : "—"}
                   </td>
                   <td className="px-4 py-2 text-right space-x-2">
                     {editingId === u.user_id ? (
