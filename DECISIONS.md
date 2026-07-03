@@ -17,6 +17,13 @@ Formato de cada entrada:
 
 ---
 
+## [2026-07-03] Navegação de mês direto na tela de apuração de royalties (não só na lista)
+
+**Contexto:** ao investigar por que "Aguia Produção Audiovisual LTDA" não casava na apuração de julho/2026 de Belém, descobri que o pagamento era de junho (26/06) — mas pra conferir a apuração de junho da mesma unidade era preciso voltar pra lista (`/royalties`, que já tem seletor de mês com setas ←/→ em `apuracao-royalties-content.tsx`) e clicar de novo na unidade. Dentro da tela de detalhe (`/royalties/$unidadeId/$mes`) não existia nenhuma forma de trocar de mês — só voltar.
+**Decisão:** setas de mês anterior/próximo também no cabeçalho da tela de detalhe, ao lado do botão "Royalties" (voltar), navegando via `Link to="/royalties/$unidadeId/$mes"` com `mes` deslocado (`shiftMes`, mesma lógica já usada na lista — duplicada localmente, seguindo o padrão que o próprio `formatMesLabel` já tinha entre os dois arquivos). Não criei um componente compartilhado pra isso — são 6 linhas, dois arquivos, sem necessidade real de abstrair ainda.
+**Status:** implementado. Arquivo: `src/routes/_authenticated/royalties.$unidadeId.$mes.tsx` (`ApuracaoLoaded` agora recebe `unidadeId` como prop). Build e typecheck validados (zero erros novos).
+**Próximos passos:** nenhum pendente.
+
 ## [2026-07-03] Limpeza de `empresas` duplicadas (rede inteira) — 85 linhas removidas
 
 **Contexto:** usuário notou que a apuração de royalties de Belém/jul-26 tinha 46 clientes com Pipedrive ID, mas a tela Clientes mostrava 63 pra mesma unidade. Investigação (comparando direto com a API do Pipedrive) confirmou: `empresas` nunca é limpa quando um deal sai do pipeline de vendas ativo (só `contratos` é podado por `sync_pipedrive_contratos.py`, linhas 409-421), então deals "(cópia)" do pipeline 28 (mirror da Central de Contratos) e reaberturas ("Segunda Oportunidade") ficaram como linhas fantasma em `empresas` pra sempre — sem CNPJ, sem contrato, mas com nome idêntico ao cliente real (a limpeza do sufixo "(cópia)" acontece antes de gravar, por isso a duplicata é invisível a olho nu na tela Clientes). Exemplo confirmado: "Almare Hoteis" tinha 3 linhas (`empresas.id` 36/158/525) pro mesmo CNPJ 60508567000103.

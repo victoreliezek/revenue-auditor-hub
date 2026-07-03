@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Info, Link2, Pencil, Plus, RefreshCw, Trash2, UserX } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Info, Link2, Pencil, Plus, RefreshCw, Trash2, UserX } from "lucide-react";
 import { GruposFiliaisDialog } from "@/components/royalties/grupos-filiais-dialog";
 
 import {
@@ -56,6 +56,12 @@ export const Route = createFileRoute("/_authenticated/royalties/$unidadeId/$mes"
 function formatMesLabel(mes: string) {
   const [y, m] = mes.split("-").map(Number);
   return new Date(y, m - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+}
+
+function shiftMes(mes: string, delta: number): string {
+  const [y, m] = mes.split("-").map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
@@ -117,16 +123,25 @@ function ApuracaoPage() {
   if (!apuracaoId)
     return <div className="p-6 text-sm text-muted-foreground">Preparando apuração…</div>;
 
-  return <ApuracaoLoaded apuracaoId={apuracaoId} mes={mes} onBack={() => navigate({ to: "/royalties" })} />;
+  return (
+    <ApuracaoLoaded
+      apuracaoId={apuracaoId}
+      mes={mes}
+      unidadeId={unidadeId}
+      onBack={() => navigate({ to: "/royalties" })}
+    />
+  );
 }
 
 function ApuracaoLoaded({
   apuracaoId,
   mes,
+  unidadeId,
   onBack,
 }: {
   apuracaoId: number;
   mes: string;
+  unidadeId: string;
   onBack: () => void;
 }) {
   const { data, isLoading } = useApuracao(apuracaoId);
@@ -252,6 +267,18 @@ function ApuracaoLoaded({
             <Button variant="ghost" size="sm" onClick={onBack}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Royalties
             </Button>
+            <div className="flex items-center gap-1">
+              <Link to="/royalties/$unidadeId/$mes" params={{ unidadeId, mes: shiftMes(mes, -1) }}>
+                <Button variant="outline" size="icon" className="h-7 w-7" title="Mês anterior">
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+              <Link to="/royalties/$unidadeId/$mes" params={{ unidadeId, mes: shiftMes(mes, 1) }}>
+                <Button variant="outline" size="icon" className="h-7 w-7" title="Próximo mês">
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </div>
             <div>
               <div className="text-base font-semibold flex items-center gap-2">
                 {u.nome_da_praca} — <span className="capitalize">{formatMesLabel(mes)}</span>
