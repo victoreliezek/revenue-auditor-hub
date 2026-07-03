@@ -49,7 +49,6 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
       { title: "Funil de Receita", url: "/funil-receita", icon: Filter, permission: "view.roas" },
       { title: "Reconciliação", url: "/reconciliacao", icon: GitMerge, permission: "view.roas" },
       { title: "Contas a Receber", url: "/contas-receber", icon: Wallet, permission: "view.contas_receber" },
-      { title: "Comissões", url: "/comissoes", icon: Percent, permission: "view.comissoes" },
       { title: "Unidades", url: "/unidades", icon: Coins, permission: "view.auditoria.cac" },
     ],
   },
@@ -59,6 +58,7 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
       { title: "Financeiro Partners", url: "/financeiro-partners", icon: Receipt, permission: "view.financeiro_partners" },
       { title: "Receita Partners", url: "/receita-partners", icon: LineChart, permission: "view.receita_partners" },
       { title: "Despesas Partners", url: "/despesas-cm", icon: TrendingDown, permission: "view.despesas_partners" },
+      { title: "Comissões", url: "/comissoes", icon: Percent, permission: "view.comissoes" },
     ],
   },
   {
