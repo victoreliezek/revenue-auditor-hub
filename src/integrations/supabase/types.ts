@@ -1720,6 +1720,7 @@ export type Database = {
       unidades: {
         Row: {
           absorve_midia: boolean
+          cnpj: string | null
           created_at: string | null
           csc_percentual_base_antiga: number | null
           csc_valor_fixo: number | null
@@ -1734,12 +1735,14 @@ export type Database = {
           observacoes_financeiras: string | null
           paga_cac: boolean
           pipefy_id: string | null
+          razao_social: string | null
           royalties_percentual: number | null
           tipo: string | null
           updated_at: string | null
         }
         Insert: {
           absorve_midia?: boolean
+          cnpj?: string | null
           created_at?: string | null
           csc_percentual_base_antiga?: number | null
           csc_valor_fixo?: number | null
@@ -1754,12 +1757,14 @@ export type Database = {
           observacoes_financeiras?: string | null
           paga_cac?: boolean
           pipefy_id?: string | null
+          razao_social?: string | null
           royalties_percentual?: number | null
           tipo?: string | null
           updated_at?: string | null
         }
         Update: {
           absorve_midia?: boolean
+          cnpj?: string | null
           created_at?: string | null
           csc_percentual_base_antiga?: number | null
           csc_valor_fixo?: number | null
@@ -1774,6 +1779,7 @@ export type Database = {
           observacoes_financeiras?: string | null
           paga_cac?: boolean
           pipefy_id?: string | null
+          razao_social?: string | null
           royalties_percentual?: number | null
           tipo?: string | null
           updated_at?: string | null

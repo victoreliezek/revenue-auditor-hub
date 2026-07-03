@@ -40,6 +40,8 @@ type Unidade = {
   paga_cac: boolean | null;
   absorve_midia: boolean | null;
   observacoes_financeiras: string | null;
+  cnpj: string | null;
+  razao_social: string | null;
 };
 
 const fmtBRL = (v: number | null | undefined) =>
@@ -116,7 +118,7 @@ export function RedeContent() {
         supabase
           .from("unidades")
           .select(
-            "id,nome_da_praca,tipo,data_inauguracao,royalties_percentual,csc_valor_fixo,csc_percentual_base_antiga,midia_mensal,midia_cac,paga_cac,absorve_midia,observacoes_financeiras",
+            "id,nome_da_praca,tipo,data_inauguracao,royalties_percentual,csc_valor_fixo,csc_percentual_base_antiga,midia_mensal,midia_cac,paga_cac,absorve_midia,observacoes_financeiras,cnpj,razao_social",
           )
           .order("data_inauguracao", { ascending: true, nullsFirst: false }),
         supabase
@@ -240,6 +242,8 @@ export function RedeContent() {
                 <TableRow>
                   <TableHead className="w-8"></TableHead>
                   <TableHead>Unidade</TableHead>
+                  <TableHead>Razão social</TableHead>
+                  <TableHead>CNPJ</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Inauguração</TableHead>
                   <TableHead>Tempo de casa</TableHead>
@@ -254,13 +258,13 @@ export function RedeContent() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={13} className="text-center text-sm text-muted-foreground">
                       Carregando…
                     </TableCell>
                   </TableRow>
                 ) : filteredRegionais.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={13} className="text-center text-sm text-muted-foreground">
                       Nenhuma unidade encontrada.
                     </TableCell>
                   </TableRow>
@@ -284,6 +288,8 @@ export function RedeContent() {
                               <span className="ml-2 text-xs text-muted-foreground">({usocios.length})</span>
                             )}
                           </TableCell>
+                          <TableCell className="whitespace-pre-line text-muted-foreground">{u.razao_social ?? "—"}</TableCell>
+                          <TableCell className="whitespace-pre-line text-muted-foreground">{u.cnpj ?? "—"}</TableCell>
                           <TableCell>
                             {u.status === "ativa" ? (
                               <Badge variant="default">Ativa</Badge>
@@ -336,7 +342,7 @@ export function RedeContent() {
                         {isOpen && (
                           <TableRow key={`${u.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
                             <TableCell />
-                            <TableCell colSpan={10} className="py-3">
+                            <TableCell colSpan={12} className="py-3">
                               <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                 Sócios &amp; contatos
                               </div>

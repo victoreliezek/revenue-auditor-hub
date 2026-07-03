@@ -17,6 +17,13 @@ Formato de cada entrada:
 
 ---
 
+## [2026-07-03] Restaurado acesso de admin/diretor a Financeiro Partners / Receita Partners / Despesas Partners
+
+**Contexto:** usuário percebeu que o grupo "Planning Partners" (Financeiro Partners, Receita Partners, Despesas Partners) sumiu do sidebar. Investigação mostrou que `role_permissions` tinha **zero linhas** para `view.financeiro_partners`, `view.receita_partners`, `view.despesas_partners` — nenhum papel, nem admin, tinha essas permissões concedidas no banco (o item do sidebar só aparece se o papel do usuário tiver a permissão marcada `allowed=true`). Não foi causado pela página de Comissões (diff de `app-sidebar.tsx` e `permissions.functions.ts` não tocou esse grupo) — o gap já existia no banco antes.
+**Decisão:** conceder `view.financeiro_partners`, `view.receita_partners`, `view.despesas_partners` para os papéis `admin` e `diretor` via upsert direto em `role_permissions` (Supabase REST, service_role). Além disso, usuário pediu explicitamente: **admin deve sempre ter todas as páginas/permissões `view.*` ativas** — regra geral daqui pra frente, não só para essas 3.
+**Status:** implementado (upsert rodado 2026-07-03T17:53). Ver entrada seguinte para a varredura completa de `admin` vs `KNOWN_PERMISSIONS`.
+**Próximos passos:** ao adicionar qualquer nova permissão `view.*` em `KNOWN_PERMISSIONS` (`src/lib/permissions.functions.ts`), conceder também para `admin` em `role_permissions` no mesmo passo — não deixar como tarefa manual separada em `/admin/permissoes`.
+
 ## [2026-07-03] Página de Apuração de Comissões (Closer/SDR) + closer/sdr sincronizados em `contratos`
 
 **Contexto:** era preciso conferir, venda a venda, se ela foi realizada e paga antes de calcular comissão de Closer/SDR. O módulo de Auditoria já cobria quase tudo (razão social, CNPJ, data de fechamento, status/valor/data do 1º pagamento), mas Closer e SDR não existiam em nenhuma tabela do Supabase — só como campos customizados do deal no Pipedrive (`Closer Responsável` = chave `82f35432010d0c95fceeaa0b5bce5f8e7542a795`, `SDR responsável` = chave `216740813ecdc3d64c03e5e1d5685050048a01d1`, ambos `enum`).
