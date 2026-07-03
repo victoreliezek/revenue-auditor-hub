@@ -168,7 +168,7 @@ export function FunilContent() {
       if (error) throw error;
       return (data ?? []) as FunilRow[];
     },
-    enabled: !permLoading && (can("view.roas") || can("view.auditoria")),
+    enabled: !permLoading && (can("view.funil_receita") || can("view.auditoria")),
   });
 
   const allUnidades = useMemo(
@@ -225,7 +225,7 @@ export function FunilContent() {
   if (permLoading) {
     return <div className="p-6 text-sm text-muted-foreground">Carregando…</div>;
   }
-  if (!can("view.roas") && !can("view.auditoria")) {
+  if (!can("view.funil_receita") && !can("view.auditoria")) {
     return <div className="p-6 text-sm text-muted-foreground">Você não tem permissão para visualizar esta página.</div>;
   }
 

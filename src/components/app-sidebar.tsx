@@ -31,25 +31,25 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
     label: "Operação",
     items: [
       { title: "Clientes", url: "/clientes", icon: Building2, permission: "view.clientes" },
-      { title: "NPS", url: "/nps", icon: Smile, permission: "view.clientes" },
-      { title: "Tratativas", url: "/tratativas", icon: MessageSquareWarning, permission: "view.clientes" },
+      { title: "NPS", url: "/nps", icon: Smile, permission: "view.nps" },
+      { title: "Tratativas", url: "/tratativas", icon: MessageSquareWarning, permission: "view.tratativas" },
     ],
   },
   {
     label: "Performance da Rede",
     items: [
-      { title: "LTV Estimado", url: "/rede-ltv", icon: TrendingUp, permission: "view.clientes" },
-      { title: "Headcount", url: "/rede-headcount", icon: Users, permission: "view.roas" },
-      { title: "Realizado Unidades", url: "/rede-realizado", icon: BarChart3, permission: "view.clientes" },
+      { title: "LTV Estimado", url: "/rede-ltv", icon: TrendingUp, permission: "view.rede_ltv" },
+      { title: "Headcount", url: "/rede-headcount", icon: Users, permission: "view.rede_headcount" },
+      { title: "Realizado Unidades", url: "/rede-realizado", icon: BarChart3, permission: "view.rede_realizado" },
     ],
   },
   {
     label: "Receita da Rede",
     items: [
-      { title: "Funil de Receita", url: "/funil-receita", icon: Filter, permission: "view.roas" },
-      { title: "Reconciliação", url: "/reconciliacao", icon: GitMerge, permission: "view.roas" },
+      { title: "Funil de Receita", url: "/funil-receita", icon: Filter, permission: "view.funil_receita" },
+      { title: "Reconciliação", url: "/reconciliacao", icon: GitMerge, permission: "view.reconciliacao" },
       { title: "Contas a Receber", url: "/contas-receber", icon: Wallet, permission: "view.contas_receber" },
-      { title: "Unidades", url: "/unidades", icon: Coins, permission: "view.auditoria.cac" },
+      { title: "Unidades", url: "/unidades", icon: Coins, permission: "view.unidades_rede" },
     ],
   },
   {
