@@ -5,6 +5,7 @@ import {
   addItemManual,
   atualizarCnpjContrato,
   deleteItem,
+  excluirItemMes,
   fecharApuracao,
   gerarItensApuracao,
   getApuracao,
@@ -12,6 +13,7 @@ import {
   listRoyaltiesUnidades,
   marcarChurn,
   reabrirApuracao,
+  reincluirItemMes,
   updateApuracao,
   updateItem,
 } from "@/lib/royalties.functions";
@@ -108,6 +110,26 @@ export function useDeleteItem(apuracaoId: number) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (vars: { id: number }) => fn({ data: vars }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["royalties", "apuracao", apuracaoId] }),
+    onError: defaultOnError,
+  });
+}
+
+export function useExcluirItem(apuracaoId: number) {
+  const fn = useServerFn(excluirItemMes);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { item_id: number; motivo: string }) => fn({ data: vars }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["royalties", "apuracao", apuracaoId] }),
+    onError: defaultOnError,
+  });
+}
+
+export function useReincluirItem(apuracaoId: number) {
+  const fn = useServerFn(reincluirItemMes);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { item_id: number }) => fn({ data: vars }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["royalties", "apuracao", apuracaoId] }),
     onError: defaultOnError,
   });

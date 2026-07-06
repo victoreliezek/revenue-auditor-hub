@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       audit_arquitetura: {
@@ -1737,8 +1762,12 @@ export type Database = {
           confirmado: boolean | null
           contrato_id: number | null
           created_at: string | null
+          data_ganho: string | null
+          excluido_em: string | null
+          excluido_por: string | null
           fonte: string
           id: number
+          motivo_exclusao: string | null
           mrr_contratado: number | null
           observacao: string | null
           razao_social: string
@@ -1757,8 +1786,12 @@ export type Database = {
           confirmado?: boolean | null
           contrato_id?: number | null
           created_at?: string | null
+          data_ganho?: string | null
+          excluido_em?: string | null
+          excluido_por?: string | null
           fonte?: string
           id?: number
+          motivo_exclusao?: string | null
           mrr_contratado?: number | null
           observacao?: string | null
           razao_social: string
@@ -1777,8 +1810,12 @@ export type Database = {
           confirmado?: boolean | null
           contrato_id?: number | null
           created_at?: string | null
+          data_ganho?: string | null
+          excluido_em?: string | null
+          excluido_por?: string | null
           fonte?: string
           id?: number
+          motivo_exclusao?: string | null
           mrr_contratado?: number | null
           observacao?: string | null
           razao_social?: string
@@ -2398,6 +2435,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: [

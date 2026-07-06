@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ChevronLeft, ChevronRight, Info, Link2, Pencil, Plus, RefreshCw, Trash2, UserX } from "lucide-react";
+import { ArrowLeft, Ban, ChevronLeft, ChevronRight, Info, Link2, Pencil, Plus, RefreshCw, Trash2, UserX } from "lucide-react";
 import { GruposFiliaisDialog } from "@/components/royalties/grupos-filiais-dialog";
 
 import {
@@ -37,11 +37,13 @@ import {
   useApuracao,
   useAtualizarCnpjContrato,
   useDeleteItem,
+  useExcluirItem,
   useFecharApuracao,
   useGerarItens,
   useGetOrCreate,
   useMarcarChurn,
   useReabrirApuracao,
+  useReincluirItem,
   useUpdateApuracao,
   useUpdateItem,
 } from "@/hooks/use-royalties";
@@ -155,12 +157,32 @@ function ApuracaoLoaded({
   const regerar = useRegerarMatch();
   const marcarChurn = useMarcarChurn(apuracaoId);
   const atualizarCnpj = useAtualizarCnpjContrato(apuracaoId);
+  const excluirItem = useExcluirItem(apuracaoId);
+  const reincluirItem = useReincluirItem(apuracaoId);
 
   const handleMarcarChurn = (it: ApuracaoItem, motivo: string, dataChurn: string) => {
     marcarChurn.mutate(
       { item_id: it.id, motivo, data_churn: dataChurn },
       {
         onSuccess: () => toast.success(`Churn registrado para ${it.razao_social}.`),
+      },
+    );
+  };
+
+  const handleExcluir = (it: ApuracaoItem, motivo: string) => {
+    excluirItem.mutate(
+      { item_id: it.id, motivo },
+      {
+        onSuccess: () => toast.success(`${it.razao_social} excluído da apuração deste mês.`),
+      },
+    );
+  };
+
+  const handleReincluir = (it: ApuracaoItem) => {
+    reincluirItem.mutate(
+      { item_id: it.id },
+      {
+        onSuccess: () => toast.success(`${it.razao_social} reincluído na apuração.`),
       },
     );
   };
@@ -203,8 +225,11 @@ function ApuracaoLoaded({
   const isCscVariavel = u.csc_percentual_base_antiga != null;
   const pctPadrao = Number(u.royalties_percentual ?? 0);
 
-  const planning = itens.filter((i) => i.categoria === "royalties");
-  const baseAntiga = itens.filter((i) => i.categoria === "csc_base_antiga");
+  const ativos = itens.filter((i) => !i.excluido_em);
+  const excluidos = itens.filter((i) => !!i.excluido_em);
+
+  const planning = ativos.filter((i) => i.categoria === "royalties");
+  const baseAntiga = ativos.filter((i) => i.categoria === "csc_base_antiga");
 
   const matched = planning.filter((i) => i.status_match === "matched" || i.status_match === "divergente");
   const soPipe = planning.filter((i) => i.status_match === "so_pipedrive");
@@ -225,7 +250,7 @@ function ApuracaoLoaded({
   let royaltiesValor = 0;
   let receitaBaseAntiga = 0;
   let confirmadosCount = 0;
-  for (const it of itens) {
+  for (const it of ativos) {
     if (!it.confirmado) continue;
     confirmadosCount += 1;
     const v = valorEfetivo(it);
@@ -323,7 +348,7 @@ function ApuracaoLoaded({
             </div>
           </div>
           <div className="flex flex-wrap gap-4 text-xs">
-            <Metric label="Confirmados" value={`${confirmadosCount} / ${itens.length}`} />
+            <Metric label="Confirmados" value={`${confirmadosCount} / ${ativos.length}`} />
             <Metric label="Base Planning" value={brl(receitaBase)} />
             <Metric label={`Royalties (${pctPadrao}%)`} value={brl(royaltiesValor)} />
             <Metric
@@ -373,6 +398,8 @@ function ApuracaoLoaded({
             onDelete={(it) => deleteItem.mutate({ id: it.id })}
             onMarcarChurn={handleMarcarChurn}
             churnPending={marcarChurn.isPending}
+            onExcluir={handleExcluir}
+            excluirPending={excluirItem.isPending}
           />
           <SecaoGrupo
             title="⚠️ Só no Pipedrive"
@@ -394,6 +421,8 @@ function ApuracaoLoaded({
             churnPending={marcarChurn.isPending}
             onEditarCnpj={handleSalvarCnpj}
             editarCnpjPending={atualizarCnpj.isPending || regerar.isPending || gerar.isPending}
+            onExcluir={handleExcluir}
+            excluirPending={excluirItem.isPending}
           />
           {!isCscVariavel && (
             <SecaoGrupo
@@ -412,6 +441,8 @@ function ApuracaoLoaded({
               flushValor={flushValor}
               toggleConfirm={toggleConfirm}
               onDelete={(it) => deleteItem.mutate({ id: it.id })}
+              onExcluir={handleExcluir}
+              excluirPending={excluirItem.isPending}
             />
           )}
           <SecaoGrupo
@@ -460,16 +491,25 @@ function ApuracaoLoaded({
                 flushValor={flushValor}
                 toggleConfirm={toggleConfirm}
                 onDelete={(it) => deleteItem.mutate({ id: it.id })}
+                onExcluir={handleExcluir}
+                excluirPending={excluirItem.isPending}
               />
             </Card>
           )}
+
+          <ExcluidosSection
+            itens={excluidos}
+            readOnly={readOnly}
+            onReincluir={handleReincluir}
+            pending={reincluirItem.isPending}
+          />
         </div>
 
 
         {/* Sidebar de totais */}
         <Card className="p-4 space-y-4 h-fit sticky top-[140px]">
           <div className="text-sm font-semibold">Resumo da apuração</div>
-          <ResumoLinha label="Clientes confirmados" value={`${confirmadosCount} / ${itens.length}`} />
+          <ResumoLinha label="Clientes confirmados" value={`${confirmadosCount} / ${ativos.length}`} />
           <ResumoLinha label="Base Planning" value={brl(receitaBase)} />
           <ResumoLinha label={`Royalties (${pctPadrao}%)`} value={brl(royaltiesValor)} bold />
           <div className="border-t pt-3 space-y-2">
@@ -611,6 +651,8 @@ interface GrupoProps {
   churnPending?: boolean;
   onEditarCnpj?: (it: ApuracaoItem, cnpj: string) => void;
   editarCnpjPending?: boolean;
+  onExcluir?: (it: ApuracaoItem, motivo: string) => void;
+  excluirPending?: boolean;
 }
 
 function MarcarChurnButton({
@@ -676,6 +718,77 @@ function MarcarChurnButton({
           </Button>
           <Button variant="destructive" onClick={submit} disabled={pending}>
             {pending ? "Enviando…" : "Confirmar churn"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ExcluirItemButton({
+  it,
+  onConfirm,
+  pending,
+}: {
+  it: ApuracaoItem;
+  onConfirm: (motivo: string) => void;
+  pending: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [motivo, setMotivo] = useState("");
+
+  const submit = () => {
+    if (!motivo.trim()) {
+      toast.error("Informe o motivo da exclusão.");
+      return;
+    }
+    onConfirm(motivo.trim());
+    setOpen(false);
+    setMotivo("");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-amber-600 hover:text-amber-700 dark:text-amber-400"
+          title="Excluir da apuração deste mês"
+        >
+          <Ban className="h-3.5 w-3.5" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Excluir da apuração — {it.razao_social}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>Motivo</Label>
+            <Textarea
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Ex: não recebeu este mês"
+              rows={3}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Remove este cliente só da apuração deste mês — não afeta meses anteriores/futuros nem os dados de
+            origem (Pipedrive/Omie). Pode ser desfeito em "Excluídos deste mês".
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancelar
+          </Button>
+          <Button
+            variant="outline"
+            className="border-amber-400 text-amber-700 hover:bg-amber-50 dark:text-amber-400"
+            onClick={submit}
+            disabled={pending}
+          >
+            {pending ? "Excluindo…" : "Excluir deste mês"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -823,6 +936,8 @@ function SecaoGrupo({
   churnPending,
   onEditarCnpj,
   editarCnpjPending,
+  onExcluir,
+  excluirPending,
 }: GrupoProps) {
   const [open, setOpen] = useState(true);
   if (itens.length === 0 && !extraHeader) return null;
@@ -956,6 +1071,13 @@ function SecaoGrupo({
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           )}
+                          {!readOnly && it.fonte !== "manual" && onExcluir && (
+                            <ExcluirItemButton
+                              it={it}
+                              pending={!!excluirPending}
+                              onConfirm={(motivo) => onExcluir(it, motivo)}
+                            />
+                          )}
                         </td>
                       </tr>
                     );
@@ -982,6 +1104,8 @@ function BaseAntigaTable({
   flushValor,
   toggleConfirm,
   onDelete,
+  onExcluir,
+  excluirPending,
 }: {
   itens: ApuracaoItem[];
   readOnly: boolean;
@@ -993,6 +1117,8 @@ function BaseAntigaTable({
   flushValor: (it: ApuracaoItem) => void;
   toggleConfirm: (it: ApuracaoItem, c: boolean) => void;
   onDelete: (it: ApuracaoItem) => void;
+  onExcluir?: (it: ApuracaoItem, motivo: string) => void;
+  excluirPending?: boolean;
 }) {
   if (itens.length === 0)
     return <div className="px-4 py-6 text-center text-sm text-muted-foreground">Nenhum item.</div>;
@@ -1048,11 +1174,18 @@ function BaseAntigaTable({
                   onCheckedChange={(c) => toggleConfirm(it, Boolean(c))}
                 />
               </td>
-              <td className="px-3 py-2 text-right">
+              <td className="px-3 py-2 text-right whitespace-nowrap">
                 {!readOnly && it.fonte === "manual" && (
                   <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onDelete(it)}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
+                )}
+                {!readOnly && it.fonte !== "manual" && onExcluir && (
+                  <ExcluirItemButton
+                    it={it}
+                    pending={!!excluirPending}
+                    onConfirm={(motivo) => onExcluir(it, motivo)}
+                  />
                 )}
               </td>
             </tr>
@@ -1060,6 +1193,75 @@ function BaseAntigaTable({
         </tbody>
       </table>
     </div>
+  );
+}
+
+function ExcluidosSection({
+  itens,
+  readOnly,
+  onReincluir,
+  pending,
+}: {
+  itens: ApuracaoItem[];
+  readOnly: boolean;
+  onReincluir: (it: ApuracaoItem) => void;
+  pending: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  if (itens.length === 0) return null;
+  return (
+    <Card className="overflow-hidden border-dashed">
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <CollapsibleTrigger className="flex w-full items-center justify-between border-b px-4 py-3 text-left">
+          <div>
+            <div className="font-medium">
+              🚫 Excluídos deste mês <span className="text-xs text-muted-foreground">({itens.length})</span>
+            </div>
+            <div className="text-xs text-muted-foreground">Não entram no cálculo de royalties deste mês.</div>
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="overflow-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 text-left">Cliente</th>
+                  <th className="px-3 py-2 text-left">CNPJ</th>
+                  <th className="px-3 py-2 text-left">Motivo</th>
+                  <th className="px-3 py-2 text-left">Excluído em</th>
+                  <th className="px-3 py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {itens.map((it) => (
+                  <tr key={it.id} className="border-t text-muted-foreground">
+                    <td className="px-3 py-2">{it.razao_social}</td>
+                    <td className="px-3 py-2 text-xs">{it.cnpj ?? "—"}</td>
+                    <td className="px-3 py-2 text-xs">{it.motivo_exclusao ?? "—"}</td>
+                    <td className="px-3 py-2 text-xs whitespace-nowrap">
+                      {it.excluido_em ? new Date(it.excluido_em).toLocaleDateString("pt-BR") : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-right whitespace-nowrap">
+                      {!readOnly && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7"
+                          onClick={() => onReincluir(it)}
+                          disabled={pending}
+                        >
+                          Reincluir
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
   );
 }
 

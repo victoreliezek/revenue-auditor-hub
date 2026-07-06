@@ -75,6 +75,9 @@ export interface ApuracaoItem {
   churn_pipefy_card_id: string | null;
   churn_reportado_em: string | null;
   data_ganho: string | null;
+  excluido_em: string | null;
+  excluido_por: string | null;
+  motivo_exclusao: string | null;
 }
 
 
@@ -197,10 +200,10 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
     // confirmado) tem um valor_omie desatualizado em relação ao que acabou de ser
     // recalculado (ex: chegou uma 2ª fatura do mês depois da confirmação), ele é
     // atualizado com o valor novo e volta pra "não confirmado" pra revisão humana.
-    // Itens com churn marcado nunca são recalculados.
+    // Itens com churn marcado ou excluídos do mês (excluirItemMes) nunca são recalculados.
     const { data: itensExistentes, error: ieErr } = await supabase
       .from("royalties_itens")
-      .select("id,contrato_id,cnpj,valor_omie,confirmado,churn_pipefy_card_id")
+      .select("id,contrato_id,cnpj,valor_omie,confirmado,churn_pipefy_card_id,excluido_em")
       .eq("apuracao_id", data.apuracao_id);
     if (ieErr) throw new Error(ieErr.message);
     const itemPorContrato = new Map(
@@ -211,16 +214,52 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
     const cnpjsSemContratoComItem = new Set(
       (itensExistentes ?? []).filter((i) => i.contrato_id == null).map((i) => digits(i.cnpj)),
     );
-    const atualizacoesValorOmie: { id: number; valor_omie: number | null; valor_confirmado: number | null; confirmado: boolean; status_match: string }[] = [];
+    const atualizacoesValorOmie: {
+      id: number;
+      valor_omie: number | null;
+      valor_confirmado: number | null;
+      confirmado: boolean;
+      status_match: string;
+      churn_pipefy_card_id?: string | null;
+      churn_reportado_em?: string | null;
+    }[] = [];
 
     // contratos
     const { data: contratos, error: kErr } = await supabase
       .from("contratos")
-      .select("id,cnpj,titulo,mrr_mensal,ganho_em")
+      .select("id,cnpj,titulo,mrr_mensal,ganho_em,pipedrive_deal_id")
       .eq("unidade", unidadeNome)
       .eq("tipo_unidade", "franquia")
       .eq("status_contrato", "Ativo");
     if (kErr) throw new Error(kErr.message);
+
+    // Churn já registrado no Pipefy (mesma fonte de verdade da página Clientes:
+    // central_tratativas com estagio=Perdido). Preenche o item já nascendo marcado
+    // como churn quando a apuração é de um mês novo (nunca gerado antes) — sem isso,
+    // um mês futuro (ex: apuração criada em agosto/2026 pela primeira vez) incluiria
+    // o contrato normalmente, já que nada além do próprio item de uma apuração já
+    // gerada sabia do churn.
+    const { data: tratativasChurn, error: tcErr } = await supabase
+      .from("central_tratativas")
+      .select("pipedrive_deal_id,pipefy_card_id,data_churn,stage_change_time")
+      .eq("estagio", "Perdido")
+      .eq("status", "lost");
+    if (tcErr) throw new Error(tcErr.message);
+    const churnPorDealId = new Map(
+      (tratativasChurn ?? [])
+        .filter((t) => t.pipedrive_deal_id != null)
+        .map((t) => [String(t.pipedrive_deal_id), t]),
+    );
+    const churnInfoParaMes = (pipedriveDealId: string | number | null) => {
+      if (pipedriveDealId == null) return null;
+      const t = churnPorDealId.get(String(pipedriveDealId));
+      if (!t || !t.data_churn) return null;
+      if (String(t.data_churn).slice(0, 7) > mes) return null; // churn é depois deste mês — ainda ativo aqui
+      return {
+        churn_pipefy_card_id: t.pipefy_card_id ? String(t.pipefy_card_id) : null,
+        churn_reportado_em: t.stage_change_time ?? null,
+      };
+    };
 
     // contas_receber agregado por cnpj
     const { data: recs, error: rErr } = await supabase
@@ -242,7 +281,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
       omieMap.set(k, cur);
     }
 
-    const contratoMap = new Map<string, { id: number; titulo: string; mrr: number; cnpj: string; ganhoEm: string | null }>();
+    const contratoMap = new Map<string, { id: number; titulo: string; mrr: number; cnpj: string; ganhoEm: string | null; pipedriveDealId: string | number | null }>();
     const itensSemCnpj: any[] = [];
     for (const c of contratos ?? []) {
       const k = digits(c.cnpj);
@@ -264,10 +303,11 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
           observacao: "Contrato sem CNPJ cadastrado — não foi possível conciliar com o Omie.",
           confirmado: false,
           data_ganho: c.ganho_em ?? null,
+          ...(churnInfoParaMes(c.pipedrive_deal_id) ?? {}),
         });
         continue;
       }
-      contratoMap.set(k, { id: c.id, titulo: c.titulo ?? "—", mrr: Number(c.mrr_mensal ?? 0), cnpj: k, ganhoEm: c.ganho_em ?? null });
+      contratoMap.set(k, { id: c.id, titulo: c.titulo ?? "—", mrr: Number(c.mrr_mensal ?? 0), cnpj: k, ganhoEm: c.ganho_em ?? null, pipedriveDealId: c.pipedrive_deal_id ?? null });
     }
 
     // Carrega filiais vinculadas a contratos desta unidade
@@ -309,12 +349,14 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
       // uma 2ª fatura do mês depois da confirmação), atualiza o item existente com o
       // valor novo do Omie — que é sempre a referência correta — e derruba confirmado
       // pra forçar revisão humana do valor atualizado.
+      const churnInfo = churnInfoParaMes(c.pipedriveDealId);
       const itemExistente = itemPorContrato.get(c.id);
       if (itemExistente) {
         if (itemExistente.churn_pipefy_card_id) continue; // churn é definitivo, nunca recalcula
+        if (itemExistente.excluido_em) continue; // excluído do mês manualmente, nunca recalcula
         const novoValorOmie = temOmie ? omieValor : null;
         const valorAtual = itemExistente.valor_omie == null ? null : Number(itemExistente.valor_omie);
-        if (novoValorOmie !== valorAtual) {
+        if (novoValorOmie !== valorAtual || churnInfo) {
           const diff = c.mrr > 0 && novoValorOmie != null ? Math.abs(novoValorOmie - c.mrr) / c.mrr : 0;
           atualizacoesValorOmie.push({
             id: itemExistente.id,
@@ -322,6 +364,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
             valor_confirmado: novoValorOmie,
             confirmado: false,
             status_match: novoValorOmie == null ? "so_pipedrive" : diff > 0.25 ? "divergente" : "matched",
+            ...(churnInfo ?? {}),
           });
         }
         continue;
@@ -341,6 +384,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
           status_match: diff > 0.25 ? "divergente" : "matched",
           confirmado: false,
           data_ganho: c.ganhoEm,
+          ...(churnInfo ?? {}),
         });
       } else {
         itens.push({
@@ -354,6 +398,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
           valor_confirmado: null,
           fonte: "pipedrive",
           status_match: "so_pipedrive",
+          ...(churnInfo ?? {}),
           confirmado: false,
           data_ganho: c.ganhoEm,
         });
@@ -380,15 +425,15 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
 
     // Atualiza itens já existentes cujo valor do Omie mudou desde a última geração
     for (const upd of atualizacoesValorOmie) {
-      const { error: uErr } = await supabase
-        .from("royalties_itens")
-        .update({
-          valor_omie: upd.valor_omie,
-          valor_confirmado: upd.valor_confirmado,
-          confirmado: upd.confirmado,
-          status_match: upd.status_match,
-        })
-        .eq("id", upd.id);
+      const patch: Record<string, unknown> = {
+        valor_omie: upd.valor_omie,
+        valor_confirmado: upd.valor_confirmado,
+        confirmado: upd.confirmado,
+        status_match: upd.status_match,
+      };
+      if (upd.churn_pipefy_card_id !== undefined) patch.churn_pipefy_card_id = upd.churn_pipefy_card_id;
+      if (upd.churn_reportado_em !== undefined) patch.churn_reportado_em = upd.churn_reportado_em;
+      const { error: uErr } = await supabase.from("royalties_itens").update(patch).eq("id", upd.id);
       if (uErr) throw new Error(uErr.message);
     }
 
@@ -711,7 +756,8 @@ export const fecharApuracao = createServerFn({ method: "POST" })
     const { data: itens, error: iErr } = await supabase
       .from("royalties_itens")
       .select("categoria,valor_confirmado,royalties_percentual_override,confirmado")
-      .eq("apuracao_id", data.id);
+      .eq("apuracao_id", data.id)
+      .is("excluido_em", null);
     if (iErr) throw new Error(iErr.message);
 
     const confirmados = (itens ?? []).filter((x: any) => x.confirmado);
@@ -744,7 +790,8 @@ export const fecharApuracao = createServerFn({ method: "POST" })
     const { data: itensFull, error: itensFullErr } = await supabase
       .from("royalties_itens")
       .select("id,categoria,valor_confirmado,royalties_percentual_override,confirmado")
-      .eq("apuracao_id", data.id);
+      .eq("apuracao_id", data.id)
+      .is("excluido_em", null);
     if (itensFullErr) throw new Error(itensFullErr.message);
 
     const updates = (itensFull ?? [])
@@ -813,6 +860,72 @@ export const deleteItem = createServerFn({ method: "POST" })
       throw new Error("Apuração fechada — reabra antes de excluir.");
     }
     const { error } = await supabase.from("royalties_itens").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ============ excluirItemMes ============
+// Soft-delete escopado a este item/mês (ex: cliente não recebeu este mês).
+// Diferente de marcarChurn: não cria card no Pipefy nem propaga para outros
+// meses — royalties_itens é gerado por apuração, então o cliente volta a
+// aparecer normalmente no mês seguinte se voltar a pagar.
+export const excluirItemMes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { item_id: number; motivo: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context;
+    await assertAdmin(supabase, userId);
+
+    if (!data.motivo?.trim()) throw new Error("Motivo da exclusão é obrigatório.");
+
+    const { data: item, error: e1 } = await supabase
+      .from("royalties_itens")
+      .select("apuracao:royalties_apuracao!inner(status)")
+      .eq("id", data.item_id)
+      .single();
+    if (e1) throw new Error(e1.message);
+    const status = (item as any).apuracao.status;
+    if (status === "confirmado" || status === "faturado") {
+      throw new Error("Apuração fechada — reabra antes de excluir.");
+    }
+
+    const email = (claims as any)?.email ?? null;
+    const { error } = await supabase
+      .from("royalties_itens")
+      .update({
+        excluido_em: new Date().toISOString(),
+        excluido_por: email ?? userId,
+        motivo_exclusao: data.motivo.trim(),
+        confirmado: false,
+      })
+      .eq("id", data.item_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ============ reincluirItemMes ============
+export const reincluirItemMes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { item_id: number }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+
+    const { data: item, error: e1 } = await supabase
+      .from("royalties_itens")
+      .select("apuracao:royalties_apuracao!inner(status)")
+      .eq("id", data.item_id)
+      .single();
+    if (e1) throw new Error(e1.message);
+    const status = (item as any).apuracao.status;
+    if (status === "confirmado" || status === "faturado") {
+      throw new Error("Apuração fechada — reabra antes de reincluir.");
+    }
+
+    const { error } = await supabase
+      .from("royalties_itens")
+      .update({ excluido_em: null, excluido_por: null, motivo_exclusao: null })
+      .eq("id", data.item_id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
