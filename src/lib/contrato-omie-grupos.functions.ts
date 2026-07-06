@@ -187,7 +187,9 @@ export const removeFilial = createServerFn({ method: "POST" })
   });
 
 // ============ regerarMatchApuracao ============
-// Remove itens automáticos (não confirmados, não-manuais) e força regeneração.
+// Remove itens automáticos (não confirmados, não-manuais, sem churn marcado) e força
+// regeneração. Confirmados e itens com churn são preservados de propósito — gerarItensApuracao
+// não recria item pra contrato que já tem um presente nesta apuração (evita duplicar linha).
 export const regerarMatchApuracao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { apuracao_id: number }) => d)
@@ -210,7 +212,8 @@ export const regerarMatchApuracao = createServerFn({ method: "POST" })
       .delete()
       .eq("apuracao_id", data.apuracao_id)
       .in("fonte", ["pipedrive", "omie"])
-      .eq("confirmado", false);
+      .eq("confirmado", false)
+      .is("churn_pipefy_card_id", null);
     if (dErr) throw new Error(dErr.message);
 
     return { ok: true };

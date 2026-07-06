@@ -190,6 +190,21 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
     const mes = String(ap.mes_referencia).slice(0, 7);
     const { start, end } = monthRange(mes);
 
+    // Itens que já existem nesta apuração (ex: confirmados, que regerarMatchApuracao
+    // preserva de propósito) nunca devem ganhar um item irmão duplicado — sem isso,
+    // rodar com force:true depois de itens confirmados gera duas linhas por contrato.
+    const { data: itensExistentes, error: ieErr } = await supabase
+      .from("royalties_itens")
+      .select("contrato_id,cnpj")
+      .eq("apuracao_id", data.apuracao_id);
+    if (ieErr) throw new Error(ieErr.message);
+    const contratosComItem = new Set(
+      (itensExistentes ?? []).map((i) => i.contrato_id).filter((x): x is number => x != null),
+    );
+    const cnpjsSemContratoComItem = new Set(
+      (itensExistentes ?? []).filter((i) => i.contrato_id == null).map((i) => digits(i.cnpj)),
+    );
+
     // contratos
     const { data: contratos, error: kErr } = await supabase
       .from("contratos")
@@ -224,6 +239,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
     for (const c of contratos ?? []) {
       const k = digits(c.cnpj);
       if (!k) {
+        if (contratosComItem.has(c.id)) continue;
         // Contrato sem CNPJ cadastrado nunca pode ser cruzado com o Omie (join é por CNPJ).
         // Sem isso, o contrato desaparece silenciosamente da apuração inteira.
         itensSemCnpj.push({
@@ -278,6 +294,10 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
           omieMap.delete(cn);
         }
       }
+      // Já existe item pra esse contrato nesta apuração (ex: confirmado, preservado
+      // de propósito por regerarMatchApuracao) — o Omie acima já foi consumido pra não
+      // sobrar como "só omie", mas não criamos um item irmão duplicado.
+      if (contratosComItem.has(c.id)) continue;
       if (temOmie) {
         const diff = c.mrr > 0 ? Math.abs(omieValor - c.mrr) / c.mrr : 0;
         itens.push({
@@ -314,6 +334,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
 
     // Restantes do Omie → so_omie
     for (const [k, o] of omieMap) {
+      if (cnpjsSemContratoComItem.has(k)) continue;
       itens.push({
         apuracao_id: data.apuracao_id,
         cnpj: k,
