@@ -241,6 +241,9 @@ body.edit-mode [data-e][contenteditable="true"]:focus{outline:2px solid var(--g)
 .eb-btn{font-size:11px;font-weight:600;padding:7px 18px;border-radius:20px;cursor:pointer;border:none;font-family:var(--font);transition:opacity .15s,background .15s;}
 .eb-dl{background:var(--g);color:#000;}.eb-dl:hover{opacity:.85;}
 .eb-exit{background:transparent;color:var(--gr);border:1px solid var(--b2);}.eb-exit:hover{color:var(--gm);}
+.edit-toggle-btn{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--b2);color:var(--gr);padding:5px 13px;border-radius:20px;cursor:pointer;font-size:10px;font-family:var(--font);letter-spacing:.04em;transition:all .2s;white-space:nowrap;}
+.edit-toggle-btn:hover{color:var(--gm);border-color:var(--gr);}
+body.edit-mode .edit-toggle-btn{background:rgba(95,183,127,.08);border-color:rgba(95,183,127,.5);color:var(--g);}
 </style>
 </head>
 <body>
@@ -258,8 +261,10 @@ body.edit-mode [data-e][contenteditable="true"]:focus{outline:2px solid var(--g)
     <a class="nav-link" href="#evolucao">Evolução</a>
     <a class="nav-link" href="#composicao">Progressão</a>
     <a class="nav-link" href="#legal">Base Legal</a>
+    <a class="nav-link" href="#beneficios">Benefícios</a>
     ${d.observacoes ? '<a class="nav-link" href="#notas">Notas</a>' : ''}
   </div>
+  <button class="edit-toggle-btn" id="editToggleBtn" onclick="toggleEditMode()" title="Editar textos da apresentação">✏ Editar</button>
   <span class="confid">Diagnóstico · Confidencial</span>
 </nav>
 
@@ -436,6 +441,38 @@ body.edit-mode [data-e][contenteditable="true"]:focus{outline:2px solid var(--g)
 </div>
 </section>
 
+<div class="divider"></div>
+
+<!-- ── BENEFÍCIOS ── -->
+<section id="beneficios">
+<div class="container">
+  <div class="reveal"><div class="eyebrow">06 · Oportunidades com a Reforma</div>
+  <h2 class="section-title ruled" data-e>O que a Reforma traz de <span style="color:var(--g)">positivo</span></h2>
+  <p class="section-sub" data-e>A transição eleva custos, mas também moderniza o sistema. Entender os benefícios é parte essencial do planejamento tributário para os próximos sete anos.</p></div>
+  <div class="cg c3" style="margin-top:36px;">
+    <div class="card cg-border reveal d1">
+      <div class="cl">Crédito pleno</div>
+      <div style="font-size:.88rem;font-weight:700;margin-bottom:8px;">Não-cumulatividade total</div>
+      <div class="cd">CBS e IBS permitem crédito sobre qualquer aquisição — insumos, serviços e ativo imobilizado. A cadeia toda vira crédito e reduz a base tributável.</div>
+    </div>
+    <div class="card reveal d2">
+      <div class="cl cl-c">Simplificação</div>
+      <div style="font-size:.88rem;font-weight:700;margin-bottom:8px;">5 tributos → 2</div>
+      <div class="cd">ICMS, ISS, PIS, COFINS e IPI se tornam CBS e IBS. Uma guia, um prazo e a alíquota exata visível em cada nota fiscal.</div>
+    </div>
+    <div class="card reveal d3">
+      <div class="cl">Previsibilidade</div>
+      <div style="font-size:.88rem;font-weight:700;margin-bottom:8px;">Curva conhecida até 2033</div>
+      <div class="cd">A transição é pública e gradual. Isso permite planejar preço, margem, créditos e fluxo de caixa antes que o aumento chegue.</div>
+    </div>
+  </div>
+  ${isServico
+    ? `<div class="nb reveal" style="margin-top:24px;" data-e><div class="nb-label">Para prestadores de serviços</div>O ISS tinha mais de 5.570 alíquotas municipais distintas. O IBS substitui tudo por uma alíquota única nacional, com crédito pleno sobre serviços contratados — algo inexistente no regime atual.</div>`
+    : `<div class="nb reveal" style="margin-top:24px;" data-e><div class="nb-label">Para comércio e indústria</div>O novo regime elimina o efeito cascata do ICMS, que incidia múltiplas vezes sobre o mesmo bem ao longo da cadeia. Com o IBS, cada elo da cadeia paga somente sobre o valor que adicionou.</div>`
+  }
+</div>
+</section>
+
 ${d.observacoes ? `
 <div class="divider"></div>
 <section id="notas" style="background:var(--s1);">
@@ -478,7 +515,7 @@ function tab(g,p,btn){
 window.addEventListener('scroll',()=>{
   const h=document.documentElement;
   document.getElementById('pl').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
-  ['premissas','impacto','evolucao','composicao','legal','notas','cta'].forEach(id=>{
+  ['premissas','impacto','evolucao','composicao','legal','beneficios','notas','cta'].forEach(id=>{
     const el=document.getElementById(id);
     if(el&&el.getBoundingClientRect().top<=80)
       document.querySelectorAll('.nav-link').forEach(l=>l.classList.toggle('active',l.getAttribute('href')==='#'+id));
@@ -534,7 +571,18 @@ function exitEdit(){
   document.querySelectorAll('[data-e]').forEach(function(el){
     el.removeAttribute('contenteditable');
   });
+  var btn=document.getElementById('editToggleBtn');
+  if(btn) btn.textContent='✏ Editar';
   window.parent.postMessage({type:'reforma-exit-edit-confirm'},'*');
+}
+function toggleEditMode(){
+  var btn=document.getElementById('editToggleBtn');
+  if(document.body.classList.contains('edit-mode')){
+    exitEdit();
+  } else {
+    enableEdit();
+    if(btn) btn.textContent='✓ Sair da edição';
+  }
 }
 function downloadEdited(){
   var was=document.body.classList.contains('edit-mode');
