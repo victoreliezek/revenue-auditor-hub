@@ -214,6 +214,7 @@ function ApuracaoLoaded({
 
   // optimistic local edits (debounced flush)
   const [localValor, setLocalValor] = useState<Record<number, string>>({});
+  const [localMrr, setLocalMrr] = useState<Record<number, string>>({});
 
   if (isLoading || !data) {
     return <div className="p-6 text-sm text-muted-foreground">Carregando…</div>;
@@ -277,6 +278,15 @@ function ApuracaoLoaded({
     if (n !== null && !Number.isFinite(n)) return;
     if (n === Number(it.valor_confirmado ?? 0)) return;
     updateItem.mutate({ id: it.id, valor_confirmado: n });
+  };
+
+  const flushMrr = (it: ApuracaoItem) => {
+    const raw = localMrr[it.id];
+    if (raw === undefined) return;
+    const n = raw === "" ? null : Number(raw.replace(",", "."));
+    if (n !== null && !Number.isFinite(n)) return;
+    if (n === Number(it.mrr_override ?? 0)) return;
+    updateItem.mutate({ id: it.id, mrr_override: n });
   };
 
   const toggleConfirm = (it: ApuracaoItem, checked: boolean) => {
@@ -394,6 +404,9 @@ function ApuracaoLoaded({
             localValor={localValor}
             setLocalValor={setLocalValor}
             flushValor={flushValor}
+            localMrr={localMrr}
+            setLocalMrr={setLocalMrr}
+            flushMrr={flushMrr}
             toggleConfirm={toggleConfirm}
             onDelete={(it) => deleteItem.mutate({ id: it.id })}
             onMarcarChurn={handleMarcarChurn}
@@ -415,6 +428,9 @@ function ApuracaoLoaded({
             localValor={localValor}
             setLocalValor={setLocalValor}
             flushValor={flushValor}
+            localMrr={localMrr}
+            setLocalMrr={setLocalMrr}
+            flushMrr={flushMrr}
             toggleConfirm={toggleConfirm}
             onDelete={(it) => deleteItem.mutate({ id: it.id })}
             onMarcarChurn={handleMarcarChurn}
@@ -644,6 +660,9 @@ interface GrupoProps {
   localValor: Record<number, string>;
   setLocalValor: React.Dispatch<React.SetStateAction<Record<number, string>>>;
   flushValor: (it: ApuracaoItem) => void;
+  localMrr?: Record<number, string>;
+  setLocalMrr?: React.Dispatch<React.SetStateAction<Record<number, string>>>;
+  flushMrr?: (it: ApuracaoItem) => void;
   toggleConfirm: (it: ApuracaoItem, c: boolean) => void;
   onDelete: (it: ApuracaoItem) => void;
   extraHeader?: React.ReactNode;
@@ -929,6 +948,9 @@ function SecaoGrupo({
   localValor,
   setLocalValor,
   flushValor,
+  localMrr,
+  setLocalMrr,
+  flushMrr,
   toggleConfirm,
   onDelete,
   extraHeader,
@@ -1024,7 +1046,25 @@ function SecaoGrupo({
                         </td>
                         {showMrr && (
                           <td className="px-3 py-2 text-right">
-                            {it.mrr_contratado != null ? brl(it.mrr_contratado) : "—"}
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              disabled={readOnly}
+                              title={
+                                it.mrr_override != null && it.mrr_contratado != null
+                                  ? `Original do contrato: ${brl(it.mrr_contratado)}`
+                                  : undefined
+                              }
+                              value={
+                                localMrr?.[it.id] ??
+                                (it.mrr_override ?? it.mrr_contratado ?? "")
+                              }
+                              onChange={(e) =>
+                                setLocalMrr?.((s) => ({ ...s, [it.id]: e.target.value }))
+                              }
+                              onBlur={() => flushMrr?.(it)}
+                              className="h-8 w-28 text-right"
+                            />
                           </td>
                         )}
                         <td className="px-3 py-2 text-right">

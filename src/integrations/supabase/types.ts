@@ -1769,6 +1769,7 @@ export type Database = {
           id: number
           motivo_exclusao: string | null
           mrr_contratado: number | null
+          mrr_override: number | null
           observacao: string | null
           razao_social: string
           royalties_item: number | null
@@ -1793,6 +1794,7 @@ export type Database = {
           id?: number
           motivo_exclusao?: string | null
           mrr_contratado?: number | null
+          mrr_override?: number | null
           observacao?: string | null
           razao_social: string
           royalties_item?: number | null
@@ -1817,6 +1819,7 @@ export type Database = {
           id?: number
           motivo_exclusao?: string | null
           mrr_contratado?: number | null
+          mrr_override?: number | null
           observacao?: string | null
           razao_social?: string
           royalties_item?: number | null

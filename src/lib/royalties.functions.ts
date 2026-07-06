@@ -63,6 +63,7 @@ export interface ApuracaoItem {
   contrato_id: number | null;
   categoria: string; // 'royalties' | 'csc_base_antiga'
   mrr_contratado: number | null;
+  mrr_override: number | null;
   valor_omie: number | null;
   valor_confirmado: number | null;
   royalties_percentual_override: number | null;
@@ -425,7 +426,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
 
     // Atualiza itens já existentes cujo valor do Omie mudou desde a última geração
     for (const upd of atualizacoesValorOmie) {
-      const patch: Record<string, unknown> = {
+      const patch: any = {
         valor_omie: upd.valor_omie,
         valor_confirmado: upd.valor_confirmado,
         confirmado: upd.confirmado,
@@ -518,6 +519,7 @@ export const updateItem = createServerFn({ method: "POST" })
       confirmado?: boolean;
       observacao?: string | null;
       royalties_percentual_override?: number | null;
+      mrr_override?: number | null;
     }) => d,
   )
   .handler(async ({ data, context }) => {
@@ -542,6 +544,7 @@ export const updateItem = createServerFn({ method: "POST" })
     if ("observacao" in data) patch.observacao = data.observacao;
     if ("royalties_percentual_override" in data)
       patch.royalties_percentual_override = data.royalties_percentual_override;
+    if ("mrr_override" in data) patch.mrr_override = data.mrr_override;
 
     const { error } = await supabase.from("royalties_itens").update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
