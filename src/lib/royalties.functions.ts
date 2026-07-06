@@ -193,17 +193,25 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
     // Itens que já existem nesta apuração (ex: confirmados, que regerarMatchApuracao
     // preserva de propósito) nunca devem ganhar um item irmão duplicado — sem isso,
     // rodar com force:true depois de itens confirmados gera duas linhas por contrato.
+    // O valor correto de referência é sempre o do Omie: se um item já existente (mesmo
+    // confirmado) tem um valor_omie desatualizado em relação ao que acabou de ser
+    // recalculado (ex: chegou uma 2ª fatura do mês depois da confirmação), ele é
+    // atualizado com o valor novo e volta pra "não confirmado" pra revisão humana.
+    // Itens com churn marcado nunca são recalculados.
     const { data: itensExistentes, error: ieErr } = await supabase
       .from("royalties_itens")
-      .select("contrato_id,cnpj")
+      .select("id,contrato_id,cnpj,valor_omie,confirmado,churn_pipefy_card_id")
       .eq("apuracao_id", data.apuracao_id);
     if (ieErr) throw new Error(ieErr.message);
-    const contratosComItem = new Set(
-      (itensExistentes ?? []).map((i) => i.contrato_id).filter((x): x is number => x != null),
+    const itemPorContrato = new Map(
+      (itensExistentes ?? [])
+        .filter((i) => i.contrato_id != null)
+        .map((i) => [i.contrato_id as number, i]),
     );
     const cnpjsSemContratoComItem = new Set(
       (itensExistentes ?? []).filter((i) => i.contrato_id == null).map((i) => digits(i.cnpj)),
     );
+    const atualizacoesValorOmie: { id: number; valor_omie: number | null; valor_confirmado: number | null; confirmado: boolean; status_match: string }[] = [];
 
     // contratos
     const { data: contratos, error: kErr } = await supabase
@@ -239,7 +247,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
     for (const c of contratos ?? []) {
       const k = digits(c.cnpj);
       if (!k) {
-        if (contratosComItem.has(c.id)) continue;
+        if (itemPorContrato.has(c.id)) continue;
         // Contrato sem CNPJ cadastrado nunca pode ser cruzado com o Omie (join é por CNPJ).
         // Sem isso, o contrato desaparece silenciosamente da apuração inteira.
         itensSemCnpj.push({
@@ -296,8 +304,28 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
       }
       // Já existe item pra esse contrato nesta apuração (ex: confirmado, preservado
       // de propósito por regerarMatchApuracao) — o Omie acima já foi consumido pra não
-      // sobrar como "só omie", mas não criamos um item irmão duplicado.
-      if (contratosComItem.has(c.id)) continue;
+      // sobrar como "só omie", mas não criamos um item irmão duplicado. Em vez disso,
+      // se o valor do Omie recalculado agora é diferente do que está salvo (ex: chegou
+      // uma 2ª fatura do mês depois da confirmação), atualiza o item existente com o
+      // valor novo do Omie — que é sempre a referência correta — e derruba confirmado
+      // pra forçar revisão humana do valor atualizado.
+      const itemExistente = itemPorContrato.get(c.id);
+      if (itemExistente) {
+        if (itemExistente.churn_pipefy_card_id) continue; // churn é definitivo, nunca recalcula
+        const novoValorOmie = temOmie ? omieValor : null;
+        const valorAtual = itemExistente.valor_omie == null ? null : Number(itemExistente.valor_omie);
+        if (novoValorOmie !== valorAtual) {
+          const diff = c.mrr > 0 && novoValorOmie != null ? Math.abs(novoValorOmie - c.mrr) / c.mrr : 0;
+          atualizacoesValorOmie.push({
+            id: itemExistente.id,
+            valor_omie: novoValorOmie,
+            valor_confirmado: novoValorOmie,
+            confirmado: false,
+            status_match: novoValorOmie == null ? "so_pipedrive" : diff > 0.25 ? "divergente" : "matched",
+          });
+        }
+        continue;
+      }
       if (temOmie) {
         const diff = c.mrr > 0 ? Math.abs(omieValor - c.mrr) / c.mrr : 0;
         itens.push({
@@ -348,6 +376,20 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
         status_match: "so_omie",
         confirmado: false,
       });
+    }
+
+    // Atualiza itens já existentes cujo valor do Omie mudou desde a última geração
+    for (const upd of atualizacoesValorOmie) {
+      const { error: uErr } = await supabase
+        .from("royalties_itens")
+        .update({
+          valor_omie: upd.valor_omie,
+          valor_confirmado: upd.valor_confirmado,
+          confirmado: upd.confirmado,
+          status_match: upd.status_match,
+        })
+        .eq("id", upd.id);
+      if (uErr) throw new Error(uErr.message);
     }
 
     if (itens.length === 0) return { created: 0, skipped: false };
