@@ -74,6 +74,7 @@ export interface ApuracaoItem {
   filiais_count?: number;
   churn_pipefy_card_id: string | null;
   churn_reportado_em: string | null;
+  data_ganho: string | null;
 }
 
 
@@ -192,7 +193,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
     // contratos
     const { data: contratos, error: kErr } = await supabase
       .from("contratos")
-      .select("id,cnpj,titulo,mrr_mensal")
+      .select("id,cnpj,titulo,mrr_mensal,ganho_em")
       .eq("unidade", unidadeNome)
       .eq("tipo_unidade", "franquia")
       .eq("status_contrato", "Ativo");
@@ -218,7 +219,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
       omieMap.set(k, cur);
     }
 
-    const contratoMap = new Map<string, { id: number; titulo: string; mrr: number; cnpj: string }>();
+    const contratoMap = new Map<string, { id: number; titulo: string; mrr: number; cnpj: string; ganhoEm: string | null }>();
     const itensSemCnpj: any[] = [];
     for (const c of contratos ?? []) {
       const k = digits(c.cnpj);
@@ -238,10 +239,11 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
           status_match: "so_pipedrive",
           observacao: "Contrato sem CNPJ cadastrado — não foi possível conciliar com o Omie.",
           confirmado: false,
+          data_ganho: c.ganho_em ?? null,
         });
         continue;
       }
-      contratoMap.set(k, { id: c.id, titulo: c.titulo ?? "—", mrr: Number(c.mrr_mensal ?? 0), cnpj: k });
+      contratoMap.set(k, { id: c.id, titulo: c.titulo ?? "—", mrr: Number(c.mrr_mensal ?? 0), cnpj: k, ganhoEm: c.ganho_em ?? null });
     }
 
     // Carrega filiais vinculadas a contratos desta unidade
@@ -290,6 +292,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
           fonte: "pipedrive",
           status_match: diff > 0.25 ? "divergente" : "matched",
           confirmado: false,
+          data_ganho: c.ganhoEm,
         });
       } else {
         itens.push({
@@ -304,6 +307,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
           fonte: "pipedrive",
           status_match: "so_pipedrive",
           confirmado: false,
+          data_ganho: c.ganhoEm,
         });
       }
     }

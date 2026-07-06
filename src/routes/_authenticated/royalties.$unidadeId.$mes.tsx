@@ -849,6 +849,7 @@ function SecaoGrupo({
                     <th className="px-3 py-2 text-left">Cliente</th>
                     <th className="px-3 py-2 text-center">Filiais</th>
                     <th className="px-3 py-2 text-left">CNPJ</th>
+                    <th className="px-3 py-2 text-left">Data do ganho</th>
                     {showMrr && <th className="px-3 py-2 text-right">MRR</th>}
                     <th className="px-3 py-2 text-right">Omie</th>
                     <th className="px-3 py-2 text-right">Confirmado</th>
@@ -900,6 +901,11 @@ function SecaoGrupo({
                           ) : (
                             "—"
                           )}
+                        </td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                          {it.data_ganho
+                            ? new Date(`${it.data_ganho}T00:00:00`).toLocaleDateString("pt-BR")
+                            : "—"}
                         </td>
                         {showMrr && (
                           <td className="px-3 py-2 text-right">
