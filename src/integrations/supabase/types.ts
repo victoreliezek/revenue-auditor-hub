@@ -63,6 +63,162 @@ export type Database = {
         }
         Relationships: []
       }
+      cac_apuracao: {
+        Row: {
+          confirmado_em: string | null
+          confirmado_por: string | null
+          created_at: string
+          id: number
+          mes_referencia: string
+          observacao: string | null
+          status: string
+          total_cac: number | null
+          total_parcela_1: number | null
+          total_parcela_2: number | null
+          unidade_id: number
+          updated_at: string
+        }
+        Insert: {
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          created_at?: string
+          id?: never
+          mes_referencia: string
+          observacao?: string | null
+          status?: string
+          total_cac?: number | null
+          total_parcela_1?: number | null
+          total_parcela_2?: number | null
+          unidade_id: number
+          updated_at?: string
+        }
+        Update: {
+          confirmado_em?: string | null
+          confirmado_por?: string | null
+          created_at?: string
+          id?: never
+          mes_referencia?: string
+          observacao?: string | null
+          status?: string
+          total_cac?: number | null
+          total_parcela_1?: number | null
+          total_parcela_2?: number | null
+          unidade_id?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cac_apuracao_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cac_apuracao_itens: {
+        Row: {
+          apuracao_id: number
+          cnpj: string | null
+          contrato_id: number | null
+          created_at: string
+          data_assinatura_contrato: string | null
+          data_pagamento_parcela_1: string | null
+          data_pagamento_parcela_2: string | null
+          data_recebimento_cliente: string | null
+          excluido_em: string | null
+          excluido_por: string | null
+          fonte: string | null
+          id: number
+          motivo_exclusao: string | null
+          observacao: string | null
+          prazo_parcela_1: string | null
+          prazo_parcela_2: string | null
+          razao_social: string
+          status_match: string | null
+          status_parcela_1: string | null
+          status_parcela_2: string | null
+          updated_at: string
+          valor_cac_total: number
+          valor_parcela_1: number
+          valor_parcela_2: number
+        }
+        Insert: {
+          apuracao_id: number
+          cnpj?: string | null
+          contrato_id?: number | null
+          created_at?: string
+          data_assinatura_contrato?: string | null
+          data_pagamento_parcela_1?: string | null
+          data_pagamento_parcela_2?: string | null
+          data_recebimento_cliente?: string | null
+          excluido_em?: string | null
+          excluido_por?: string | null
+          fonte?: string | null
+          id?: never
+          motivo_exclusao?: string | null
+          observacao?: string | null
+          prazo_parcela_1?: string | null
+          prazo_parcela_2?: string | null
+          razao_social: string
+          status_match?: string | null
+          status_parcela_1?: string | null
+          status_parcela_2?: string | null
+          updated_at?: string
+          valor_cac_total: number
+          valor_parcela_1: number
+          valor_parcela_2: number
+        }
+        Update: {
+          apuracao_id?: number
+          cnpj?: string | null
+          contrato_id?: number | null
+          created_at?: string
+          data_assinatura_contrato?: string | null
+          data_pagamento_parcela_1?: string | null
+          data_pagamento_parcela_2?: string | null
+          data_recebimento_cliente?: string | null
+          excluido_em?: string | null
+          excluido_por?: string | null
+          fonte?: string | null
+          id?: never
+          motivo_exclusao?: string | null
+          observacao?: string | null
+          prazo_parcela_1?: string | null
+          prazo_parcela_2?: string | null
+          razao_social?: string
+          status_match?: string | null
+          status_parcela_1?: string | null
+          status_parcela_2?: string | null
+          updated_at?: string
+          valor_cac_total?: number
+          valor_parcela_1?: number
+          valor_parcela_2?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cac_apuracao_itens_apuracao_id_fkey"
+            columns: ["apuracao_id"]
+            isOneToOne: false
+            referencedRelation: "cac_apuracao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cac_apuracao_itens_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cac_apuracao_itens_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "vw_grupos_completo"
+            referencedColumns: ["contrato_id"]
+          },
+        ]
+      }
       categorias_omie: {
         Row: {
           codigo: string
@@ -1680,6 +1836,7 @@ export type Database = {
       }
       royalties_apuracao: {
         Row: {
+          cac_valor: number | null
           confirmado_em: string | null
           confirmado_por: string | null
           created_at: string | null
@@ -1701,6 +1858,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          cac_valor?: number | null
           confirmado_em?: string | null
           confirmado_por?: string | null
           created_at?: string | null
@@ -1722,6 +1880,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          cac_valor?: number | null
           confirmado_em?: string | null
           confirmado_por?: string | null
           created_at?: string | null
@@ -1767,6 +1926,7 @@ export type Database = {
           excluido_por: string | null
           fonte: string
           id: number
+          is_cac: boolean
           motivo_exclusao: string | null
           mrr_contratado: number | null
           mrr_override: number | null
@@ -1792,6 +1952,7 @@ export type Database = {
           excluido_por?: string | null
           fonte?: string
           id?: number
+          is_cac?: boolean
           motivo_exclusao?: string | null
           mrr_contratado?: number | null
           mrr_override?: number | null
@@ -1817,6 +1978,7 @@ export type Database = {
           excluido_por?: string | null
           fonte?: string
           id?: number
+          is_cac?: boolean
           motivo_exclusao?: string | null
           mrr_contratado?: number | null
           mrr_override?: number | null
