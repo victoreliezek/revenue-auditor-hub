@@ -29,9 +29,11 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { brl } from "@/components/audit/format";
 import { usePermissions } from "@/hooks/use-permissions";
+import { MOTIVOS_EXCLUSAO_ROYALTIES, type MotivoExclusaoRoyalties } from "@/lib/royalties.functions";
 import {
   useAddItem,
   useApuracao,
@@ -789,14 +791,14 @@ function ExcluirItemButton({
   pending: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const [motivo, setMotivo] = useState("");
+  const [motivo, setMotivo] = useState<MotivoExclusaoRoyalties | "">("");
 
   const submit = () => {
-    if (!motivo.trim()) {
-      toast.error("Informe o motivo da exclusão.");
+    if (!motivo) {
+      toast.error("Selecione o motivo da exclusão.");
       return;
     }
-    onConfirm(motivo.trim());
+    onConfirm(motivo);
     setOpen(false);
     setMotivo("");
   };
@@ -820,12 +822,18 @@ function ExcluirItemButton({
         <div className="space-y-3">
           <div className="space-y-1">
             <Label>Motivo</Label>
-            <Textarea
+            <RadioGroup
               value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              placeholder="Ex: não recebeu este mês"
-              rows={3}
-            />
+              onValueChange={(v) => setMotivo(v as MotivoExclusaoRoyalties)}
+              className="space-y-2 pt-1"
+            >
+              {MOTIVOS_EXCLUSAO_ROYALTIES.map((opcao) => (
+                <label key={opcao} className="flex items-center gap-2 cursor-pointer">
+                  <RadioGroupItem value={opcao} />
+                  <span className="text-sm">{opcao}</span>
+                </label>
+              ))}
+            </RadioGroup>
           </div>
           <p className="text-xs text-muted-foreground">
             Remove este cliente só da apuração deste mês — não afeta meses anteriores/futuros nem os dados de
