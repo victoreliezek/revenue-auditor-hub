@@ -1028,6 +1028,7 @@ function SecaoGrupo({
                     {showMrr && <th className="px-3 py-2 text-right">MRR</th>}
                     <th className="px-3 py-2 text-right">Omie</th>
                     <th className="px-3 py-2 text-right">Confirmado</th>
+                    <th className="px-3 py-2 text-right">%</th>
                     <th className="px-3 py-2 text-right">Royalties</th>
                     <th className="px-3 py-2 text-center">✓</th>
                     <th className="px-3 py-2"></th>
@@ -1040,10 +1041,13 @@ function SecaoGrupo({
                       localV !== undefined
                         ? Number((localV || "0").replace(",", "."))
                         : Number(it.valor_confirmado ?? 0);
+                    const localP = localPct[it.id];
                     const pct =
-                      it.royalties_percentual_override != null
-                        ? Number(it.royalties_percentual_override)
-                        : pctPadrao;
+                      localP !== undefined
+                        ? (localP.trim() === "" ? pctPadrao : Number(localP.replace(",", ".")) || 0)
+                        : it.royalties_percentual_override != null
+                          ? Number(it.royalties_percentual_override)
+                          : pctPadrao;
                     const royal = (valor * pct) / 100;
                     return (
                       <tr key={it.id} className="border-t">
@@ -1119,6 +1123,28 @@ function SecaoGrupo({
                             }
                             onBlur={() => flushValor(it)}
                             className="h-8 w-28 text-right"
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            disabled={readOnly}
+                            placeholder={String(pctPadrao)}
+                            title={
+                              it.royalties_percentual_override != null
+                                ? `Override — padrão da unidade é ${pctPadrao}%`
+                                : `Usando padrão da unidade (${pctPadrao}%)`
+                            }
+                            value={localP ?? (it.royalties_percentual_override ?? "")}
+                            onChange={(e) =>
+                              setLocalPct((s) => ({ ...s, [it.id]: e.target.value }))
+                            }
+                            onBlur={() => flushPct(it)}
+                            className={cn(
+                              "h-8 w-16 text-right",
+                              it.royalties_percentual_override != null && "border-indigo-400",
+                            )}
                           />
                         </td>
                         <td className="px-3 py-2 text-right whitespace-nowrap text-indigo-700 dark:text-indigo-300">
