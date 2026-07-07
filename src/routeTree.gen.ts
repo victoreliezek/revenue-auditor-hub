@@ -37,6 +37,7 @@ import { Route as AuthenticatedDespesasCmRouteImport } from './routes/_authentic
 import { Route as AuthenticatedContasReceberRouteImport } from './routes/_authenticated/contas-receber'
 import { Route as AuthenticatedComissoesRouteImport } from './routes/_authenticated/comissoes'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
+import { Route as AuthenticatedCacRouteImport } from './routes/_authenticated/cac'
 import { Route as AuthenticatedAuditoriaFaturamentoRouteImport } from './routes/_authenticated/auditoria-faturamento'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
 import { Route as AuthenticatedAdminValidacaoRouteImport } from './routes/_authenticated/admin.validacao'
@@ -45,6 +46,7 @@ import { Route as AuthenticatedAdminPermissoesRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminPerfisRouteImport } from './routes/_authenticated/admin.perfis'
 import { Route as AuthenticatedAdminIntegracoesRouteImport } from './routes/_authenticated/admin.integracoes'
 import { Route as AuthenticatedRoyaltiesUnidadeIdMesRouteImport } from './routes/_authenticated/royalties.$unidadeId.$mes'
+import { Route as AuthenticatedCacUnidadeIdMesRouteImport } from './routes/_authenticated/cac.$unidadeId.$mes'
 
 const TrustRoute = TrustRouteImport.update({
   id: '/trust',
@@ -199,6 +201,11 @@ const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
   path: '/clientes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCacRoute = AuthenticatedCacRouteImport.update({
+  id: '/cac',
+  path: '/cac',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAuditoriaFaturamentoRoute =
   AuthenticatedAuditoriaFaturamentoRouteImport.update({
     id: '/auditoria-faturamento',
@@ -246,6 +253,12 @@ const AuthenticatedRoyaltiesUnidadeIdMesRoute =
     path: '/$unidadeId/$mes',
     getParentRoute: () => AuthenticatedRoyaltiesRoute,
   } as any)
+const AuthenticatedCacUnidadeIdMesRoute =
+  AuthenticatedCacUnidadeIdMesRouteImport.update({
+    id: '/$unidadeId/$mes',
+    path: '/$unidadeId/$mes',
+    getParentRoute: () => AuthenticatedCacRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -253,6 +266,7 @@ export interface FileRoutesByFullPath {
   '/trust': typeof TrustRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/auditoria-faturamento': typeof AuthenticatedAuditoriaFaturamentoRoute
+  '/cac': typeof AuthenticatedCacRouteWithChildren
   '/clientes': typeof AuthenticatedClientesRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/contas-receber': typeof AuthenticatedContasReceberRoute
@@ -282,6 +296,7 @@ export interface FileRoutesByFullPath {
   '/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/admin/validacao': typeof AuthenticatedAdminValidacaoRoute
+  '/cac/$unidadeId/$mes': typeof AuthenticatedCacUnidadeIdMesRoute
   '/royalties/$unidadeId/$mes': typeof AuthenticatedRoyaltiesUnidadeIdMesRoute
 }
 export interface FileRoutesByTo {
@@ -289,6 +304,7 @@ export interface FileRoutesByTo {
   '/trust': typeof TrustRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/auditoria-faturamento': typeof AuthenticatedAuditoriaFaturamentoRoute
+  '/cac': typeof AuthenticatedCacRouteWithChildren
   '/clientes': typeof AuthenticatedClientesRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/contas-receber': typeof AuthenticatedContasReceberRoute
@@ -319,6 +335,7 @@ export interface FileRoutesByTo {
   '/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/admin/validacao': typeof AuthenticatedAdminValidacaoRoute
+  '/cac/$unidadeId/$mes': typeof AuthenticatedCacUnidadeIdMesRoute
   '/royalties/$unidadeId/$mes': typeof AuthenticatedRoyaltiesUnidadeIdMesRoute
 }
 export interface FileRoutesById {
@@ -328,6 +345,7 @@ export interface FileRoutesById {
   '/trust': typeof TrustRoute
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
   '/_authenticated/auditoria-faturamento': typeof AuthenticatedAuditoriaFaturamentoRoute
+  '/_authenticated/cac': typeof AuthenticatedCacRouteWithChildren
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/comissoes': typeof AuthenticatedComissoesRoute
   '/_authenticated/contas-receber': typeof AuthenticatedContasReceberRoute
@@ -358,6 +376,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/_authenticated/admin/validacao': typeof AuthenticatedAdminValidacaoRoute
+  '/_authenticated/cac/$unidadeId/$mes': typeof AuthenticatedCacUnidadeIdMesRoute
   '/_authenticated/royalties/$unidadeId/$mes': typeof AuthenticatedRoyaltiesUnidadeIdMesRoute
 }
 export interface FileRouteTypes {
@@ -368,6 +387,7 @@ export interface FileRouteTypes {
     | '/trust'
     | '/auditoria'
     | '/auditoria-faturamento'
+    | '/cac'
     | '/clientes'
     | '/comissoes'
     | '/contas-receber'
@@ -397,6 +417,7 @@ export interface FileRouteTypes {
     | '/admin/permissoes'
     | '/admin/usuarios'
     | '/admin/validacao'
+    | '/cac/$unidadeId/$mes'
     | '/royalties/$unidadeId/$mes'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -404,6 +425,7 @@ export interface FileRouteTypes {
     | '/trust'
     | '/auditoria'
     | '/auditoria-faturamento'
+    | '/cac'
     | '/clientes'
     | '/comissoes'
     | '/contas-receber'
@@ -434,6 +456,7 @@ export interface FileRouteTypes {
     | '/admin/permissoes'
     | '/admin/usuarios'
     | '/admin/validacao'
+    | '/cac/$unidadeId/$mes'
     | '/royalties/$unidadeId/$mes'
   id:
     | '__root__'
@@ -442,6 +465,7 @@ export interface FileRouteTypes {
     | '/trust'
     | '/_authenticated/auditoria'
     | '/_authenticated/auditoria-faturamento'
+    | '/_authenticated/cac'
     | '/_authenticated/clientes'
     | '/_authenticated/comissoes'
     | '/_authenticated/contas-receber'
@@ -472,6 +496,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/permissoes'
     | '/_authenticated/admin/usuarios'
     | '/_authenticated/admin/validacao'
+    | '/_authenticated/cac/$unidadeId/$mes'
     | '/_authenticated/royalties/$unidadeId/$mes'
   fileRoutesById: FileRoutesById
 }
@@ -679,6 +704,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/cac': {
+      id: '/_authenticated/cac'
+      path: '/cac'
+      fullPath: '/cac'
+      preLoaderRoute: typeof AuthenticatedCacRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/auditoria-faturamento': {
       id: '/_authenticated/auditoria-faturamento'
       path: '/auditoria-faturamento'
@@ -735,8 +767,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRoyaltiesUnidadeIdMesRouteImport
       parentRoute: typeof AuthenticatedRoyaltiesRoute
     }
+    '/_authenticated/cac/$unidadeId/$mes': {
+      id: '/_authenticated/cac/$unidadeId/$mes'
+      path: '/$unidadeId/$mes'
+      fullPath: '/cac/$unidadeId/$mes'
+      preLoaderRoute: typeof AuthenticatedCacUnidadeIdMesRouteImport
+      parentRoute: typeof AuthenticatedCacRoute
+    }
   }
 }
+
+interface AuthenticatedCacRouteChildren {
+  AuthenticatedCacUnidadeIdMesRoute: typeof AuthenticatedCacUnidadeIdMesRoute
+}
+
+const AuthenticatedCacRouteChildren: AuthenticatedCacRouteChildren = {
+  AuthenticatedCacUnidadeIdMesRoute: AuthenticatedCacUnidadeIdMesRoute,
+}
+
+const AuthenticatedCacRouteWithChildren =
+  AuthenticatedCacRoute._addFileChildren(AuthenticatedCacRouteChildren)
 
 interface AuthenticatedRoyaltiesRouteChildren {
   AuthenticatedRoyaltiesUnidadeIdMesRoute: typeof AuthenticatedRoyaltiesUnidadeIdMesRoute
@@ -756,6 +806,7 @@ const AuthenticatedRoyaltiesRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
   AuthenticatedAuditoriaFaturamentoRoute: typeof AuthenticatedAuditoriaFaturamentoRoute
+  AuthenticatedCacRoute: typeof AuthenticatedCacRouteWithChildren
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedComissoesRoute: typeof AuthenticatedComissoesRoute
   AuthenticatedContasReceberRoute: typeof AuthenticatedContasReceberRoute
@@ -792,6 +843,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
   AuthenticatedAuditoriaFaturamentoRoute:
     AuthenticatedAuditoriaFaturamentoRoute,
+  AuthenticatedCacRoute: AuthenticatedCacRouteWithChildren,
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedComissoesRoute: AuthenticatedComissoesRoute,
   AuthenticatedContasReceberRoute: AuthenticatedContasReceberRoute,

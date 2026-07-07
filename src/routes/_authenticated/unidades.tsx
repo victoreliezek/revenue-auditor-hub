@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { RedeContent } from "@/components/page-content/rede-content";
 import { ApuracaoRoyaltiesContent } from "@/components/royalties/apuracao-royalties-content";
+import { ApuracaoCacContent } from "@/components/cac/apuracao-cac-content";
 
 export const Route = createFileRoute("/_authenticated/unidades")({
   head: () => ({
@@ -16,11 +17,12 @@ export const Route = createFileRoute("/_authenticated/unidades")({
   component: UnidadesRoute,
 });
 
-type Tab = "regras" | "royalties";
+type Tab = "regras" | "royalties" | "cac";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "regras", label: "Regras" },
   { key: "royalties", label: "Royalties" },
+  { key: "cac", label: "CAC" },
 ];
 
 function UnidadesRoute() {
@@ -52,6 +54,7 @@ function UnidadesRoute() {
       </div>
       {tab === "regras" && <RedeContent />}
       {tab === "royalties" && <ApuracaoRoyaltiesContent />}
+      {tab === "cac" && <ApuracaoCacContent />}
     </AppShell>
   );
 }

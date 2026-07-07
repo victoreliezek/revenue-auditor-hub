@@ -1,0 +1,575 @@
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertAdmin, digits, monthRange } from "@/lib/server-utils";
+
+// ============ Types ============
+export interface UnidadeCac {
+  id: number;
+  nome_da_praca: string;
+  paga_cac: boolean | null;
+  apuracao: ApuracaoCacSummary | null;
+}
+
+export interface ApuracaoCacSummary {
+  id: number;
+  status: string;
+  mes_referencia: string;
+  total_parcela_1: number | null;
+  total_parcela_2: number | null;
+  total_cac: number | null;
+  confirmado_em: string | null;
+}
+
+export interface ApuracaoCacFull {
+  id: number;
+  unidade_id: number;
+  mes_referencia: string;
+  status: string;
+  total_parcela_1: number | null;
+  total_parcela_2: number | null;
+  total_cac: number | null;
+  confirmado_em: string | null;
+  confirmado_por: string | null;
+  observacao: string | null;
+  unidade: {
+    id: number;
+    nome_da_praca: string;
+    paga_cac: boolean | null;
+  };
+}
+
+export interface ApuracaoCacItem {
+  id: number;
+  apuracao_id: number;
+  cnpj: string | null;
+  razao_social: string;
+  contrato_id: number | null;
+
+  valor_cac_total: number;
+  valor_parcela_1: number;
+  valor_parcela_2: number;
+
+  data_assinatura_contrato: string | null;
+  prazo_parcela_1: string | null;
+  data_pagamento_parcela_1: string | null;
+  status_parcela_1: string;
+
+  data_recebimento_cliente: string | null;
+  prazo_parcela_2: string | null;
+  data_pagamento_parcela_2: string | null;
+  status_parcela_2: string;
+
+  fonte: string;
+  status_match: string | null;
+  observacao: string | null;
+  excluido_em: string | null;
+  excluido_por: string | null;
+  motivo_exclusao: string | null;
+}
+
+// ============ Date helpers ============
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function addDaysISO(dateStr: string, days: number): string {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function endOfMonthISO(dateStr: string): string {
+  const [y, m] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+}
+
+// Prazo da parcela 2: fim do mês do recebimento, ou recebimento+7d se
+// faltarem menos de 7 dias até o fim do mês a partir do recebimento
+// (regra confirmada com o usuário — evita janela curta demais perto da virada).
+function prazoParcela2(dataRecebimento: string): string {
+  const eom = endOfMonthISO(dataRecebimento);
+  const diffDias = Math.round(
+    (new Date(`${eom}T00:00:00Z`).getTime() - new Date(`${dataRecebimento}T00:00:00Z`).getTime()) / 86_400_000,
+  );
+  return diffDias >= 7 ? eom : addDaysISO(dataRecebimento, 7);
+}
+
+function statusParcela1(prazo: string | null, dataPagamento: string | null, hoje: string): string {
+  if (dataPagamento) return "pago";
+  if (prazo && hoje > prazo) return "atrasado";
+  return "pendente";
+}
+
+function statusParcela2(
+  dataRecebimento: string | null,
+  prazo: string | null,
+  dataPagamento: string | null,
+  hoje: string,
+): string {
+  if (dataPagamento) return "pago";
+  if (!dataRecebimento) return "aguardando_cliente";
+  if (prazo && hoje > prazo) return "atrasado";
+  return "pendente";
+}
+
+function withLiveStatus(it: ApuracaoCacItem, hoje: string): ApuracaoCacItem {
+  return {
+    ...it,
+    status_parcela_1: statusParcela1(it.prazo_parcela_1, it.data_pagamento_parcela_1, hoje),
+    status_parcela_2: statusParcela2(
+      it.data_recebimento_cliente,
+      it.prazo_parcela_2,
+      it.data_pagamento_parcela_2,
+      hoje,
+    ),
+  };
+}
+
+// ============ listCacUnidades ============
+export const listCacUnidades = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { mes: string }) => d)
+  .handler(async ({ data, context }): Promise<{ rows: UnidadeCac[] }> => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+    const { firstDay } = monthRange(data.mes);
+
+    const { data: unidades, error: uErr } = await supabase
+      .from("unidades")
+      .select("id,nome_da_praca,paga_cac")
+      .eq("tipo", "regional")
+      .eq("paga_cac", true)
+      .order("nome_da_praca");
+    if (uErr) throw new Error(uErr.message);
+
+    const { data: aps, error: aErr } = await (supabase as any)
+      .from("cac_apuracao")
+      .select("id,unidade_id,status,mes_referencia,total_parcela_1,total_parcela_2,total_cac,confirmado_em")
+      .eq("mes_referencia", firstDay);
+    if (aErr) throw new Error(aErr.message);
+
+    const byUnit = new Map<number, ApuracaoCacSummary>();
+    for (const a of aps ?? []) byUnit.set(a.unidade_id, a as ApuracaoCacSummary);
+
+    return {
+      rows: (unidades ?? []).map((u: any) => ({
+        ...u,
+        apuracao: byUnit.get(u.id) ?? null,
+      })),
+    };
+  });
+
+// ============ getOrCreateApuracaoCac ============
+export const getOrCreateApuracaoCac = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { unidade_id: number; mes: string }) => d)
+  .handler(async ({ data, context }): Promise<{ apuracao_id: number; created: boolean }> => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+    const { firstDay } = monthRange(data.mes);
+
+    const { data: existing, error: e1 } = await (supabase as any)
+      .from("cac_apuracao")
+      .select("id")
+      .eq("unidade_id", data.unidade_id)
+      .eq("mes_referencia", firstDay)
+      .maybeSingle();
+    if (e1) throw new Error(e1.message);
+    if (existing) return { apuracao_id: existing.id, created: false };
+
+    const { data: inserted, error: iErr } = await (supabase as any)
+      .from("cac_apuracao")
+      .insert({ unidade_id: data.unidade_id, mes_referencia: firstDay, status: "rascunho" })
+      .select("id")
+      .single();
+    if (iErr) throw new Error(iErr.message);
+    return { apuracao_id: inserted.id, created: true };
+  });
+
+// ============ gerarItensApuracaoCac ============
+export const gerarItensApuracaoCac = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { apuracao_id: number; force?: boolean }) => d)
+  .handler(async ({ data, context }): Promise<{ created: number; skipped: boolean }> => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+
+    if (!data.force) {
+      const { count, error: cErr } = await (supabase as any)
+        .from("cac_apuracao_itens")
+        .select("id", { count: "exact", head: true })
+        .eq("apuracao_id", data.apuracao_id);
+      if (cErr) throw new Error(cErr.message);
+      if ((count ?? 0) > 0) return { created: 0, skipped: true };
+    }
+
+    const { data: ap, error: apErr } = await (supabase as any)
+      .from("cac_apuracao")
+      .select("id,mes_referencia,unidade_id,status, unidade:unidades!inner(id,nome_da_praca)")
+      .eq("id", data.apuracao_id)
+      .single();
+    if (apErr) throw new Error(apErr.message);
+    if (ap.status === "confirmado") {
+      throw new Error("Apuração já fechada — não é possível regerar itens.");
+    }
+
+    const unidadeNome: string = ap.unidade.nome_da_praca;
+    const mes = String(ap.mes_referencia).slice(0, 7);
+    const { start, end } = monthRange(mes);
+    const hoje = todayISO();
+
+    // Itens já existentes nesta apuração nunca ganham um irmão duplicado —
+    // mesma lógica de idempotência de gerarItensApuracao (royalties).
+    const { data: itensExistentes, error: ieErr } = await (supabase as any)
+      .from("cac_apuracao_itens")
+      .select("id,contrato_id,data_recebimento_cliente,data_pagamento_parcela_1,data_pagamento_parcela_2,excluido_em")
+      .eq("apuracao_id", data.apuracao_id);
+    if (ieErr) throw new Error(ieErr.message);
+    const itemPorContrato = new Map<number, any>(
+      (itensExistentes ?? [])
+        .filter((i: any) => i.contrato_id != null)
+        .map((i: any) => [i.contrato_id as number, i]),
+    );
+
+    // Contratos GANHOS neste mês (CAC nasce só no mês de aquisição do cliente —
+    // diferente de royalties, que é recorrente todo mês).
+    const { data: contratos, error: kErr } = await supabase
+      .from("contratos")
+      .select("id,cnpj,titulo,mrr_mensal,ganho_em")
+      .eq("unidade", unidadeNome)
+      .eq("tipo_unidade", "franquia")
+      .eq("status_contrato", "Ativo")
+      .gte("ganho_em", start)
+      .lte("ganho_em", end);
+    if (kErr) throw new Error(kErr.message);
+
+    // Primeiro RECEBIDO histórico por CNPJ (sem limitar ao mês — é o gatilho
+    // da parcela 2, que pode acontecer em qualquer mês futuro).
+    const { data: recs, error: rErr } = await supabase
+      .from("contas_receber")
+      .select("cpf_cnpj,data_pagamento")
+      .eq("unidade", unidadeNome)
+      .eq("status_pagamento", "RECEBIDO")
+      .not("data_pagamento", "is", null)
+      .order("data_pagamento", { ascending: true });
+    if (rErr) throw new Error(rErr.message);
+    const primeiroRecebimentoPorCnpj = new Map<string, string>();
+    for (const r of recs ?? []) {
+      const k = digits(r.cpf_cnpj);
+      if (!k || primeiroRecebimentoPorCnpj.has(k)) continue;
+      primeiroRecebimentoPorCnpj.set(k, r.data_pagamento as string);
+    }
+
+    const itens: any[] = [];
+    const atualizacoes: { id: number; patch: Record<string, unknown> }[] = [];
+
+    for (const c of contratos ?? []) {
+      const existente = itemPorContrato.get(c.id);
+      const cnpjDigits = digits(c.cnpj);
+      const valorTotal = Number(c.mrr_mensal ?? 0);
+      const valorParcela1 = valorTotal / 2;
+      const valorParcela2 = valorTotal / 2;
+      const dataAssinatura = c.ganho_em ?? null;
+      const prazo1 = dataAssinatura ? addDaysISO(dataAssinatura, 7) : null;
+      const dataRecebimento = cnpjDigits ? primeiroRecebimentoPorCnpj.get(cnpjDigits) ?? null : null;
+      const prazo2 = dataRecebimento ? prazoParcela2(dataRecebimento) : null;
+      const statusMatch = !cnpjDigits ? "sem_cnpj" : "matched";
+
+      if (existente) {
+        if (existente.excluido_em) continue; // excluído do mês manualmente, nunca recalcula
+        // Só re-sincroniza o dado que pode ter mudado desde a última geração
+        // (chegada do 1º recebimento) — nunca sobrescreve pagamentos manuais.
+        if ((existente.data_recebimento_cliente ?? null) !== dataRecebimento) {
+          atualizacoes.push({
+            id: existente.id,
+            patch: {
+              data_recebimento_cliente: dataRecebimento,
+              prazo_parcela_2: prazo2,
+              status_match: statusMatch,
+            },
+          });
+        }
+        continue;
+      }
+
+      itens.push({
+        apuracao_id: data.apuracao_id,
+        cnpj: cnpjDigits || null,
+        razao_social: c.titulo ?? "—",
+        contrato_id: c.id,
+        valor_cac_total: valorTotal,
+        valor_parcela_1: valorParcela1,
+        valor_parcela_2: valorParcela2,
+        data_assinatura_contrato: dataAssinatura,
+        prazo_parcela_1: prazo1,
+        status_parcela_1: statusParcela1(prazo1, null, hoje),
+        data_recebimento_cliente: dataRecebimento,
+        prazo_parcela_2: prazo2,
+        status_parcela_2: statusParcela2(dataRecebimento, prazo2, null, hoje),
+        fonte: "pipedrive",
+        status_match: statusMatch,
+      });
+    }
+
+    for (const upd of atualizacoes) {
+      const { error } = await (supabase as any).from("cac_apuracao_itens").update(upd.patch).eq("id", upd.id);
+      if (error) throw new Error(error.message);
+    }
+
+    if (itens.length === 0) return { created: 0, skipped: false };
+
+    const { error } = await (supabase as any).from("cac_apuracao_itens").insert(itens);
+    if (error) throw new Error(error.message);
+    return { created: itens.length, skipped: false };
+  });
+
+// ============ getApuracaoCac ============
+export const getApuracaoCac = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { apuracao_id: number }) => d)
+  .handler(async ({ data, context }): Promise<{ apuracao: ApuracaoCacFull; itens: ApuracaoCacItem[] }> => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+
+    const { data: ap, error: apErr } = await (supabase as any)
+      .from("cac_apuracao")
+      .select(
+        "id,unidade_id,mes_referencia,status,total_parcela_1,total_parcela_2,total_cac,confirmado_em,confirmado_por,observacao,unidade:unidades!inner(id,nome_da_praca,paga_cac)",
+      )
+      .eq("id", data.apuracao_id)
+      .single();
+    if (apErr) throw new Error(apErr.message);
+
+    const { data: itens, error: iErr } = await (supabase as any)
+      .from("cac_apuracao_itens")
+      .select("*")
+      .eq("apuracao_id", data.apuracao_id)
+      .order("razao_social");
+    if (iErr) throw new Error(iErr.message);
+
+    const hoje = todayISO();
+    return {
+      apuracao: ap as any,
+      itens: ((itens ?? []) as ApuracaoCacItem[]).map((it) => withLiveStatus(it, hoje)),
+    };
+  });
+
+// ============ updateItemCac ============
+// Marcar parcela como paga é uma ação manual do admin — hoje não existe
+// integração automática que rastreie a unidade repassando o CAC pra matriz
+// (Omie por unidade só cobre recebíveis de clientes, não repasses internos).
+export const updateItemCac = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (d: {
+      id: number;
+      data_pagamento_parcela_1?: string | null;
+      data_pagamento_parcela_2?: string | null;
+      observacao?: string | null;
+    }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+
+    const { data: item, error: e1 } = await (supabase as any)
+      .from("cac_apuracao_itens")
+      .select("apuracao_id, apuracao:cac_apuracao!inner(status)")
+      .eq("id", data.id)
+      .single();
+    if (e1) throw new Error(e1.message);
+    if ((item as any).apuracao.status === "confirmado") {
+      throw new Error("Apuração fechada — reabra antes de editar.");
+    }
+
+    const patch: any = {};
+    if ("data_pagamento_parcela_1" in data) patch.data_pagamento_parcela_1 = data.data_pagamento_parcela_1;
+    if ("data_pagamento_parcela_2" in data) patch.data_pagamento_parcela_2 = data.data_pagamento_parcela_2;
+    if ("observacao" in data) patch.observacao = data.observacao;
+
+    const { error } = await (supabase as any).from("cac_apuracao_itens").update(patch).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ============ addItemManualCac ============
+export const addItemManualCac = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (d: {
+      apuracao_id: number;
+      razao_social: string;
+      cnpj?: string | null;
+      valor_cac_total: number;
+      observacao?: string | null;
+    }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+
+    const valorTotal = Number(data.valor_cac_total ?? 0);
+    const { error } = await (supabase as any).from("cac_apuracao_itens").insert({
+      apuracao_id: data.apuracao_id,
+      razao_social: data.razao_social,
+      cnpj: data.cnpj ? digits(data.cnpj) : null,
+      valor_cac_total: valorTotal,
+      valor_parcela_1: valorTotal / 2,
+      valor_parcela_2: valorTotal / 2,
+      status_parcela_1: "pendente",
+      status_parcela_2: "aguardando_cliente",
+      observacao: data.observacao ?? null,
+      fonte: "manual",
+      status_match: "manual",
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ============ deleteItemCac ============
+export const deleteItemCac = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: number }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+    const { data: item, error: e1 } = await (supabase as any)
+      .from("cac_apuracao_itens")
+      .select("apuracao:cac_apuracao!inner(status)")
+      .eq("id", data.id)
+      .single();
+    if (e1) throw new Error(e1.message);
+    if ((item as any).apuracao.status === "confirmado") {
+      throw new Error("Apuração fechada — reabra antes de excluir.");
+    }
+    const { error } = await (supabase as any).from("cac_apuracao_itens").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ============ excluirItemMesCac ============
+export const excluirItemMesCac = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { item_id: number; motivo: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context;
+    await assertAdmin(supabase, userId);
+    if (!data.motivo?.trim()) throw new Error("Motivo da exclusão é obrigatório.");
+
+    const { data: item, error: e1 } = await (supabase as any)
+      .from("cac_apuracao_itens")
+      .select("apuracao:cac_apuracao!inner(status)")
+      .eq("id", data.item_id)
+      .single();
+    if (e1) throw new Error(e1.message);
+    if ((item as any).apuracao.status === "confirmado") {
+      throw new Error("Apuração fechada — reabra antes de excluir.");
+    }
+
+    const email = (claims as any)?.email ?? null;
+    const { error } = await (supabase as any)
+      .from("cac_apuracao_itens")
+      .update({
+        excluido_em: new Date().toISOString(),
+        excluido_por: email ?? userId,
+        motivo_exclusao: data.motivo.trim(),
+      })
+      .eq("id", data.item_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ============ reincluirItemMesCac ============
+export const reincluirItemMesCac = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { item_id: number }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+    const { data: item, error: e1 } = await (supabase as any)
+      .from("cac_apuracao_itens")
+      .select("apuracao:cac_apuracao!inner(status)")
+      .eq("id", data.item_id)
+      .single();
+    if (e1) throw new Error(e1.message);
+    if ((item as any).apuracao.status === "confirmado") {
+      throw new Error("Apuração fechada — reabra antes de reincluir.");
+    }
+    const { error } = await (supabase as any)
+      .from("cac_apuracao_itens")
+      .update({ excluido_em: null, excluido_por: null, motivo_exclusao: null })
+      .eq("id", data.item_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ============ fecharApuracaoCac ============
+// Não escreve em repasses_unidade — mesmo comportamento do fecharApuracao de
+// royalties hoje (confirmado com o usuário: as duas ficam separadas por ora).
+export const fecharApuracaoCac = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: number }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId, claims } = context;
+    await assertAdmin(supabase, userId);
+
+    const { data: ap, error: apErr } = await (supabase as any)
+      .from("cac_apuracao")
+      .select("id,status")
+      .eq("id", data.id)
+      .single();
+    if (apErr) throw new Error(apErr.message);
+    if (ap.status === "confirmado") throw new Error("Apuração já está fechada.");
+
+    const { data: itens, error: iErr } = await (supabase as any)
+      .from("cac_apuracao_itens")
+      .select("valor_parcela_1,valor_parcela_2,data_pagamento_parcela_1,data_pagamento_parcela_2")
+      .eq("apuracao_id", data.id)
+      .is("excluido_em", null);
+    if (iErr) throw new Error(iErr.message);
+
+    let totalParcela1 = 0;
+    let totalParcela2 = 0;
+    let algumPago = false;
+    for (const it of (itens ?? []) as any[]) {
+      if (it.data_pagamento_parcela_1) {
+        totalParcela1 += Number(it.valor_parcela_1 ?? 0);
+        algumPago = true;
+      }
+      if (it.data_pagamento_parcela_2) {
+        totalParcela2 += Number(it.valor_parcela_2 ?? 0);
+        algumPago = true;
+      }
+    }
+    if (!algumPago) throw new Error("Confirme o pagamento de ao menos 1 parcela antes de fechar.");
+
+    const email = (claims as any)?.email ?? null;
+    const { error: uErr } = await (supabase as any)
+      .from("cac_apuracao")
+      .update({
+        status: "confirmado",
+        total_parcela_1: totalParcela1,
+        total_parcela_2: totalParcela2,
+        total_cac: totalParcela1 + totalParcela2,
+        confirmado_em: new Date().toISOString(),
+        confirmado_por: email ?? userId,
+      })
+      .eq("id", data.id);
+    if (uErr) throw new Error(uErr.message);
+    return { ok: true };
+  });
+
+// ============ reabrirApuracaoCac ============
+export const reabrirApuracaoCac = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: number }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+    const { error } = await (supabase as any)
+      .from("cac_apuracao")
+      .update({ status: "em_revisao", confirmado_em: null, confirmado_por: null })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
