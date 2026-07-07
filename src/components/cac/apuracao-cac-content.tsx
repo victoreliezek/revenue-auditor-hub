@@ -101,9 +101,9 @@ export function ApuracaoCacContent() {
                     </div>
                   </div>
                 )}
-                <Link to="/cac/$unidadeId/$mes" params={{ unidadeId: String(u.id), mes }} className="inline-block">
+                <Link to="/cac/$unidadeId" params={{ unidadeId: String(u.id) }} className="inline-block">
                   <Button size="sm" variant={ap ? "outline" : "default"} className="w-full">
-                    {ap?.status === "confirmado" ? "Ver apuração" : ap ? "Continuar" : "Iniciar apuração"}
+                    Ver apuração
                   </Button>
                 </Link>
               </Card>

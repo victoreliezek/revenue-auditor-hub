@@ -40,13 +40,13 @@ import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedCacRouteImport } from './routes/_authenticated/cac'
 import { Route as AuthenticatedAuditoriaFaturamentoRouteImport } from './routes/_authenticated/auditoria-faturamento'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
+import { Route as AuthenticatedCacUnidadeIdRouteImport } from './routes/_authenticated/cac.$unidadeId'
 import { Route as AuthenticatedAdminValidacaoRouteImport } from './routes/_authenticated/admin.validacao'
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin.usuarios'
 import { Route as AuthenticatedAdminPermissoesRouteImport } from './routes/_authenticated/admin.permissoes'
 import { Route as AuthenticatedAdminPerfisRouteImport } from './routes/_authenticated/admin.perfis'
 import { Route as AuthenticatedAdminIntegracoesRouteImport } from './routes/_authenticated/admin.integracoes'
 import { Route as AuthenticatedRoyaltiesUnidadeIdMesRouteImport } from './routes/_authenticated/royalties.$unidadeId.$mes'
-import { Route as AuthenticatedCacUnidadeIdMesRouteImport } from './routes/_authenticated/cac.$unidadeId.$mes'
 
 const TrustRoute = TrustRouteImport.update({
   id: '/trust',
@@ -217,6 +217,12 @@ const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
   path: '/auditoria',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCacUnidadeIdRoute =
+  AuthenticatedCacUnidadeIdRouteImport.update({
+    id: '/$unidadeId',
+    path: '/$unidadeId',
+    getParentRoute: () => AuthenticatedCacRoute,
+  } as any)
 const AuthenticatedAdminValidacaoRoute =
   AuthenticatedAdminValidacaoRouteImport.update({
     id: '/admin/validacao',
@@ -252,12 +258,6 @@ const AuthenticatedRoyaltiesUnidadeIdMesRoute =
     id: '/$unidadeId/$mes',
     path: '/$unidadeId/$mes',
     getParentRoute: () => AuthenticatedRoyaltiesRoute,
-  } as any)
-const AuthenticatedCacUnidadeIdMesRoute =
-  AuthenticatedCacUnidadeIdMesRouteImport.update({
-    id: '/$unidadeId/$mes',
-    path: '/$unidadeId/$mes',
-    getParentRoute: () => AuthenticatedCacRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -296,7 +296,7 @@ export interface FileRoutesByFullPath {
   '/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/admin/validacao': typeof AuthenticatedAdminValidacaoRoute
-  '/cac/$unidadeId/$mes': typeof AuthenticatedCacUnidadeIdMesRoute
+  '/cac/$unidadeId': typeof AuthenticatedCacUnidadeIdRoute
   '/royalties/$unidadeId/$mes': typeof AuthenticatedRoyaltiesUnidadeIdMesRoute
 }
 export interface FileRoutesByTo {
@@ -335,7 +335,7 @@ export interface FileRoutesByTo {
   '/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/admin/validacao': typeof AuthenticatedAdminValidacaoRoute
-  '/cac/$unidadeId/$mes': typeof AuthenticatedCacUnidadeIdMesRoute
+  '/cac/$unidadeId': typeof AuthenticatedCacUnidadeIdRoute
   '/royalties/$unidadeId/$mes': typeof AuthenticatedRoyaltiesUnidadeIdMesRoute
 }
 export interface FileRoutesById {
@@ -376,7 +376,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/permissoes': typeof AuthenticatedAdminPermissoesRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/_authenticated/admin/validacao': typeof AuthenticatedAdminValidacaoRoute
-  '/_authenticated/cac/$unidadeId/$mes': typeof AuthenticatedCacUnidadeIdMesRoute
+  '/_authenticated/cac/$unidadeId': typeof AuthenticatedCacUnidadeIdRoute
   '/_authenticated/royalties/$unidadeId/$mes': typeof AuthenticatedRoyaltiesUnidadeIdMesRoute
 }
 export interface FileRouteTypes {
@@ -417,7 +417,7 @@ export interface FileRouteTypes {
     | '/admin/permissoes'
     | '/admin/usuarios'
     | '/admin/validacao'
-    | '/cac/$unidadeId/$mes'
+    | '/cac/$unidadeId'
     | '/royalties/$unidadeId/$mes'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -456,7 +456,7 @@ export interface FileRouteTypes {
     | '/admin/permissoes'
     | '/admin/usuarios'
     | '/admin/validacao'
-    | '/cac/$unidadeId/$mes'
+    | '/cac/$unidadeId'
     | '/royalties/$unidadeId/$mes'
   id:
     | '__root__'
@@ -496,7 +496,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/permissoes'
     | '/_authenticated/admin/usuarios'
     | '/_authenticated/admin/validacao'
-    | '/_authenticated/cac/$unidadeId/$mes'
+    | '/_authenticated/cac/$unidadeId'
     | '/_authenticated/royalties/$unidadeId/$mes'
   fileRoutesById: FileRoutesById
 }
@@ -725,6 +725,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/cac/$unidadeId': {
+      id: '/_authenticated/cac/$unidadeId'
+      path: '/$unidadeId'
+      fullPath: '/cac/$unidadeId'
+      preLoaderRoute: typeof AuthenticatedCacUnidadeIdRouteImport
+      parentRoute: typeof AuthenticatedCacRoute
+    }
     '/_authenticated/admin/validacao': {
       id: '/_authenticated/admin/validacao'
       path: '/admin/validacao'
@@ -767,22 +774,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRoyaltiesUnidadeIdMesRouteImport
       parentRoute: typeof AuthenticatedRoyaltiesRoute
     }
-    '/_authenticated/cac/$unidadeId/$mes': {
-      id: '/_authenticated/cac/$unidadeId/$mes'
-      path: '/$unidadeId/$mes'
-      fullPath: '/cac/$unidadeId/$mes'
-      preLoaderRoute: typeof AuthenticatedCacUnidadeIdMesRouteImport
-      parentRoute: typeof AuthenticatedCacRoute
-    }
   }
 }
 
 interface AuthenticatedCacRouteChildren {
-  AuthenticatedCacUnidadeIdMesRoute: typeof AuthenticatedCacUnidadeIdMesRoute
+  AuthenticatedCacUnidadeIdRoute: typeof AuthenticatedCacUnidadeIdRoute
 }
 
 const AuthenticatedCacRouteChildren: AuthenticatedCacRouteChildren = {
-  AuthenticatedCacUnidadeIdMesRoute: AuthenticatedCacUnidadeIdMesRoute,
+  AuthenticatedCacUnidadeIdRoute: AuthenticatedCacUnidadeIdRoute,
 }
 
 const AuthenticatedCacRouteWithChildren =

@@ -186,19 +186,17 @@ export const getOrCreateApuracaoCac = createServerFn({ method: "POST" })
     return { apuracao_id: inserted.id, created: true };
   });
 
-// ============ gerarItensApuracaoCac ============
-export const gerarItensApuracaoCac = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: { apuracao_id: number; force?: boolean }) => d)
-  .handler(async ({ data, context }): Promise<{ created: number; skipped: boolean }> => {
-    const { supabase, userId } = context;
-    await assertAdmin(supabase, userId);
-
-    if (!data.force) {
+// ============ gerarItensParaApuracao (helper reaproveitado) ============
+async function gerarItensParaApuracao(
+  supabase: any,
+  apuracao_id: number,
+  force: boolean,
+): Promise<{ created: number; skipped: boolean }> {
+    if (!force) {
       const { count, error: cErr } = await (supabase as any)
         .from("cac_apuracao_itens")
         .select("id", { count: "exact", head: true })
-        .eq("apuracao_id", data.apuracao_id);
+        .eq("apuracao_id", apuracao_id);
       if (cErr) throw new Error(cErr.message);
       if ((count ?? 0) > 0) return { created: 0, skipped: true };
     }
@@ -206,7 +204,7 @@ export const gerarItensApuracaoCac = createServerFn({ method: "POST" })
     const { data: ap, error: apErr } = await (supabase as any)
       .from("cac_apuracao")
       .select("id,mes_referencia,unidade_id,status, unidade:unidades!inner(id,nome_da_praca)")
-      .eq("id", data.apuracao_id)
+      .eq("id", apuracao_id)
       .single();
     if (apErr) throw new Error(apErr.message);
     if (ap.status === "confirmado") {
@@ -223,7 +221,7 @@ export const gerarItensApuracaoCac = createServerFn({ method: "POST" })
     const { data: itensExistentes, error: ieErr } = await (supabase as any)
       .from("cac_apuracao_itens")
       .select("id,contrato_id,data_recebimento_cliente,data_pagamento_parcela_1,data_pagamento_parcela_2,excluido_em")
-      .eq("apuracao_id", data.apuracao_id);
+      .eq("apuracao_id", apuracao_id);
     if (ieErr) throw new Error(ieErr.message);
     const itemPorContrato = new Map<number, any>(
       (itensExistentes ?? [])
@@ -293,7 +291,7 @@ export const gerarItensApuracaoCac = createServerFn({ method: "POST" })
       }
 
       itens.push({
-        apuracao_id: data.apuracao_id,
+        apuracao_id: apuracao_id,
         cnpj: cnpjDigits || null,
         razao_social: c.titulo ?? "—",
         contrato_id: c.id,
@@ -321,6 +319,111 @@ export const gerarItensApuracaoCac = createServerFn({ method: "POST" })
     const { error } = await (supabase as any).from("cac_apuracao_itens").insert(itens);
     if (error) throw new Error(error.message);
     return { created: itens.length, skipped: false };
+}
+
+// ============ gerarItensApuracaoCac ============
+export const gerarItensApuracaoCac = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { apuracao_id: number; force?: boolean }) => d)
+  .handler(async ({ data, context }): Promise<{ created: number; skipped: boolean }> => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+    return gerarItensParaApuracao(supabase, data.apuracao_id, !!data.force);
+  });
+
+// ============ listApuracaoCacItensUnidade ============
+// Tela única por unidade (sem navegação mês a mês): garante que toda
+// apuração mensal necessária existe (mês atual + meses com contrato ganho
+// ainda não vistos), sincroniza as que estão abertas e devolve todos os
+// itens de todas as apurações da unidade numa lista só, cada um com o mês
+// e status da apuração a que pertence (o fechamento continua por mês).
+export const listApuracaoCacItensUnidade = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { unidade_id: number; force?: boolean }) => d)
+  .handler(async ({
+    data,
+    context,
+  }): Promise<{ apuracoes: ApuracaoCacSummary[]; itens: (ApuracaoCacItem & { mes_referencia: string; apuracao_status: string })[] }> => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+
+    const { data: unidade, error: uErr } = await supabase
+      .from("unidades")
+      .select("id,nome_da_praca,paga_cac")
+      .eq("id", data.unidade_id)
+      .single();
+    if (uErr) throw new Error(uErr.message);
+
+    const mesAtual = todayISO().slice(0, 7);
+
+    const { data: existentes, error: aErr } = await (supabase as any)
+      .from("cac_apuracao")
+      .select("id,unidade_id,status,mes_referencia,total_parcela_1,total_parcela_2,total_cac,confirmado_em")
+      .eq("unidade_id", data.unidade_id);
+    if (aErr) throw new Error(aErr.message);
+
+    const mesesExistentes = new Set((existentes ?? []).map((a: any) => String(a.mes_referencia).slice(0, 7)));
+
+    const { data: contratos, error: kErr } = await supabase
+      .from("contratos")
+      .select("ganho_em")
+      .eq("unidade", unidade.nome_da_praca)
+      .eq("tipo_unidade", "franquia")
+      .eq("status_contrato", "Ativo")
+      .not("ganho_em", "is", null);
+    if (kErr) throw new Error(kErr.message);
+
+    const mesesNecessarios = new Set<string>([mesAtual]);
+    for (const c of contratos ?? []) {
+      const mes = String((c as any).ganho_em).slice(0, 7);
+      mesesNecessarios.add(mes);
+    }
+
+    const mesesFaltantes = [...mesesNecessarios].filter((m) => !mesesExistentes.has(m));
+    if (mesesFaltantes.length > 0) {
+      const novas = mesesFaltantes.map((mes) => ({
+        unidade_id: data.unidade_id,
+        mes_referencia: monthRange(mes).firstDay,
+        status: "rascunho",
+      }));
+      const { error: iErr } = await (supabase as any).from("cac_apuracao").insert(novas);
+      if (iErr) throw new Error(iErr.message);
+    }
+
+    const { data: apuracoes, error: a2Err } = await (supabase as any)
+      .from("cac_apuracao")
+      .select("id,unidade_id,status,mes_referencia,total_parcela_1,total_parcela_2,total_cac,confirmado_em")
+      .eq("unidade_id", data.unidade_id)
+      .order("mes_referencia", { ascending: false });
+    if (a2Err) throw new Error(a2Err.message);
+
+    for (const ap of apuracoes ?? []) {
+      if ((ap as any).status === "confirmado") continue;
+      await gerarItensParaApuracao(supabase, (ap as any).id, !!data.force);
+    }
+
+    const apuracaoIds = (apuracoes ?? []).map((a: any) => a.id);
+    if (apuracaoIds.length === 0) return { apuracoes: [], itens: [] };
+
+    const { data: itens, error: itErr } = await (supabase as any)
+      .from("cac_apuracao_itens")
+      .select("*")
+      .in("apuracao_id", apuracaoIds)
+      .order("data_assinatura_contrato", { ascending: false, nullsFirst: false });
+    if (itErr) throw new Error(itErr.message);
+
+    const apuracaoPorId = new Map<number, any>((apuracoes ?? []).map((a: any) => [a.id, a]));
+    const hoje = todayISO();
+    const itensComMes = ((itens ?? []) as ApuracaoCacItem[]).map((it) => {
+      const ap = apuracaoPorId.get(it.apuracao_id);
+      return {
+        ...withLiveStatus(it, hoje),
+        mes_referencia: ap?.mes_referencia ?? "",
+        apuracao_status: ap?.status ?? "rascunho",
+      };
+    });
+
+    return { apuracoes: (apuracoes ?? []) as ApuracaoCacSummary[], itens: itensComMes };
   });
 
 // ============ getApuracaoCac ============
