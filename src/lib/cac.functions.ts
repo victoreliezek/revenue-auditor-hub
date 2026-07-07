@@ -20,24 +20,6 @@ export interface ApuracaoCacSummary {
   confirmado_em: string | null;
 }
 
-export interface ApuracaoCacFull {
-  id: number;
-  unidade_id: number;
-  mes_referencia: string;
-  status: string;
-  total_parcela_1: number | null;
-  total_parcela_2: number | null;
-  total_cac: number | null;
-  confirmado_em: string | null;
-  confirmado_por: string | null;
-  observacao: string | null;
-  unidade: {
-    id: number;
-    nome_da_praca: string;
-    paga_cac: boolean | null;
-  };
-}
-
 export interface ApuracaoCacItem {
   id: number;
   apuracao_id: number;
@@ -157,33 +139,6 @@ export const listCacUnidades = createServerFn({ method: "GET" })
         apuracao: byUnit.get(u.id) ?? null,
       })),
     };
-  });
-
-// ============ getOrCreateApuracaoCac ============
-export const getOrCreateApuracaoCac = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: { unidade_id: number; mes: string }) => d)
-  .handler(async ({ data, context }): Promise<{ apuracao_id: number; created: boolean }> => {
-    const { supabase, userId } = context;
-    await assertAdmin(supabase, userId);
-    const { firstDay } = monthRange(data.mes);
-
-    const { data: existing, error: e1 } = await (supabase as any)
-      .from("cac_apuracao")
-      .select("id")
-      .eq("unidade_id", data.unidade_id)
-      .eq("mes_referencia", firstDay)
-      .maybeSingle();
-    if (e1) throw new Error(e1.message);
-    if (existing) return { apuracao_id: existing.id, created: false };
-
-    const { data: inserted, error: iErr } = await (supabase as any)
-      .from("cac_apuracao")
-      .insert({ unidade_id: data.unidade_id, mes_referencia: firstDay, status: "rascunho" })
-      .select("id")
-      .single();
-    if (iErr) throw new Error(iErr.message);
-    return { apuracao_id: inserted.id, created: true };
   });
 
 // ============ gerarItensParaApuracao (helper reaproveitado) ============
@@ -321,16 +276,6 @@ async function gerarItensParaApuracao(
     return { created: itens.length, skipped: false };
 }
 
-// ============ gerarItensApuracaoCac ============
-export const gerarItensApuracaoCac = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: { apuracao_id: number; force?: boolean }) => d)
-  .handler(async ({ data, context }): Promise<{ created: number; skipped: boolean }> => {
-    const { supabase, userId } = context;
-    await assertAdmin(supabase, userId);
-    return gerarItensParaApuracao(supabase, data.apuracao_id, !!data.force);
-  });
-
 // ============ listApuracaoCacItensUnidade ============
 // Tela única por unidade (sem navegação mês a mês): garante que toda
 // apuração mensal necessária existe (mês atual + meses com contrato ganho
@@ -424,37 +369,6 @@ export const listApuracaoCacItensUnidade = createServerFn({ method: "POST" })
     });
 
     return { apuracoes: (apuracoes ?? []) as ApuracaoCacSummary[], itens: itensComMes };
-  });
-
-// ============ getApuracaoCac ============
-export const getApuracaoCac = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: { apuracao_id: number }) => d)
-  .handler(async ({ data, context }): Promise<{ apuracao: ApuracaoCacFull; itens: ApuracaoCacItem[] }> => {
-    const { supabase, userId } = context;
-    await assertAdmin(supabase, userId);
-
-    const { data: ap, error: apErr } = await (supabase as any)
-      .from("cac_apuracao")
-      .select(
-        "id,unidade_id,mes_referencia,status,total_parcela_1,total_parcela_2,total_cac,confirmado_em,confirmado_por,observacao,unidade:unidades!inner(id,nome_da_praca,paga_cac)",
-      )
-      .eq("id", data.apuracao_id)
-      .single();
-    if (apErr) throw new Error(apErr.message);
-
-    const { data: itens, error: iErr } = await (supabase as any)
-      .from("cac_apuracao_itens")
-      .select("*")
-      .eq("apuracao_id", data.apuracao_id)
-      .order("razao_social");
-    if (iErr) throw new Error(iErr.message);
-
-    const hoje = todayISO();
-    return {
-      apuracao: ap as any,
-      itens: ((itens ?? []) as ApuracaoCacItem[]).map((it) => withLiveStatus(it, hoje)),
-    };
   });
 
 // ============ updateItemCac ============

@@ -6,9 +6,6 @@ import {
   deleteItemCac,
   excluirItemMesCac,
   fecharApuracaoCac,
-  gerarItensApuracaoCac,
-  getApuracaoCac,
-  getOrCreateApuracaoCac,
   listApuracaoCacItensUnidade,
   listCacUnidades,
   reabrirApuracaoCac,
@@ -30,37 +27,6 @@ export function useCacUnidades(mes: string) {
     queryKey: ["cac", "unidades", mes],
     queryFn: () => fn({ data: { mes } }),
     staleTime: 30_000,
-  });
-}
-
-export function useApuracaoCac(apuracaoId: number | null) {
-  const fn = useServerFn(getApuracaoCac);
-  return useQuery({
-    queryKey: ["cac", "apuracao", apuracaoId],
-    queryFn: () => fn({ data: { apuracao_id: apuracaoId! } }),
-    enabled: !!apuracaoId,
-    staleTime: 10_000,
-  });
-}
-
-export function useGetOrCreateCac() {
-  const fn = useServerFn(getOrCreateApuracaoCac);
-  return useMutation({
-    mutationFn: (vars: { unidade_id: number; mes: string }) => fn({ data: vars }),
-    onError: defaultOnError,
-  });
-}
-
-export function useGerarItensCac() {
-  const fn = useServerFn(gerarItensApuracaoCac);
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (vars: { apuracao_id: number; force?: boolean }) => fn({ data: vars }),
-    onSuccess: (_res, vars) => {
-      qc.invalidateQueries({ queryKey: ["cac", "apuracao", vars.apuracao_id] });
-      qc.invalidateQueries({ queryKey: ["cac", "unidades"] });
-    },
-    onError: defaultOnError,
   });
 }
 
