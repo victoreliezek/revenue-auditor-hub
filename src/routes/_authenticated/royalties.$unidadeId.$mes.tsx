@@ -215,6 +215,7 @@ function ApuracaoLoaded({
   // optimistic local edits (debounced flush)
   const [localValor, setLocalValor] = useState<Record<number, string>>({});
   const [localMrr, setLocalMrr] = useState<Record<number, string>>({});
+  const [localPct, setLocalPct] = useState<Record<number, string>>({});
 
   if (isLoading || !data) {
     return <div className="p-6 text-sm text-muted-foreground">Carregando…</div>;
@@ -246,6 +247,16 @@ function ApuracaoLoaded({
     return Number(it.valor_confirmado ?? 0);
   };
 
+  const pctEfetivo = (it: ApuracaoItem): number => {
+    const raw = localPct[it.id];
+    if (raw !== undefined) {
+      if (raw.trim() === "") return pctPadrao;
+      const n = Number(raw.replace(",", "."));
+      return Number.isFinite(n) ? n : pctPadrao;
+    }
+    return it.royalties_percentual_override != null ? Number(it.royalties_percentual_override) : pctPadrao;
+  };
+
   // totals (live)
   let receitaBase = 0;
   let royaltiesValor = 0;
@@ -257,8 +268,7 @@ function ApuracaoLoaded({
     const v = valorEfetivo(it);
     if (it.categoria === "royalties") {
       receitaBase += v;
-      const pct = it.royalties_percentual_override != null ? Number(it.royalties_percentual_override) : pctPadrao;
-      royaltiesValor += (v * pct) / 100;
+      royaltiesValor += (v * pctEfetivo(it)) / 100;
     } else if (it.categoria === "csc_base_antiga") {
       receitaBaseAntiga += v;
     }
@@ -287,6 +297,16 @@ function ApuracaoLoaded({
     if (n !== null && !Number.isFinite(n)) return;
     if (n === Number(it.mrr_override ?? 0)) return;
     updateItem.mutate({ id: it.id, mrr_override: n });
+  };
+
+  const flushPct = (it: ApuracaoItem) => {
+    const raw = localPct[it.id];
+    if (raw === undefined) return;
+    const n = raw.trim() === "" ? null : Number(raw.replace(",", "."));
+    if (n !== null && !Number.isFinite(n)) return;
+    const atual = it.royalties_percentual_override != null ? Number(it.royalties_percentual_override) : null;
+    if (n === atual) return;
+    updateItem.mutate({ id: it.id, royalties_percentual_override: n });
   };
 
   const toggleConfirm = (it: ApuracaoItem, checked: boolean) => {
@@ -407,6 +427,9 @@ function ApuracaoLoaded({
             localMrr={localMrr}
             setLocalMrr={setLocalMrr}
             flushMrr={flushMrr}
+            localPct={localPct}
+            setLocalPct={setLocalPct}
+            flushPct={flushPct}
             toggleConfirm={toggleConfirm}
             onDelete={(it) => deleteItem.mutate({ id: it.id })}
             onMarcarChurn={handleMarcarChurn}
@@ -431,6 +454,9 @@ function ApuracaoLoaded({
             localMrr={localMrr}
             setLocalMrr={setLocalMrr}
             flushMrr={flushMrr}
+            localPct={localPct}
+            setLocalPct={setLocalPct}
+            flushPct={flushPct}
             toggleConfirm={toggleConfirm}
             onDelete={(it) => deleteItem.mutate({ id: it.id })}
             onMarcarChurn={handleMarcarChurn}
@@ -455,6 +481,9 @@ function ApuracaoLoaded({
               localValor={localValor}
               setLocalValor={setLocalValor}
               flushValor={flushValor}
+              localPct={localPct}
+              setLocalPct={setLocalPct}
+              flushPct={flushPct}
               toggleConfirm={toggleConfirm}
               onDelete={(it) => deleteItem.mutate({ id: it.id })}
               onExcluir={handleExcluir}
@@ -475,6 +504,9 @@ function ApuracaoLoaded({
             localValor={localValor}
             setLocalValor={setLocalValor}
             flushValor={flushValor}
+            localPct={localPct}
+            setLocalPct={setLocalPct}
+            flushPct={flushPct}
             toggleConfirm={toggleConfirm}
             onDelete={(it) => deleteItem.mutate({ id: it.id })}
             extraHeader={
@@ -663,6 +695,9 @@ interface GrupoProps {
   localMrr?: Record<number, string>;
   setLocalMrr?: React.Dispatch<React.SetStateAction<Record<number, string>>>;
   flushMrr?: (it: ApuracaoItem) => void;
+  localPct: Record<number, string>;
+  setLocalPct: React.Dispatch<React.SetStateAction<Record<number, string>>>;
+  flushPct: (it: ApuracaoItem) => void;
   toggleConfirm: (it: ApuracaoItem, c: boolean) => void;
   onDelete: (it: ApuracaoItem) => void;
   extraHeader?: React.ReactNode;
@@ -951,6 +986,9 @@ function SecaoGrupo({
   localMrr,
   setLocalMrr,
   flushMrr,
+  localPct,
+  setLocalPct,
+  flushPct,
   toggleConfirm,
   onDelete,
   extraHeader,
