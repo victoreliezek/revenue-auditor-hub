@@ -23,6 +23,7 @@ export interface ApuracaoSummary {
   royalties_valor: number | null;
   csc_valor_fixo: number | null;
   csc_base_antiga_valor: number | null;
+  cac_valor: number | null;
   confirmado_em: string | null;
 }
 
@@ -38,6 +39,7 @@ export interface ApuracaoFull {
   receita_base_antiga: number | null;
   csc_percentual_base_antiga: number | null;
   csc_base_antiga_valor: number | null;
+  cac_valor: number | null;
   csc_trafego_pago: number | null;
   outras_receitas: number | null;
   total_fatura: number | null;
@@ -67,6 +69,7 @@ export interface ApuracaoItem {
   valor_omie: number | null;
   valor_confirmado: number | null;
   royalties_percentual_override: number | null;
+  is_cac: boolean;
   royalties_item: number | null;
   fonte: string;
   status_match: string | null;
@@ -463,7 +466,7 @@ export const getApuracao = createServerFn({ method: "GET" })
     const { data: ap, error: apErr } = await supabase
       .from("royalties_apuracao")
       .select(
-        "id,unidade_id,mes_referencia,status,receita_base,royalties_percentual,royalties_valor,csc_valor_fixo,receita_base_antiga,csc_percentual_base_antiga,csc_base_antiga_valor,csc_trafego_pago,outras_receitas,total_fatura,confirmado_em,confirmado_por,observacao,unidade:unidades!inner(id,nome_da_praca,royalties_percentual,csc_valor_fixo,csc_percentual_base_antiga,observacoes_financeiras)",
+        "id,unidade_id,mes_referencia,status,receita_base,royalties_percentual,royalties_valor,csc_valor_fixo,receita_base_antiga,csc_percentual_base_antiga,csc_base_antiga_valor,cac_valor,csc_trafego_pago,outras_receitas,total_fatura,confirmado_em,confirmado_por,observacao,unidade:unidades!inner(id,nome_da_praca,royalties_percentual,csc_valor_fixo,csc_percentual_base_antiga,observacoes_financeiras)",
       )
       .eq("id", data.apuracao_id)
       .single();
@@ -520,6 +523,7 @@ export const updateItem = createServerFn({ method: "POST" })
       observacao?: string | null;
       royalties_percentual_override?: number | null;
       mrr_override?: number | null;
+      is_cac?: boolean;
     }) => d,
   )
   .handler(async ({ data, context }) => {
@@ -545,6 +549,7 @@ export const updateItem = createServerFn({ method: "POST" })
     if ("royalties_percentual_override" in data)
       patch.royalties_percentual_override = data.royalties_percentual_override;
     if ("mrr_override" in data) patch.mrr_override = data.mrr_override;
+    if ("is_cac" in data) patch.is_cac = data.is_cac;
 
     const { error } = await supabase.from("royalties_itens").update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
@@ -758,7 +763,7 @@ export const fecharApuracao = createServerFn({ method: "POST" })
 
     const { data: itens, error: iErr } = await supabase
       .from("royalties_itens")
-      .select("categoria,valor_confirmado,royalties_percentual_override,confirmado")
+      .select("categoria,valor_confirmado,royalties_percentual_override,confirmado,is_cac")
       .eq("apuracao_id", data.id)
       .is("excluido_em", null);
     if (iErr) throw new Error(iErr.message);
@@ -769,6 +774,7 @@ export const fecharApuracao = createServerFn({ method: "POST" })
     const pctPadrao = Number(ap.royalties_percentual ?? 0);
     let receitaBase = 0;
     let royalties = 0;
+    let cacValor = 0;
     let receitaBaseAntiga = 0;
     for (const it of confirmados as any[]) {
       const v = Number(it.valor_confirmado ?? 0);
@@ -777,7 +783,9 @@ export const fecharApuracao = createServerFn({ method: "POST" })
         const pct = it.royalties_percentual_override != null
           ? Number(it.royalties_percentual_override)
           : pctPadrao;
-        royalties += (v * pct) / 100;
+        const computado = (v * pct) / 100;
+        if (it.is_cac) cacValor += computado;
+        else royalties += computado;
       } else if (it.categoria === "csc_base_antiga") {
         receitaBaseAntiga += v;
       }
@@ -787,7 +795,7 @@ export const fecharApuracao = createServerFn({ method: "POST" })
     const cscFixo = ap.csc_valor_fixo != null ? Number(ap.csc_valor_fixo) : null;
     const cscEfetivo = cscFixo ?? (ap.csc_percentual_base_antiga != null ? cscBaseAntigaValor : 0);
     const outras = Number(ap.outras_receitas ?? 0);
-    const total = cscEfetivo + royalties + outras;
+    const total = cscEfetivo + royalties + cacValor + outras;
 
     // Atualizar royalties_item por item (em paralelo para evitar estado parcial)
     const { data: itensFull, error: itensFullErr } = await supabase
@@ -819,6 +827,7 @@ export const fecharApuracao = createServerFn({ method: "POST" })
         status: "confirmado",
         receita_base: receitaBase,
         royalties_valor: royalties,
+        cac_valor: cacValor,
         receita_base_antiga: receitaBaseAntiga,
         csc_base_antiga_valor: ap.csc_percentual_base_antiga != null ? cscBaseAntigaValor : null,
         total_fatura: total,

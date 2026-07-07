@@ -262,6 +262,7 @@ function ApuracaoLoaded({
   // totals (live)
   let receitaBase = 0;
   let royaltiesValor = 0;
+  let cacValor = 0;
   let receitaBaseAntiga = 0;
   let confirmadosCount = 0;
   for (const it of ativos) {
@@ -270,7 +271,9 @@ function ApuracaoLoaded({
     const v = valorEfetivo(it);
     if (it.categoria === "royalties") {
       receitaBase += v;
-      royaltiesValor += (v * pctEfetivo(it)) / 100;
+      const computado = (v * pctEfetivo(it)) / 100;
+      if (it.is_cac) cacValor += computado;
+      else royaltiesValor += computado;
     } else if (it.categoria === "csc_base_antiga") {
       receitaBaseAntiga += v;
     }
@@ -280,7 +283,7 @@ function ApuracaoLoaded({
   const cscFixo = u.csc_valor_fixo != null ? Number(u.csc_valor_fixo) : null;
   const cscEfetivo = cscFixo ?? (isCscVariavel ? cscBaseAntigaValor : 0);
   const outras = Number(apuracao.outras_receitas ?? 0);
-  const totalFatura = cscEfetivo + royaltiesValor + outras;
+  const totalFatura = cscEfetivo + royaltiesValor + cacValor + outras;
   const badge = STATUS_BADGE[apuracao.status] ?? { label: apuracao.status, cls: "" };
 
   const flushValor = (it: ApuracaoItem) => {
@@ -313,6 +316,10 @@ function ApuracaoLoaded({
 
   const toggleConfirm = (it: ApuracaoItem, checked: boolean) => {
     updateItem.mutate({ id: it.id, confirmado: checked });
+  };
+
+  const toggleCac = (it: ApuracaoItem, checked: boolean) => {
+    updateItem.mutate({ id: it.id, is_cac: checked });
   };
 
   return (
@@ -388,6 +395,7 @@ function ApuracaoLoaded({
               value={brl(cscFixo ?? cscBaseAntigaValor)}
               sub={cscFixo != null ? "fixo" : `${cscPctBaseAntiga}% base antiga`}
             />
+            {cacValor > 0 && <Metric label="CAC" value={brl(cacValor)} />}
             <Metric label="Total fatura" value={brl(totalFatura)} highlight />
           </div>
         </div>
@@ -433,6 +441,7 @@ function ApuracaoLoaded({
             setLocalPct={setLocalPct}
             flushPct={flushPct}
             toggleConfirm={toggleConfirm}
+            toggleCac={toggleCac}
             onDelete={(it) => deleteItem.mutate({ id: it.id })}
             onMarcarChurn={handleMarcarChurn}
             churnPending={marcarChurn.isPending}
@@ -460,6 +469,7 @@ function ApuracaoLoaded({
             setLocalPct={setLocalPct}
             flushPct={flushPct}
             toggleConfirm={toggleConfirm}
+            toggleCac={toggleCac}
             onDelete={(it) => deleteItem.mutate({ id: it.id })}
             onMarcarChurn={handleMarcarChurn}
             churnPending={marcarChurn.isPending}
@@ -487,6 +497,7 @@ function ApuracaoLoaded({
               setLocalPct={setLocalPct}
               flushPct={flushPct}
               toggleConfirm={toggleConfirm}
+              toggleCac={toggleCac}
               onDelete={(it) => deleteItem.mutate({ id: it.id })}
               onExcluir={handleExcluir}
               excluirPending={excluirItem.isPending}
@@ -510,6 +521,7 @@ function ApuracaoLoaded({
             setLocalPct={setLocalPct}
             flushPct={flushPct}
             toggleConfirm={toggleConfirm}
+            toggleCac={toggleCac}
             onDelete={(it) => deleteItem.mutate({ id: it.id })}
             extraHeader={
               !readOnly && (
@@ -562,6 +574,9 @@ function ApuracaoLoaded({
           <ResumoLinha label="Clientes confirmados" value={`${confirmadosCount} / ${ativos.length}`} />
           <ResumoLinha label="Base Planning" value={brl(receitaBase)} />
           <ResumoLinha label={`Royalties (${pctPadrao}%)`} value={brl(royaltiesValor)} bold />
+          {cacValor > 0 && (
+            <ResumoLinha label="CAC (itens marcados)" value={brl(cacValor)} bold />
+          )}
           <div className="border-t pt-3 space-y-2">
             {cscFixo != null ? (
               <ResumoLinha label="CSC fixo" value={brl(cscFixo)} bold />
@@ -614,7 +629,7 @@ function ApuracaoLoaded({
               <span className="text-lg font-bold">{brl(totalFatura)}</span>
             </div>
             <div className="text-[10px] text-muted-foreground">
-              CSC + Royalties + Outras (tráfego não entra)
+              CSC + Royalties + CAC + Outras (tráfego não entra)
             </div>
           </div>
 
@@ -701,6 +716,7 @@ interface GrupoProps {
   setLocalPct: React.Dispatch<React.SetStateAction<Record<number, string>>>;
   flushPct: (it: ApuracaoItem) => void;
   toggleConfirm: (it: ApuracaoItem, c: boolean) => void;
+  toggleCac?: (it: ApuracaoItem, c: boolean) => void;
   onDelete: (it: ApuracaoItem) => void;
   extraHeader?: React.ReactNode;
   onMarcarChurn?: (it: ApuracaoItem, motivo: string, dataChurn: string) => void;
@@ -998,6 +1014,7 @@ function SecaoGrupo({
   setLocalPct,
   flushPct,
   toggleConfirm,
+  toggleCac,
   onDelete,
   extraHeader,
   onMarcarChurn,
@@ -1037,6 +1054,7 @@ function SecaoGrupo({
                     <th className="px-3 py-2 text-right">Omie</th>
                     <th className="px-3 py-2 text-right">Confirmado</th>
                     <th className="px-3 py-2 text-right">%</th>
+                    {toggleCac && <th className="px-3 py-2 text-center">CAC?</th>}
                     <th className="px-3 py-2 text-right">Royalties</th>
                     <th className="px-3 py-2 text-center">✓</th>
                     <th className="px-3 py-2"></th>
@@ -1155,7 +1173,24 @@ function SecaoGrupo({
                             )}
                           />
                         </td>
-                        <td className="px-3 py-2 text-right whitespace-nowrap text-indigo-700 dark:text-indigo-300">
+                        {toggleCac && (
+                          <td className="px-3 py-2 text-center">
+                            <Checkbox
+                              checked={!!it.is_cac}
+                              disabled={readOnly}
+                              title="Marcar como CAC — o valor calculado entra na linha de CAC do resumo, não em Royalties"
+                              onCheckedChange={(c) => toggleCac(it, Boolean(c))}
+                            />
+                          </td>
+                        )}
+                        <td
+                          className={cn(
+                            "px-3 py-2 text-right whitespace-nowrap",
+                            it.is_cac
+                              ? "text-amber-700 dark:text-amber-400"
+                              : "text-indigo-700 dark:text-indigo-300",
+                          )}
+                        >
                           {brl(royal)}
                         </td>
                         <td className="px-3 py-2 text-center">
