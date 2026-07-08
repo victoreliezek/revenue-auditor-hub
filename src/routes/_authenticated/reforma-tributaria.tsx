@@ -407,7 +407,12 @@ function ReformaTributariaPage() {
             <Textarea
               placeholder="Adicione notas técnicas, contextos relevantes ou recomendações para o cliente..."
               value={data.observacoes}
-              onChange={(e) => setField('observacoes', e.target.value)}
+              onChange={(e) => {
+                const obs = e.target.value;
+                // Update state AND preview directly — observações must always sync, even in edit mode
+                setData((prev) => ({ ...prev, observacoes: obs }));
+                updatePreview({ ...data, observacoes: obs });
+              }}
               className="text-sm resize-none"
               rows={4}
             />

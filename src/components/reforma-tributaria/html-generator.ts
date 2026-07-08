@@ -478,8 +478,8 @@ ${d.observacoes ? `
 <section id="notas" style="background:var(--s1);">
 <div class="container">
   <div class="reveal"><div class="eyebrow">Nota da Auditora</div>
-  <h2 class="section-title ruled" style="font-size:1.4rem;">Observações técnicas desta análise</h2></div>
-  <div class="reveal" style="margin-top:24px;background:#0f180f;border:1px solid #1e3a1e;border-radius:12px;padding:24px 28px;font-size:.88rem;color:#ccc;line-height:1.75;max-width:720px;">
+  <h2 class="section-title ruled" data-e style="font-size:1.4rem;">Observações técnicas desta análise</h2></div>
+  <div class="reveal" data-e style="margin-top:24px;background:#0f180f;border:1px solid #1e3a1e;border-radius:12px;padding:24px 28px;font-size:.88rem;color:#ccc;line-height:1.75;max-width:720px;">
     ${d.observacoes.split('\n').map((l) => '<p style="margin-bottom:6px;">' + (l.trim() || '&nbsp;') + '</p>').join('')}
   </div>
 </div>
