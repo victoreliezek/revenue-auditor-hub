@@ -49,6 +49,9 @@ type Tratativa = {
   mrr: number | null;
   update_time: string | null;
   stage_change_time: string | null;
+  motivo: string | null;
+  data_churn: string | null;
+  pipedrive_deal_id: number | null;
 };
 
 const NA = "—";
@@ -77,6 +80,7 @@ function statusBadge(status: string | null) {
 function TratativasPage() {
   const perms = usePermissions();
   const [rows, setRows] = useState<Tratativa[]>([]);
+  const [ganhoEmPorDealId, setGanhoEmPorDealId] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [unidadeFilter, setUnidadeFilter] = useState<string>("__all__");
   const [estagioFilter, setEstagioFilter] = useState<string>("__all__");
@@ -86,18 +90,50 @@ function TratativasPage() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const { data } = await supabase
-        .from("central_tratativas")
-        .select("id,titulo,estagio,status,unidade,mrr,update_time,stage_change_time")
-        .limit(5000);
+      const [tratativasRes, contratosRes] = await Promise.all([
+        supabase
+          .from("central_tratativas")
+          .select("id,titulo,estagio,status,unidade,mrr,update_time,stage_change_time,motivo,data_churn,pipedrive_deal_id")
+          .limit(5000),
+        supabase
+          .from("contratos")
+          .select("pipedrive_deal_id,ganho_em")
+          .not("pipedrive_deal_id", "is", null)
+          .not("ganho_em", "is", null)
+          .limit(10000),
+      ]);
       if (!mounted) return;
-      if (data) setRows(data as Tratativa[]);
+      if (tratativasRes.data) setRows(tratativasRes.data as Tratativa[]);
+      if (contratosRes.data) {
+        const map = new Map<string, string>();
+        for (const c of contratosRes.data as { pipedrive_deal_id: string | null; ganho_em: string | null }[]) {
+          if (c.pipedrive_deal_id && c.ganho_em) map.set(String(c.pipedrive_deal_id), c.ganho_em);
+        }
+        setGanhoEmPorDealId(map);
+      }
       setLoading(false);
     })();
     return () => {
       mounted = false;
     };
   }, []);
+
+  function tenureDias(r: Tratativa): number | null {
+    if (r.pipedrive_deal_id == null || !r.data_churn) return null;
+    const ganhoEm = ganhoEmPorDealId.get(String(r.pipedrive_deal_id));
+    if (!ganhoEm) return null;
+    const inicio = new Date(ganhoEm).getTime();
+    const fim = new Date(r.data_churn).getTime();
+    if (isNaN(inicio) || isNaN(fim) || fim < inicio) return null;
+    return Math.round((fim - inicio) / (1000 * 60 * 60 * 24));
+  }
+
+  function fmtTenure(dias: number | null): string {
+    if (dias == null) return NA;
+    const meses = dias / 30;
+    if (meses < 1) return `${dias} dias`;
+    return `${meses.toFixed(1)} meses`;
+  }
 
   const visiveis = useMemo(() => {
     // Hard filter: somente unidades da rede de franquias (OpsBoard).
@@ -138,12 +174,15 @@ function TratativasPage() {
     let abertos = 0;
     let mrrPerdido = 0;
     let mrrRecuperado = 0;
+    const tenures: number[] = [];
     for (const r of filtered) {
       const s = (r.status ?? "").toLowerCase();
       const mrr = r.mrr ?? 0;
       if (s === "lost") {
         perdidos += 1;
         mrrPerdido += mrr;
+        const t = tenureDias(r);
+        if (t != null) tenures.push(t);
       } else if (s === "won") {
         recuperados += 1;
         mrrRecuperado += mrr;
@@ -151,6 +190,7 @@ function TratativasPage() {
         abertos += 1;
       }
     }
+    const tenureMedioDias = tenures.length > 0 ? tenures.reduce((a, b) => a + b, 0) / tenures.length : null;
     return {
       total: filtered.length,
       perdidos,
@@ -159,8 +199,29 @@ function TratativasPage() {
       mrrPerdido,
       mrrRecuperado,
       taxaRecuperacao: perdidos + recuperados > 0 ? (recuperados / (perdidos + recuperados)) * 100 : 0,
+      tenureMedioDias,
+      tenureAmostra: tenures.length,
     };
+  }, [filtered, ganhoEmPorDealId]);
+
+  const motivosPerda = useMemo(() => {
+    const map = new Map<string, { motivo: string; count: number; mrr: number }>();
+    for (const r of filtered) {
+      if ((r.status ?? "").toLowerCase() !== "lost") continue;
+      const motivo = (r.motivo ?? "").trim();
+      if (!motivo) continue;
+      const g = map.get(motivo) ?? { motivo, count: 0, mrr: 0 };
+      g.count += 1;
+      g.mrr += r.mrr ?? 0;
+      map.set(motivo, g);
+    }
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
   }, [filtered]);
+
+  const perdidosSemMotivo = useMemo(
+    () => filtered.filter((r) => (r.status ?? "").toLowerCase() === "lost" && !(r.motivo ?? "").trim()).length,
+    [filtered],
+  );
 
   const porUnidade = useMemo(() => {
     const map = new Map<string, { unidade: string; total: number; perdidos: number; recuperados: number; mrrPerdido: number }>();
@@ -214,7 +275,7 @@ function TratativasPage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         <Card className="p-4">
           <div className="text-xs text-muted-foreground">Total</div>
           <div className="text-2xl font-bold">{kpis.total}</div>
@@ -238,6 +299,13 @@ function TratativasPage() {
         <Card className="p-4">
           <div className="text-xs text-muted-foreground">Taxa de recuperação</div>
           <div className="text-2xl font-bold">{kpis.taxaRecuperacao.toFixed(1)}%</div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-xs text-muted-foreground">Tempo médio até churn</div>
+          <div className="text-xl font-bold">{fmtTenure(kpis.tenureMedioDias)}</div>
+          <div className="text-[11px] text-muted-foreground">
+            {kpis.tenureAmostra > 0 ? `${kpis.tenureAmostra} caso(s) com contrato + data de churn` : "sem dados suficientes"}
+          </div>
         </Card>
       </div>
 
@@ -311,6 +379,44 @@ function TratativasPage() {
         </Card>
       </div>
 
+      {/* Motivos de perda */}
+      <Card className="p-0 overflow-hidden">
+        <div className="px-4 py-3 border-b flex items-center justify-between">
+          <div className="text-sm font-semibold">Motivos de perda</div>
+          {perdidosSemMotivo > 0 && (
+            <div className="text-xs text-muted-foreground">
+              {perdidosSemMotivo} perdido(s) sem motivo registrado no Pipefy
+            </div>
+          )}
+        </div>
+        {motivosPerda.length === 0 ? (
+          <div className="text-center text-sm text-muted-foreground py-6">
+            Nenhum motivo de perda registrado ainda para os filtros atuais.
+          </div>
+        ) : (
+          <div className="overflow-auto max-h-[320px]">
+            <table className="w-full text-sm">
+              <TableHeader className="sticky top-0 z-10">
+                <TableRow>
+                  <TableHead className="bg-background">Motivo</TableHead>
+                  <TableHead className="bg-background text-right">Ocorrências</TableHead>
+                  <TableHead className="bg-background text-right">MRR perdido</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {motivosPerda.map((m) => (
+                  <TableRow key={m.motivo}>
+                    <TableCell className="font-medium">{m.motivo}</TableCell>
+                    <TableCell className="text-right">{m.count}</TableCell>
+                    <TableCell className="text-right">{fmtMoney(m.mrr)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </table>
+          </div>
+        )}
+      </Card>
+
       {/* Resumo por unidade */}
       <Card className="p-0 overflow-hidden">
         <div className="px-4 py-3 border-b">
@@ -363,6 +469,8 @@ function TratativasPage() {
                 <TableHead className="bg-background">Estágio</TableHead>
                 <TableHead className="bg-background">Status</TableHead>
                 <TableHead className="bg-background text-right">MRR</TableHead>
+                <TableHead className="bg-background">Motivo da perda</TableHead>
+                <TableHead className="bg-background">Tempo como cliente</TableHead>
                 <TableHead className="bg-background">Mudança de estágio</TableHead>
                 <TableHead className="bg-background">Última atualização</TableHead>
               </TableRow>
@@ -375,13 +483,17 @@ function TratativasPage() {
                   <TableCell>{r.estagio ?? NA}</TableCell>
                   <TableCell>{statusBadge(r.status)}</TableCell>
                   <TableCell className="text-right">{fmtMoney(r.mrr)}</TableCell>
+                  <TableCell className="max-w-[280px] truncate" title={r.motivo ?? undefined}>
+                    {r.motivo ?? NA}
+                  </TableCell>
+                  <TableCell>{fmtTenure(tenureDias(r))}</TableCell>
                   <TableCell>{fmtDate(r.stage_change_time)}</TableCell>
                   <TableCell>{fmtDate(r.update_time)}</TableCell>
                 </TableRow>
               ))}
               {!loading && tabela.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-6">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-6">
                     Nenhuma tratativa encontrada com os filtros atuais.
                   </TableCell>
                 </TableRow>
