@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import {
   addFiliais,
   listFiliaisDisponiveis,
@@ -8,7 +9,18 @@ import {
   removeFilial,
 } from "@/lib/contrato-omie-grupos.functions";
 
-export function useGruposByContrato(apuracao_id: number, contrato_id: number | null, enabled = true) {
+// Default error handler — garante que falhas silenciosas sempre virem toast
+// (mesmo padrão de use-royalties.ts).
+const defaultOnError = (e: unknown) => {
+  const msg = e instanceof Error ? e.message : "Erro inesperado";
+  toast.error(msg);
+};
+
+export function useGruposByContrato(
+  apuracao_id: number,
+  contrato_id: number | null,
+  enabled = true,
+) {
   const fn = useServerFn(listGruposByContrato);
   return useQuery({
     queryKey: ["grupos", "contrato", apuracao_id, contrato_id],
@@ -36,6 +48,7 @@ export function useAddFiliais() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["grupos"] });
     },
+    onError: defaultOnError,
   });
 }
 
@@ -47,6 +60,7 @@ export function useRemoveFilial() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["grupos"] });
     },
+    onError: defaultOnError,
   });
 }
 
@@ -58,6 +72,7 @@ export function useRegerarMatch() {
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["royalties", "apuracao", vars.apuracao_id] });
     },
+    onError: defaultOnError,
   });
 }
 
