@@ -128,6 +128,11 @@ function TratativasPage() {
     return Math.round((fim - inicio) / (1000 * 60 * 60 * 24));
   }
 
+  function ganhoEmDe(r: Tratativa): string | null {
+    if (r.pipedrive_deal_id == null) return null;
+    return ganhoEmPorDealId.get(String(r.pipedrive_deal_id)) ?? null;
+  }
+
   function fmtTenure(dias: number | null): string {
     if (dias == null) return NA;
     const meses = dias / 30;
@@ -471,8 +476,8 @@ function TratativasPage() {
                 <TableHead className="bg-background text-right">MRR</TableHead>
                 <TableHead className="bg-background">Motivo da perda</TableHead>
                 <TableHead className="bg-background">Tempo como cliente</TableHead>
+                <TableHead className="bg-background">Data do ganho</TableHead>
                 <TableHead className="bg-background">Data do churn</TableHead>
-                <TableHead className="bg-background">Última atualização</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -487,8 +492,8 @@ function TratativasPage() {
                     {r.motivo ?? NA}
                   </TableCell>
                   <TableCell>{fmtTenure(tenureDias(r))}</TableCell>
+                  <TableCell>{ganhoEmDe(r) ? fmtDate(ganhoEmDe(r)) : ""}</TableCell>
                   <TableCell>{r.data_churn ? fmtDate(r.data_churn) : ""}</TableCell>
-                  <TableCell>{fmtDate(r.update_time)}</TableCell>
                 </TableRow>
               ))}
               {!loading && tabela.length === 0 && (
