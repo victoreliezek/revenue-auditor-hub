@@ -471,7 +471,7 @@ function TratativasPage() {
                 <TableHead className="bg-background text-right">MRR</TableHead>
                 <TableHead className="bg-background">Motivo da perda</TableHead>
                 <TableHead className="bg-background">Tempo como cliente</TableHead>
-                <TableHead className="bg-background">Mudança de estágio</TableHead>
+                <TableHead className="bg-background">Data do churn</TableHead>
                 <TableHead className="bg-background">Última atualização</TableHead>
               </TableRow>
             </TableHeader>
@@ -487,7 +487,7 @@ function TratativasPage() {
                     {r.motivo ?? NA}
                   </TableCell>
                   <TableCell>{fmtTenure(tenureDias(r))}</TableCell>
-                  <TableCell>{fmtDate(r.stage_change_time)}</TableCell>
+                  <TableCell>{r.data_churn ? fmtDate(r.data_churn) : ""}</TableCell>
                   <TableCell>{fmtDate(r.update_time)}</TableCell>
                 </TableRow>
               ))}
