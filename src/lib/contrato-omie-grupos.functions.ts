@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertAdmin, digits, monthRange } from "@/lib/server-utils";
+import { apagarItensNaoConfirmados, gerarItensApuracaoCore } from "@/lib/royalties.functions";
 
 
 export interface FilialVinculada {
@@ -150,6 +151,7 @@ export const addFiliais = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
     (d: {
+      apuracao_id: number;
       contrato_id: number;
       unidade: string;
       filiais: { cpf_cnpj: string; razao_social: string }[];
@@ -169,11 +171,38 @@ export const addFiliais = createServerFn({ method: "POST" })
         criado_por: email,
       }))
       .filter((r) => r.cpf_cnpj.length === 14 || r.cpf_cnpj.length === 11);
-    if (rows.length === 0) return { inserted: 0 };
+    if (rows.length === 0) return { inserted: 0, apuracoes_atualizadas: 0 };
 
     const { error } = await supabase.from("contrato_omie_grupos").insert(rows);
     if (error) throw new Error(error.message);
-    return { inserted: rows.length };
+
+    // O vínculo de filial não é escopado a um mês — se essa(s) filial(is) já teve
+    // recebimento em OUTRAS apurações desta unidade (meses diferentes, ainda não
+    // fechados), esse valor precisa ser puxado pra lá também, senão o recebido some
+    // do "Só no Omie" daquele mês mas nunca aparece somado no contrato correspondente.
+    const { data: unidadeRow, error: uErr } = await supabase
+      .from("unidades")
+      .select("id")
+      .eq("nome_da_praca", data.unidade)
+      .single();
+    if (uErr) throw new Error(uErr.message);
+
+    const { data: apuracoesUnidade, error: apsErr } = await supabase
+      .from("royalties_apuracao")
+      .select("id,status")
+      .eq("unidade_id", unidadeRow.id)
+      .neq("id", data.apuracao_id);
+    if (apsErr) throw new Error(apsErr.message);
+
+    const outrasApuracoes = (apuracoesUnidade ?? []).filter(
+      (a: any) => a.status !== "confirmado" && a.status !== "faturado",
+    );
+    for (const ap of outrasApuracoes) {
+      await apagarItensNaoConfirmados(supabase, ap.id);
+      await gerarItensApuracaoCore(supabase, ap.id);
+    }
+
+    return { inserted: rows.length, apuracoes_atualizadas: outrasApuracoes.length };
   });
 
 // ============ removeFilial ============
@@ -209,14 +238,7 @@ export const regerarMatchApuracao = createServerFn({ method: "POST" })
       throw new Error("Apuração fechada — reabra antes de regerar.");
     }
 
-    const { error: dErr } = await supabase
-      .from("royalties_itens")
-      .delete()
-      .eq("apuracao_id", data.apuracao_id)
-      .in("fonte", ["pipedrive", "omie"])
-      .eq("confirmado", false)
-      .is("churn_pipefy_card_id", null);
-    if (dErr) throw new Error(dErr.message);
+    await apagarItensNaoConfirmados(supabase, data.apuracao_id);
 
     return { ok: true };
   });

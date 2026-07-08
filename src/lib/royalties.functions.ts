@@ -182,29 +182,26 @@ const camposExclusaoChurn = (
   };
 };
 
-// ============ gerarItensApuracao ============
-export const gerarItensApuracao = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: { apuracao_id: number; force?: boolean }) => d)
-  .handler(async ({ data, context }): Promise<{ created: number; skipped: boolean }> => {
-    const { supabase, userId } = context;
-    await assertAdmin(supabase, userId);
+// ============ apagarItensNaoConfirmados / gerarItensApuracaoCore ============
+// Núcleo compartilhado da regeneração de itens — usado tanto pelos server fns
+// abaixo quanto pela propagação entre meses (addFiliais, em contrato-omie-grupos)
+// quando um vínculo de filial precisa recalcular outras apurações além da atual.
+export async function apagarItensNaoConfirmados(supabase: any, apuracao_id: number) {
+  const { error } = await supabase
+    .from("royalties_itens")
+    .delete()
+    .eq("apuracao_id", apuracao_id)
+    .in("fonte", ["pipedrive", "omie"])
+    .eq("confirmado", false)
+    .is("churn_pipefy_card_id", null);
+  if (error) throw new Error(error.message);
+}
 
-    if (!data.force) {
-      // Skip if items exist
-      const { count, error: cErr } = await supabase
-        .from("royalties_itens")
-        .select("id", { count: "exact", head: true })
-        .eq("apuracao_id", data.apuracao_id);
-      if (cErr) throw new Error(cErr.message);
-      if ((count ?? 0) > 0) return { created: 0, skipped: true };
-    }
-
-
+export async function gerarItensApuracaoCore(supabase: any, apuracao_id: number): Promise<{ created: number }> {
     const { data: ap, error: apErr } = await supabase
       .from("royalties_apuracao")
       .select("id,mes_referencia,unidade_id,status, unidade:unidades!inner(id,nome_da_praca,csc_percentual_base_antiga)")
-      .eq("id", data.apuracao_id)
+      .eq("id", apuracao_id)
       .single();
     if (apErr) throw new Error(apErr.message);
     if (ap.status === "confirmado" || ap.status === "faturado") {
@@ -227,15 +224,15 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
     const { data: itensExistentes, error: ieErr } = await supabase
       .from("royalties_itens")
       .select("id,contrato_id,cnpj,valor_omie,confirmado,churn_pipefy_card_id,excluido_em")
-      .eq("apuracao_id", data.apuracao_id);
+      .eq("apuracao_id", apuracao_id);
     if (ieErr) throw new Error(ieErr.message);
-    const itemPorContrato = new Map(
+    const itemPorContrato = new Map<number, any>(
       (itensExistentes ?? [])
-        .filter((i) => i.contrato_id != null)
-        .map((i) => [i.contrato_id as number, i]),
+        .filter((i: any) => i.contrato_id != null)
+        .map((i: any) => [i.contrato_id as number, i]),
     );
     const cnpjsSemContratoComItem = new Set(
-      (itensExistentes ?? []).filter((i) => i.contrato_id == null).map((i) => digits(i.cnpj)),
+      (itensExistentes ?? []).filter((i: any) => i.contrato_id == null).map((i: any) => digits(i.cnpj)),
     );
     const atualizacoesValorOmie: {
       id: number;
@@ -274,10 +271,10 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
       .eq("estagio", "Perdido")
       .eq("status", "lost");
     if (tcErr) throw new Error(tcErr.message);
-    const churnPorDealId = new Map(
+    const churnPorDealId = new Map<string, any>(
       (tratativasChurn ?? [])
-        .filter((t) => t.pipedrive_deal_id != null)
-        .map((t) => [String(t.pipedrive_deal_id), t]),
+        .filter((t: any) => t.pipedrive_deal_id != null)
+        .map((t: any) => [String(t.pipedrive_deal_id), t]),
     );
     const churnInfoParaMes = (pipedriveDealId: string | number | null) => {
       if (pipedriveDealId == null) return null;
@@ -313,7 +310,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
     // Carrega filiais vinculadas a contratos desta unidade — precisa rodar antes de
     // decidir quem vai pro branch "sem CNPJ", pois um contrato sem CNPJ próprio no
     // Pipedrive ainda pode ter filiais vinculadas manualmente com CNPJ que bate com o Omie.
-    const todosContratoIds = (contratos ?? []).map((c) => c.id);
+    const todosContratoIds = (contratos ?? []).map((c: any) => c.id);
     const filiaisPorContrato = new Map<number, string[]>();
     if (todosContratoIds.length > 0) {
       const { data: grupos, error: gErr } = await supabase
@@ -340,7 +337,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
         // da apuração inteira.
         const churnInfoSemCnpj = churnInfoParaMes(c.pipedrive_deal_id);
         itensSemCnpj.push({
-          apuracao_id: data.apuracao_id,
+          apuracao_id: apuracao_id,
           cnpj: null,
           razao_social: c.titulo ?? "—",
           contrato_id: c.id,
@@ -420,7 +417,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
       if (temOmie) {
         const diff = c.mrr > 0 ? Math.abs(omieValor - c.mrr) / c.mrr : 0;
         itens.push({
-          apuracao_id: data.apuracao_id,
+          apuracao_id: apuracao_id,
           cnpj: c.cnpj,
           razao_social: c.titulo,
           contrato_id: c.id,
@@ -436,7 +433,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
         });
       } else {
         itens.push({
-          apuracao_id: data.apuracao_id,
+          apuracao_id: apuracao_id,
           cnpj: c.cnpj,
           razao_social: c.titulo,
           contrato_id: c.id,
@@ -458,7 +455,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
     for (const [k, o] of omieMap) {
       if (cnpjsSemContratoComItem.has(k)) continue;
       itens.push({
-        apuracao_id: data.apuracao_id,
+        apuracao_id: apuracao_id,
         cnpj: k,
         razao_social: o.cliente,
         contrato_id: null,
@@ -504,7 +501,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
       if (exErr) throw new Error(exErr.message);
     }
 
-    if (itens.length === 0) return { created: 0, skipped: false };
+    if (itens.length === 0) return { created: 0 };
 
     // Insert em chunks
     const chunkSize = 500;
@@ -515,6 +512,28 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       created += chunk.length;
     }
+    return { created };
+}
+
+// ============ gerarItensApuracao ============
+export const gerarItensApuracao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { apuracao_id: number; force?: boolean }) => d)
+  .handler(async ({ data, context }): Promise<{ created: number; skipped: boolean }> => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+
+    if (!data.force) {
+      // Skip if items exist
+      const { count, error: cErr } = await supabase
+        .from("royalties_itens")
+        .select("id", { count: "exact", head: true })
+        .eq("apuracao_id", data.apuracao_id);
+      if (cErr) throw new Error(cErr.message);
+      if ((count ?? 0) > 0) return { created: 0, skipped: true };
+    }
+
+    const { created } = await gerarItensApuracaoCore(supabase, data.apuracao_id);
     return { created, skipped: false };
   });
 

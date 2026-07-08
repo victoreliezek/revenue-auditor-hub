@@ -80,9 +80,10 @@ export function GruposFiliaisDialog({
       return;
     }
     try {
-      await add.mutateAsync({ contrato_id: contratoId, unidade, filiais: list });
+      const res = await add.mutateAsync({ apuracao_id: apuracaoId, contrato_id: contratoId, unidade, filiais: list });
       await refazerMatch();
-      toast.success(`${list.length} filial(is) vinculada(s).`);
+      const extra = res.apuracoes_atualizadas > 0 ? ` (atualizado também em ${res.apuracoes_atualizadas} outro(s) mês(es))` : "";
+      toast.success(`${list.length} filial(is) vinculada(s)${extra}.`);
       setSelected({});
       onOpenChange(false);
     } catch (e: any) {
