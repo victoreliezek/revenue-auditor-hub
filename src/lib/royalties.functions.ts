@@ -310,14 +310,34 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
       omieMap.set(k, cur);
     }
 
-    const contratoMap = new Map<string, { id: number; titulo: string; mrr: number; cnpj: string; ganhoEm: string | null; pipedriveDealId: string | number | null }>();
+    // Carrega filiais vinculadas a contratos desta unidade — precisa rodar antes de
+    // decidir quem vai pro branch "sem CNPJ", pois um contrato sem CNPJ próprio no
+    // Pipedrive ainda pode ter filiais vinculadas manualmente com CNPJ que bate com o Omie.
+    const todosContratoIds = (contratos ?? []).map((c) => c.id);
+    const filiaisPorContrato = new Map<number, string[]>();
+    if (todosContratoIds.length > 0) {
+      const { data: grupos, error: gErr } = await supabase
+        .from("contrato_omie_grupos")
+        .select("contrato_id,cpf_cnpj")
+        .in("contrato_id", todosContratoIds);
+      if (gErr) throw new Error(gErr.message);
+      for (const g of grupos ?? []) {
+        const arr = filiaisPorContrato.get(g.contrato_id) ?? [];
+        arr.push(digits(g.cpf_cnpj));
+        filiaisPorContrato.set(g.contrato_id, arr);
+      }
+    }
+
+    const contratoMap = new Map<string, { id: number; titulo: string; mrr: number; cnpj: string | null; ganhoEm: string | null; pipedriveDealId: string | number | null }>();
     const itensSemCnpj: any[] = [];
     for (const c of contratos ?? []) {
       const k = digits(c.cnpj);
-      if (!k) {
+      const filiais = filiaisPorContrato.get(c.id) ?? [];
+      if (!k && filiais.length === 0) {
         if (itemPorContrato.has(c.id)) continue;
-        // Contrato sem CNPJ cadastrado nunca pode ser cruzado com o Omie (join é por CNPJ).
-        // Sem isso, o contrato desaparece silenciosamente da apuração inteira.
+        // Contrato sem CNPJ cadastrado e sem filiais vinculadas nunca pode ser cruzado
+        // com o Omie (join é por CNPJ). Sem isso, o contrato desaparece silenciosamente
+        // da apuração inteira.
         const churnInfoSemCnpj = churnInfoParaMes(c.pipedrive_deal_id);
         itensSemCnpj.push({
           apuracao_id: data.apuracao_id,
@@ -338,31 +358,19 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
         });
         continue;
       }
-      contratoMap.set(k, { id: c.id, titulo: c.titulo ?? "—", mrr: Number(c.mrr_mensal ?? 0), cnpj: k, ganhoEm: c.ganho_em ?? null, pipedriveDealId: c.pipedrive_deal_id ?? null });
-    }
-
-    // Carrega filiais vinculadas a contratos desta unidade
-    const contratoIds = Array.from(contratoMap.values()).map((c) => c.id);
-    const filiaisPorContrato = new Map<number, string[]>();
-    if (contratoIds.length > 0) {
-      const { data: grupos, error: gErr } = await supabase
-        .from("contrato_omie_grupos")
-        .select("contrato_id,cpf_cnpj")
-        .in("contrato_id", contratoIds);
-      if (gErr) throw new Error(gErr.message);
-      for (const g of grupos ?? []) {
-        const arr = filiaisPorContrato.get(g.contrato_id) ?? [];
-        arr.push(digits(g.cpf_cnpj));
-        filiaisPorContrato.set(g.contrato_id, arr);
-      }
+      // Contrato sem CNPJ próprio mas com filiais vinculadas usa uma chave sintética
+      // (id do contrato) só pra não colidir no Map — o cnpj salvo no item continua null,
+      // o match acontece inteiramente pelas filiais.
+      const mapKey = k || `__filial_only_${c.id}`;
+      contratoMap.set(mapKey, { id: c.id, titulo: c.titulo ?? "—", mrr: Number(c.mrr_mensal ?? 0), cnpj: k || null, ganhoEm: c.ganho_em ?? null, pipedriveDealId: c.pipedrive_deal_id ?? null });
     }
 
     const itens: any[] = [...itensSemCnpj];
 
     // Matched + so_pipedrive (com expansão por filiais vinculadas)
-    for (const [k, c] of contratoMap) {
+    for (const [, c] of contratoMap) {
       const filiais = filiaisPorContrato.get(c.id) ?? [];
-      const cnpjsGrupo = [k, ...filiais];
+      const cnpjsGrupo = [c.cnpj, ...filiais].filter((x): x is string => !!x);
       let omieValor = 0;
       let temOmie = false;
       for (const cn of cnpjsGrupo) {
@@ -413,7 +421,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
         const diff = c.mrr > 0 ? Math.abs(omieValor - c.mrr) / c.mrr : 0;
         itens.push({
           apuracao_id: data.apuracao_id,
-          cnpj: k,
+          cnpj: c.cnpj,
           razao_social: c.titulo,
           contrato_id: c.id,
           categoria: "royalties",
@@ -429,7 +437,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
       } else {
         itens.push({
           apuracao_id: data.apuracao_id,
-          cnpj: k,
+          cnpj: c.cnpj,
           razao_social: c.titulo,
           contrato_id: c.id,
           categoria: "royalties",

@@ -54,15 +54,17 @@ export const listGruposByContrato = createServerFn({ method: "GET" })
 
     if (!vinc || vinc.length === 0) return { filiais: [] };
 
-    const cnpjs = vinc.map((v: any) => v.cpf_cnpj);
+    // contas_receber.cpf_cnpj vem do Omie formatado (com pontuação), enquanto
+    // contrato_omie_grupos.cpf_cnpj é salvo só com dígitos — um filtro .in() aqui
+    // nunca daria match, então buscamos tudo do período e normalizamos em JS
+    // (mesmo padrão de listFiliaisDisponiveis).
     const { data: recs, error: rErr } = await supabase
       .from("contas_receber")
       .select("cpf_cnpj,valor")
       .eq("unidade", ctx.unidade)
       .eq("status_pagamento", "RECEBIDO")
       .gte("data_pagamento", ctx.start)
-      .lte("data_pagamento", ctx.end)
-      .in("cpf_cnpj", cnpjs);
+      .lte("data_pagamento", ctx.end);
     if (rErr) throw new Error(rErr.message);
 
     const totals = new Map<string, number>();
