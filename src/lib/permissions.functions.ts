@@ -20,6 +20,7 @@ export const KNOWN_PERMISSIONS: { key: string; label: string; description: strin
   { key: "view.auditoria.royalties", label: "Aba Royalties (Auditoria)", description: "Visualizar aba de Royalties dentro de Auditoria.", group: "Auditoria" },
   { key: "view.auditoria.unmapped", label: "Aba Não Mapeados", description: "Visualizar aba de Registros Não Mapeados.", group: "Auditoria" },
   { key: "view.roas", label: "Acessar ROAS & Payback", description: "Módulo de ROAS e payback.", group: "Acesso" },
+  { key: "view.bi_vendas", label: "Acessar BI de Vendas", description: "Propostas, vendas, contratos e ROAS de mídia por BU.", group: "Acesso" },
   { key: "view.rede_ltv", label: "LTV Estimado", description: "Página de LTV estimado por unidade.", group: "Acesso" },
   { key: "view.rede_headcount", label: "Headcount", description: "Página de headcount por unidade.", group: "Acesso" },
   { key: "view.rede_realizado", label: "Realizado Unidades", description: "Página de realizado por unidade.", group: "Acesso" },

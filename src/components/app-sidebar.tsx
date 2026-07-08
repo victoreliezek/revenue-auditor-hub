@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { TrendingUp, TrendingDown, Users, UserCog, ShieldCheck, Building2, Coins, BadgeCheck, Wallet, Smile, MessageSquareWarning, Filter, Gauge, LineChart, Receipt, Activity, BarChart3, GitMerge, FileBarChart2, KeyRound, Percent } from "lucide-react";
+import { TrendingUp, TrendingDown, Users, UserCog, ShieldCheck, Building2, Coins, BadgeCheck, Wallet, Smile, MessageSquareWarning, Filter, Gauge, LineChart, Receipt, Activity, BarChart3, GitMerge, FileBarChart2, KeyRound, Percent, Megaphone } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -41,6 +41,12 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
       { title: "LTV Estimado", url: "/rede-ltv", icon: TrendingUp, permission: "view.rede_ltv" },
       { title: "Headcount", url: "/rede-headcount", icon: Users, permission: "view.rede_headcount" },
       { title: "Realizado Unidades", url: "/rede-realizado", icon: BarChart3, permission: "view.rede_realizado" },
+    ],
+  },
+  {
+    label: "BI de Vendas",
+    items: [
+      { title: "Visão por BU", url: "/bi-vendas", icon: Megaphone, permission: "view.bi_vendas" },
     ],
   },
   {
