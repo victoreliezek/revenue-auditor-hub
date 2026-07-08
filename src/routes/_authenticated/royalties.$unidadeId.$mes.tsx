@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Ban, ChevronLeft, ChevronRight, Info, Link2, Pencil, Plus, RefreshCw, Trash2, UserX } from "lucide-react";
+import { ArrowLeft, Ban, ChevronLeft, ChevronRight, FileDown, Info, Link2, Pencil, Plus, RefreshCw, Trash2, UserX } from "lucide-react";
 import { GruposFiliaisDialog } from "@/components/royalties/grupos-filiais-dialog";
 
 import {
@@ -52,6 +52,7 @@ import {
 import { useRegerarMatch } from "@/hooks/use-grupos-filiais";
 import { cn } from "@/lib/utils";
 import type { ApuracaoItem } from "@/lib/royalties.functions";
+import { gerarDemonstrativoRoyaltiesPdf } from "@/lib/royalties-demonstrativo";
 
 export const Route = createFileRoute("/_authenticated/royalties/$unidadeId/$mes")({
   component: ApuracaoPage,
@@ -320,6 +321,45 @@ function ApuracaoLoaded({
 
   const toggleCac = (it: ApuracaoItem, checked: boolean) => {
     updateItem.mutate({ id: it.id, is_cac: checked });
+  };
+
+  const handleGerarDemonstrativo = () => {
+    const confirmados = ativos.filter((i) => i.confirmado);
+    const itens = confirmados.map((i) => {
+      const valor = Number(i.valor_confirmado ?? 0);
+      const pct =
+        i.categoria === "csc_base_antiga"
+          ? cscPctBaseAntiga
+          : i.royalties_percentual_override != null
+            ? Number(i.royalties_percentual_override)
+            : pctPadrao;
+      return {
+        razao_social: i.razao_social,
+        cnpj: i.cnpj,
+        data_ganho: i.data_ganho,
+        valor_confirmado: valor,
+        royalties_percentual: pct,
+        royalties_item: (valor * pct) / 100,
+        is_cac: i.is_cac,
+        categoria: i.categoria as "royalties" | "csc_base_antiga",
+      };
+    });
+    gerarDemonstrativoRoyaltiesPdf({
+      unidadeNome: u.nome_da_praca,
+      mes,
+      confirmadoEm: apuracao.confirmado_em,
+      confirmadoPor: apuracao.confirmado_por,
+      receitaBase,
+      royaltiesPct: pctPadrao,
+      royaltiesValor,
+      cacValor,
+      cscLabel: cscFixo != null ? "CSC fixo" : `CSC variável (${cscPctBaseAntiga}%)`,
+      cscValor: cscEfetivo,
+      trafegoPago: apuracao.csc_trafego_pago,
+      outrasReceitas: outras,
+      totalFatura,
+      itens,
+    });
   };
 
   return (
@@ -654,21 +694,27 @@ function ApuracaoLoaded({
               </div>
             </div>
           ) : (
-            <Button
-              variant="outline"
-              className="w-full"
-              disabled={reabrir.isPending}
-              onClick={() => {
-                if (confirm("Reabrir apuração?")) {
-                  reabrir.mutate(undefined, {
-                    onSuccess: () => toast.success("Apuração reaberta"),
-                    onError: (e: any) => toast.error(e.message),
-                  });
-                }
-              }}
-            >
-              Reabrir apuração
-            </Button>
+            <div className="space-y-2">
+              <Button variant="outline" className="w-full gap-1.5" onClick={handleGerarDemonstrativo}>
+                <FileDown className="h-4 w-4" />
+                Gerar demonstrativo (PDF)
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled={reabrir.isPending}
+                onClick={() => {
+                  if (confirm("Reabrir apuração?")) {
+                    reabrir.mutate(undefined, {
+                      onSuccess: () => toast.success("Apuração reaberta"),
+                      onError: (e: any) => toast.error(e.message),
+                    });
+                  }
+                }}
+              >
+                Reabrir apuração
+              </Button>
+            </div>
           )}
         </Card>
       </div>
