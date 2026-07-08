@@ -323,7 +323,7 @@ function ApuracaoLoaded({
     updateItem.mutate({ id: it.id, is_cac: checked });
   };
 
-  const handleGerarDemonstrativo = () => {
+  const handleGerarDemonstrativo = async () => {
     const confirmados = ativos.filter((i) => i.confirmado);
     const itens = confirmados.map((i) => {
       const valor = Number(i.valor_confirmado ?? 0);
@@ -344,7 +344,7 @@ function ApuracaoLoaded({
         categoria: i.categoria as "royalties" | "csc_base_antiga",
       };
     });
-    gerarDemonstrativoRoyaltiesPdf({
+    await gerarDemonstrativoRoyaltiesPdf({
       unidadeNome: u.nome_da_praca,
       mes,
       confirmadoEm: apuracao.confirmado_em,
@@ -359,6 +359,12 @@ function ApuracaoLoaded({
       outrasReceitas: outras,
       totalFatura,
       itens,
+      excluidos: excluidos.map((i) => ({
+        razao_social: i.razao_social,
+        cnpj: i.cnpj,
+        motivo_exclusao: i.motivo_exclusao,
+        excluido_em: i.excluido_em,
+      })),
     });
   };
 

@@ -19,6 +19,23 @@ function formatMesLabel(mes: string) {
   return new Date(y, m - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 }
 
+const BRAND_GREEN: [number, number, number] = [16, 185, 129];
+const BRAND_DARK: [number, number, number] = [31, 41, 55];
+const LOGO_ASPECT_RATIO = 1163.3 / 239.6;
+
+async function addPlanningLogo(doc: jsPDF, pageWidth: number) {
+  try {
+    const res = await fetch("/brand/planning-logo-dark.svg");
+    if (!res.ok) return;
+    const svg = await res.text();
+    const w = 100;
+    const h = w / LOGO_ASPECT_RATIO;
+    await doc.addSvgAsImage(svg, pageWidth - 40 - w, 26, w, h);
+  } catch {
+    // logo é decorativo — segue gerando o PDF sem ele
+  }
+}
+
 export interface DemonstrativoItem {
   razao_social: string;
   cnpj: string | null;
@@ -28,6 +45,13 @@ export interface DemonstrativoItem {
   royalties_item: number;
   is_cac: boolean;
   categoria: "royalties" | "csc_base_antiga";
+}
+
+export interface DemonstrativoExcluido {
+  razao_social: string;
+  cnpj: string | null;
+  motivo_exclusao: string | null;
+  excluido_em: string | null;
 }
 
 export interface DemonstrativoData {
@@ -45,9 +69,10 @@ export interface DemonstrativoData {
   outrasReceitas: number;
   totalFatura: number;
   itens: DemonstrativoItem[];
+  excluidos: DemonstrativoExcluido[];
 }
 
-export function gerarDemonstrativoRoyaltiesPdf(data: DemonstrativoData) {
+export async function gerarDemonstrativoRoyaltiesPdf(data: DemonstrativoData) {
   const mesLabel = formatMesLabel(data.mes);
   const royalties = data.itens.filter((i) => i.categoria === "royalties" && !i.is_cac);
   const cac = data.itens.filter((i) => i.is_cac);
@@ -56,8 +81,11 @@ export function gerarDemonstrativoRoyaltiesPdf(data: DemonstrativoData) {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
 
+  await addPlanningLogo(doc, pageWidth);
+
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
+  doc.setTextColor(BRAND_DARK[0], BRAND_DARK[1], BRAND_DARK[2]);
   doc.text(`Demonstrativo de royalties — ${data.unidadeNome}`, 40, 50);
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
@@ -72,6 +100,10 @@ export function gerarDemonstrativoRoyaltiesPdf(data: DemonstrativoData) {
   );
   doc.setTextColor(0);
 
+  doc.setDrawColor(BRAND_GREEN[0], BRAND_GREEN[1], BRAND_GREEN[2]);
+  doc.setLineWidth(2);
+  doc.line(40, 76, pageWidth - 40, 76);
+
   const kpiY = 90;
   const kpis: { label: string; value: string }[] = [
     { label: "Base Planning", value: BRL(data.receitaBase) },
@@ -84,15 +116,21 @@ export function gerarDemonstrativoRoyaltiesPdf(data: DemonstrativoData) {
   const kpiW = (pageWidth - 80 - (kpis.length - 1) * 10) / kpis.length;
   kpis.forEach((k, i) => {
     const x = 40 + i * (kpiW + 10);
+    const isTotal = i === kpis.length - 1;
     doc.setDrawColor(220);
     doc.setFillColor(250, 250, 250);
     doc.roundedRect(x, kpiY, kpiW, 54, 4, 4, "FD");
+    if (isTotal) {
+      doc.setFillColor(BRAND_GREEN[0], BRAND_GREEN[1], BRAND_GREEN[2]);
+      doc.roundedRect(x, kpiY, 4, 54, 2, 2, "F");
+    }
     doc.setFontSize(8);
     doc.setTextColor(110);
     doc.text(k.label.toUpperCase(), x + 8, kpiY + 16);
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(55, 65, 81);
+    if (isTotal) doc.setTextColor(BRAND_GREEN[0], BRAND_GREEN[1], BRAND_GREEN[2]);
+    else doc.setTextColor(BRAND_DARK[0], BRAND_DARK[1], BRAND_DARK[2]);
     doc.text(k.value, x + 8, kpiY + 38);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(0);
@@ -121,7 +159,7 @@ export function gerarDemonstrativoRoyaltiesPdf(data: DemonstrativoData) {
         BRL(r.royalties_item),
       ]),
       styles: { fontSize: 9, cellPadding: 4 },
-      headStyles: { fillColor: [55, 65, 81], textColor: 255 },
+      headStyles: { fillColor: BRAND_GREEN, textColor: 255 },
       columnStyles: {
         0: { cellWidth: 150 },
         3: { halign: "right" },
@@ -157,6 +195,47 @@ export function gerarDemonstrativoRoyaltiesPdf(data: DemonstrativoData) {
       cursorY += 14;
     }
     doc.setTextColor(0);
+    cursorY += 10;
+  }
+
+  if (data.excluidos.length > 0) {
+    if (cursorY > 660) {
+      doc.addPage();
+      cursorY = 50;
+    }
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Excluídos deste mês (não entram no cálculo)", 40, cursorY);
+    autoTable(doc, {
+      startY: cursorY + 8,
+      head: [["Cliente", "CNPJ", "Motivo", "Excluído em"]],
+      body: data.excluidos.map((e) => [
+        e.razao_social,
+        formatCnpj(e.cnpj),
+        e.motivo_exclusao ?? "—",
+        e.excluido_em ? new Date(e.excluido_em).toLocaleDateString("pt-BR") : "—",
+      ]),
+      styles: { fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: [156, 163, 175], textColor: 255 },
+      columnStyles: {
+        0: { cellWidth: 150 },
+      },
+      margin: { left: 40, right: 40 },
+    });
+  }
+
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const pageCount = doc.getNumberOfPages();
+  for (let p = 1; p <= pageCount; p++) {
+    doc.setPage(p);
+    doc.setDrawColor(BRAND_GREEN[0], BRAND_GREEN[1], BRAND_GREEN[2]);
+    doc.setLineWidth(1);
+    doc.line(40, pageHeight - 34, pageWidth - 40, pageHeight - 34);
+    doc.setFontSize(8);
+    doc.setTextColor(140);
+    doc.setFont("helvetica", "normal");
+    doc.text("Planning", 40, pageHeight - 22);
+    doc.text(`Página ${p} de ${pageCount}`, pageWidth - 40, pageHeight - 22, { align: "right" });
   }
 
   doc.save(
