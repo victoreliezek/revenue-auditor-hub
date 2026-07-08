@@ -163,6 +163,25 @@ export const getOrCreateApuracao = createServerFn({ method: "POST" })
     return { apuracao_id: inserted.id, created: true };
   });
 
+// Churn sem recebimento no mês não precisa de revisão manual — o item já nasce
+// (ou é atualizado/self-healed) excluído do mês automaticamente. Se HOUVER valor
+// do Omie no mês (ex: fatura residual paga antes do churn efetivar), o item
+// continua ativo normalmente pra um humano confirmar — só o "sem recebimento" é
+// automático.
+const MOTIVO_EXCLUSAO_CHURN_AUTOMATICO = "Churn registrado — sem recebimento no mês (exclusão automática)";
+const EXCLUIDO_POR_CHURN_AUTOMATICO = "sistema (churn automático)";
+const camposExclusaoChurn = (
+  churnInfo: { churn_pipefy_card_id: string | null; churn_reportado_em: string | null } | null,
+  temValorOmie: boolean,
+) => {
+  if (!churnInfo || temValorOmie) return {};
+  return {
+    excluido_em: new Date().toISOString(),
+    excluido_por: EXCLUIDO_POR_CHURN_AUTOMATICO,
+    motivo_exclusao: MOTIVO_EXCLUSAO_CHURN_AUTOMATICO,
+  };
+};
+
 // ============ gerarItensApuracao ============
 export const gerarItensApuracao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -226,7 +245,13 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
       status_match: string;
       churn_pipefy_card_id?: string | null;
       churn_reportado_em?: string | null;
+      excluido_em?: string;
+      excluido_por?: string;
+      motivo_exclusao?: string;
     }[] = [];
+    // Itens que já tinham churn marcado numa geração anterior a esta correção e
+    // ficaram presos em "so_pipedrive" sem nunca terem sido excluídos do mês.
+    const autoExclusoesChurnRetroativas: number[] = [];
 
     // contratos
     const { data: contratos, error: kErr } = await supabase
@@ -293,6 +318,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
         if (itemPorContrato.has(c.id)) continue;
         // Contrato sem CNPJ cadastrado nunca pode ser cruzado com o Omie (join é por CNPJ).
         // Sem isso, o contrato desaparece silenciosamente da apuração inteira.
+        const churnInfoSemCnpj = churnInfoParaMes(c.pipedrive_deal_id);
         itensSemCnpj.push({
           apuracao_id: data.apuracao_id,
           cnpj: null,
@@ -307,7 +333,8 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
           observacao: "Contrato sem CNPJ cadastrado — não foi possível conciliar com o Omie.",
           confirmado: false,
           data_ganho: c.ganho_em ?? null,
-          ...(churnInfoParaMes(c.pipedrive_deal_id) ?? {}),
+          ...(churnInfoSemCnpj ?? {}),
+          ...camposExclusaoChurn(churnInfoSemCnpj, false),
         });
         continue;
       }
@@ -356,7 +383,15 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
       const churnInfo = churnInfoParaMes(c.pipedriveDealId);
       const itemExistente = itemPorContrato.get(c.id);
       if (itemExistente) {
-        if (itemExistente.churn_pipefy_card_id) continue; // churn é definitivo, nunca recalcula
+        if (itemExistente.churn_pipefy_card_id) {
+          // Já tinha churn marcado numa geração anterior a esta correção — se
+          // ficou preso em so_pipedrive sem nunca ter sido excluído do mês,
+          // faz o self-heal agora (sem recalcular valor, churn é definitivo).
+          if (!itemExistente.excluido_em && !temOmie) {
+            autoExclusoesChurnRetroativas.push(itemExistente.id);
+          }
+          continue;
+        }
         if (itemExistente.excluido_em) continue; // excluído do mês manualmente, nunca recalcula
         const novoValorOmie = temOmie ? omieValor : null;
         const valorAtual = itemExistente.valor_omie == null ? null : Number(itemExistente.valor_omie);
@@ -369,6 +404,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
             confirmado: false,
             status_match: novoValorOmie == null ? "so_pipedrive" : diff > 0.25 ? "divergente" : "matched",
             ...(churnInfo ?? {}),
+            ...camposExclusaoChurn(churnInfo, novoValorOmie != null),
           });
         }
         continue;
@@ -403,6 +439,7 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
           fonte: "pipedrive",
           status_match: "so_pipedrive",
           ...(churnInfo ?? {}),
+          ...camposExclusaoChurn(churnInfo, false),
           confirmado: false,
           data_ganho: c.ganhoEm,
         });
@@ -437,8 +474,26 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
       };
       if (upd.churn_pipefy_card_id !== undefined) patch.churn_pipefy_card_id = upd.churn_pipefy_card_id;
       if (upd.churn_reportado_em !== undefined) patch.churn_reportado_em = upd.churn_reportado_em;
+      if (upd.excluido_em !== undefined) patch.excluido_em = upd.excluido_em;
+      if (upd.excluido_por !== undefined) patch.excluido_por = upd.excluido_por;
+      if (upd.motivo_exclusao !== undefined) patch.motivo_exclusao = upd.motivo_exclusao;
       const { error: uErr } = await supabase.from("royalties_itens").update(patch).eq("id", upd.id);
       if (uErr) throw new Error(uErr.message);
+    }
+
+    // Self-heal: itens que já tinham churn marcado antes desta correção e ficaram
+    // presos em so_pipedrive sem nunca terem sido excluídos do mês.
+    if (autoExclusoesChurnRetroativas.length > 0) {
+      const { error: exErr } = await supabase
+        .from("royalties_itens")
+        .update({
+          excluido_em: new Date().toISOString(),
+          excluido_por: EXCLUIDO_POR_CHURN_AUTOMATICO,
+          motivo_exclusao: MOTIVO_EXCLUSAO_CHURN_AUTOMATICO,
+          confirmado: false,
+        })
+        .in("id", autoExclusoesChurnRetroativas);
+      if (exErr) throw new Error(exErr.message);
     }
 
     if (itens.length === 0) return { created: 0, skipped: false };
