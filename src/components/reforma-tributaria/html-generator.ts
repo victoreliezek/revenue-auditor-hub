@@ -422,22 +422,22 @@ body.edit-mode .edit-toggle-btn{background:rgba(95,183,127,.08);border-color:rgb
 <section id="legal" style="background:var(--s1);">
 <div class="container">
   <div class="reveal"><div class="eyebrow">05 · Base legal</div>
-  <h2 class="section-title ruled">O que sustenta os números</h2>
+  <h2 class="section-title ruled" data-e>O que sustenta os números</h2>
   <p class="section-sub" data-e>A simulação segue integralmente a Lei Complementar 214, que institui o IVA dual (CBS + IBS) e define as regras de transição de 2026 a 2033.</p></div>
   <div class="cg ${isServico ? 'c1' : 'c2'} reveal" style="margin-top:36px;">
-    <div class="card cg-border"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;"><div class="cl">Base legal</div><span style="font-size:.95rem;font-weight:800;color:var(--g);">LC 214</span></div><div style="font-size:.88rem;font-weight:700;margin-bottom:8px;">Lei Complementar 214</div><div class="cd">Institui a CBS e o IBS e define as regras de transição entre 2026 e 2033. ${isServico ? 'Para prestadores de serviços, o ISS é substituído pelo IBS em 2033.' : 'O ICMS é reduzido progressivamente de 2029 a 2033.'}</div></div>
-    ${!isServico ? '<div class="card cc-border"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;"><div class="cl cl-c">Benefício fiscal estadual</div><span style="font-size:.95rem;font-weight:800;color:var(--c);">Conv. 52/91</span></div><div style="font-size:.88rem;font-weight:700;margin-bottom:8px;">Convênio ICMS 52/91</div><div class="cd">Reduzido de forma escalonada durante a transição, acompanhando a consolidação do IBS.</div></div>' : ''}
+    <div class="card cg-border"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;"><div class="cl">Base legal</div><span style="font-size:.95rem;font-weight:800;color:var(--g);">LC 214</span></div><div style="font-size:.88rem;font-weight:700;margin-bottom:8px;" data-e>Lei Complementar 214</div><div class="cd" data-e>Institui a CBS e o IBS e define as regras de transição entre 2026 e 2033. ${isServico ? 'Para prestadores de serviços, o ISS é substituído pelo IBS em 2033.' : 'O ICMS é reduzido progressivamente de 2029 a 2033.'}</div></div>
+    ${!isServico ? '<div class="card cc-border"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;"><div class="cl cl-c">Benefício fiscal estadual</div><span style="font-size:.95rem;font-weight:800;color:var(--c);">Conv. 52/91</span></div><div style="font-size:.88rem;font-weight:700;margin-bottom:8px;" data-e>Convênio ICMS 52/91</div><div class="cd" data-e>Reduzido de forma escalonada durante a transição, acompanhando a consolidação do IBS.</div></div>' : ''}
   </div>
   ${!isServico ? `<div class="reveal" style="margin-top:36px;">
-    <div class="eyebrow" style="margin-bottom:14px;">Redução gradativa dos benefícios fiscais estaduais</div>
+    <div class="eyebrow" data-e style="margin-bottom:14px;">Redução gradativa dos benefícios fiscais estaduais</div>
     <div class="bs-row">
-      <div class="bs"><div class="bs-year">2029</div><div class="bs-pct">10<span style="font-size:.9rem">%</span></div><div class="bs-label">Primeira redução</div><div class="bs-desc">Início do escalonamento</div></div>
-      <div class="bs"><div class="bs-year">2030</div><div class="bs-pct">20<span style="font-size:.9rem">%</span></div><div class="bs-label">Segunda redução</div><div class="bs-desc">IBS ganha peso</div></div>
-      <div class="bs"><div class="bs-year">2031</div><div class="bs-pct">30<span style="font-size:.9rem">%</span></div><div class="bs-label">Terceira redução</div><div class="bs-desc">ICMS perde força</div></div>
-      <div class="bs"><div class="bs-year">2032</div><div class="bs-pct">40<span style="font-size:.9rem">%</span></div><div class="bs-label">Quarta redução</div><div class="bs-desc">Véspera do regime final</div></div>
+      <div class="bs"><div class="bs-year">2029</div><div class="bs-pct">10<span style="font-size:.9rem">%</span></div><div class="bs-label" data-e>Primeira redução</div><div class="bs-desc" data-e>Início do escalonamento</div></div>
+      <div class="bs"><div class="bs-year">2030</div><div class="bs-pct">20<span style="font-size:.9rem">%</span></div><div class="bs-label" data-e>Segunda redução</div><div class="bs-desc" data-e>IBS ganha peso</div></div>
+      <div class="bs"><div class="bs-year">2031</div><div class="bs-pct">30<span style="font-size:.9rem">%</span></div><div class="bs-label" data-e>Terceira redução</div><div class="bs-desc" data-e>ICMS perde força</div></div>
+      <div class="bs"><div class="bs-year">2032</div><div class="bs-pct">40<span style="font-size:.9rem">%</span></div><div class="bs-label" data-e>Quarta redução</div><div class="bs-desc" data-e>Véspera do regime final</div></div>
     </div>
-    <div class="nb"><div class="nb-label">Nota técnica</div>Todo o mapa foi elaborado em conformidade com a <strong>Lei Complementar 214</strong>. Os benefícios do <strong>Convênio 52/91</strong> terão redução progressiva: <strong>10% em 2029, 20% em 2030, 30% em 2031 e 40% em 2032</strong>.</div>
-  </div>` : '<div class="nb reveal" style="margin-top:28px;"><div class="nb-label">Nota técnica</div>Todo o mapa foi elaborado em conformidade com a <strong>Lei Complementar 214</strong>. Para prestadores de serviços, o <strong>ISS é substituído pelo IBS em 2033</strong>, com alíquota plena de <strong>' + (d.aliquotas.ibsEstadual + d.aliquotas.ibsMunicipal) * 100 + '%</strong>.</div>'}
+    <div class="nb" data-e><div class="nb-label">Nota técnica</div>Todo o mapa foi elaborado em conformidade com a <strong>Lei Complementar 214</strong>. Os benefícios do <strong>Convênio 52/91</strong> terão redução progressiva: <strong>10% em 2029, 20% em 2030, 30% em 2031 e 40% em 2032</strong>.</div>
+  </div>` : '<div class="nb reveal" data-e style="margin-top:28px;"><div class="nb-label">Nota técnica</div>Todo o mapa foi elaborado em conformidade com a <strong>Lei Complementar 214</strong>. Para prestadores de serviços, o <strong>ISS é substituído pelo IBS em 2033</strong>, com alíquota plena de <strong>' + (d.aliquotas.ibsEstadual + d.aliquotas.ibsMunicipal) * 100 + '%</strong>.</div>'}
 </div>
 </section>
 
