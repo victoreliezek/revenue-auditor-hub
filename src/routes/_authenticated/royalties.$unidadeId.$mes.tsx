@@ -581,7 +581,7 @@ function ApuracaoLoaded({
           />
 
           {isCscVariavel && (
-            <Card className="overflow-hidden">
+            <Card>
               <div className="border-b px-4 py-3">
                 <div className="font-medium">Base Antiga — CSC Variável ({cscPctBaseAntiga}%)</div>
                 <div className="text-xs text-muted-foreground">
@@ -1079,7 +1079,7 @@ function SecaoGrupo({
   const [open, setOpen] = useState(true);
   if (itens.length === 0 && !extraHeader) return null;
   return (
-    <Card className="overflow-hidden">
+    <Card>
       <Collapsible open={open} onOpenChange={setOpen}>
         <div className="flex items-center justify-between border-b px-4 py-3">
           <CollapsibleTrigger className="flex-1 text-left">
@@ -1409,7 +1409,7 @@ function ExcluidosSection({
   const [open, setOpen] = useState(false);
   if (itens.length === 0) return null;
   return (
-    <Card className="overflow-hidden border-dashed">
+    <Card className="border-dashed">
       <Collapsible open={open} onOpenChange={setOpen}>
         <CollapsibleTrigger className="flex w-full items-center justify-between border-b px-4 py-3 text-left">
           <div>
