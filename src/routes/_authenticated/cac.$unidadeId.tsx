@@ -450,7 +450,6 @@ function ParcelaCell({
   status,
   dataPagamento,
   readOnly,
-  disabledMarcar,
   onMarcarPago,
   onDesmarcar,
 }: {
@@ -459,7 +458,6 @@ function ParcelaCell({
   status: string;
   dataPagamento: string | null;
   readOnly: boolean;
-  disabledMarcar?: boolean;
   onMarcarPago: (data: string) => void;
   onDesmarcar: () => void;
 }) {
@@ -480,7 +478,7 @@ function ParcelaCell({
               <X className="h-3 w-3" /> Desfazer
             </Button>
           ) : (
-            <MarcarPagoButton disabled={!!disabledMarcar} onConfirm={onMarcarPago} />
+            <MarcarPagoButton onConfirm={onMarcarPago} />
           )}
         </div>
       )}
@@ -488,13 +486,13 @@ function ParcelaCell({
   );
 }
 
-function MarcarPagoButton({ disabled, onConfirm }: { disabled: boolean; onConfirm: (data: string) => void }) {
+function MarcarPagoButton({ onConfirm }: { onConfirm: (data: string) => void }) {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="h-6 px-1.5 text-xs" disabled={disabled}>
+        <Button variant="outline" size="sm" className="h-6 px-1.5 text-xs">
           Marcar como pago
         </Button>
       </DialogTrigger>
@@ -742,7 +740,6 @@ function SecaoGrupo({
                             status={it.status_parcela_2}
                             dataPagamento={it.data_pagamento_parcela_2}
                             readOnly={readOnly}
-                            disabledMarcar={!it.data_recebimento_cliente}
                             onMarcarPago={(data) => updateItem.mutate({ id: it.id, data_pagamento_parcela_2: data })}
                             onDesmarcar={() => updateItem.mutate({ id: it.id, data_pagamento_parcela_2: null })}
                           />
