@@ -33,11 +33,13 @@ export interface ApuracaoCacItem {
 
   data_assinatura_contrato: string | null;
   prazo_parcela_1: string | null;
+  data_envio_parcela_1: string | null;
   data_pagamento_parcela_1: string | null;
   status_parcela_1: string;
 
   data_recebimento_cliente: string | null;
   prazo_parcela_2: string | null;
+  data_envio_parcela_2: string | null;
   data_pagamento_parcela_2: string | null;
   status_parcela_2: string;
 
@@ -76,31 +78,40 @@ function prazoParcela2(dataRecebimento: string): string {
   return diffDias >= 7 ? eom : addDaysISO(dataRecebimento, 7);
 }
 
-function statusParcela1(prazo: string | null, dataPagamento: string | null, hoje: string): string {
+function statusParcela1(
+  prazo: string | null,
+  dataEnvio: string | null,
+  dataPagamento: string | null,
+  hoje: string,
+): string {
   if (dataPagamento) return "pago";
   if (prazo && hoje > prazo) return "atrasado";
+  if (dataEnvio) return "cobrado";
   return "pendente";
 }
 
 function statusParcela2(
   dataRecebimento: string | null,
   prazo: string | null,
+  dataEnvio: string | null,
   dataPagamento: string | null,
   hoje: string,
 ): string {
   if (dataPagamento) return "pago";
   if (!dataRecebimento) return "aguardando_cliente";
   if (prazo && hoje > prazo) return "atrasado";
+  if (dataEnvio) return "cobrado";
   return "pendente";
 }
 
 function withLiveStatus(it: ApuracaoCacItem, hoje: string): ApuracaoCacItem {
   return {
     ...it,
-    status_parcela_1: statusParcela1(it.prazo_parcela_1, it.data_pagamento_parcela_1, hoje),
+    status_parcela_1: statusParcela1(it.prazo_parcela_1, it.data_envio_parcela_1, it.data_pagamento_parcela_1, hoje),
     status_parcela_2: statusParcela2(
       it.data_recebimento_cliente,
       it.prazo_parcela_2,
+      it.data_envio_parcela_2,
       it.data_pagamento_parcela_2,
       hoje,
     ),
@@ -255,10 +266,10 @@ async function gerarItensParaApuracao(
         valor_parcela_2: valorParcela2,
         data_assinatura_contrato: dataAssinatura,
         prazo_parcela_1: prazo1,
-        status_parcela_1: statusParcela1(prazo1, null, hoje),
+        status_parcela_1: statusParcela1(prazo1, null, null, hoje),
         data_recebimento_cliente: dataRecebimento,
         prazo_parcela_2: prazo2,
-        status_parcela_2: statusParcela2(dataRecebimento, prazo2, null, hoje),
+        status_parcela_2: statusParcela2(dataRecebimento, prazo2, null, null, hoje),
         fonte: "pipedrive",
         status_match: statusMatch,
       });
@@ -380,7 +391,9 @@ export const updateItemCac = createServerFn({ method: "POST" })
   .inputValidator(
     (d: {
       id: number;
+      data_envio_parcela_1?: string | null;
       data_pagamento_parcela_1?: string | null;
+      data_envio_parcela_2?: string | null;
       data_pagamento_parcela_2?: string | null;
       observacao?: string | null;
     }) => d,
@@ -400,7 +413,9 @@ export const updateItemCac = createServerFn({ method: "POST" })
     }
 
     const patch: any = {};
+    if ("data_envio_parcela_1" in data) patch.data_envio_parcela_1 = data.data_envio_parcela_1;
     if ("data_pagamento_parcela_1" in data) patch.data_pagamento_parcela_1 = data.data_pagamento_parcela_1;
+    if ("data_envio_parcela_2" in data) patch.data_envio_parcela_2 = data.data_envio_parcela_2;
     if ("data_pagamento_parcela_2" in data) patch.data_pagamento_parcela_2 = data.data_pagamento_parcela_2;
     if ("observacao" in data) patch.observacao = data.observacao;
 

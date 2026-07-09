@@ -52,10 +52,12 @@ type ApuracaoCacItemComMes = {
   valor_parcela_2: number;
   data_assinatura_contrato: string | null;
   prazo_parcela_1: string | null;
+  data_envio_parcela_1: string | null;
   data_pagamento_parcela_1: string | null;
   status_parcela_1: string;
   data_recebimento_cliente: string | null;
   prazo_parcela_2: string | null;
+  data_envio_parcela_2: string | null;
   data_pagamento_parcela_2: string | null;
   status_parcela_2: string;
   fonte: string;
@@ -102,6 +104,7 @@ const PARCELA_BADGE: Record<string, { label: string; cls: string }> = {
   pendente: { label: "Pendente", cls: "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200" },
   atrasado: { label: "Atrasado", cls: "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300" },
   pago: { label: "Pago", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200" },
+  cobrado: { label: "Boleto enviado", cls: "bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-200" },
   aguardando_cliente: {
     label: "Aguardando cliente",
     cls: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
@@ -448,16 +451,22 @@ function ParcelaCell({
   valor,
   prazo,
   status,
+  dataEnvio,
   dataPagamento,
   readOnly,
+  onMarcarEnviado,
+  onDesmarcarEnviado,
   onMarcarPago,
   onDesmarcar,
 }: {
   valor: number;
   prazo: string | null;
   status: string;
+  dataEnvio: string | null;
   dataPagamento: string | null;
   readOnly: boolean;
+  onMarcarEnviado: (data: string) => void;
+  onDesmarcarEnviado: () => void;
   onMarcarPago: (data: string) => void;
   onDesmarcar: () => void;
 }) {
@@ -469,16 +478,46 @@ function ParcelaCell({
         <Badge className={cn("text-[10px] px-1.5 py-0", badge.cls)}>{badge.label}</Badge>
       </div>
       <div className="text-right text-[10px] text-muted-foreground">
-        {dataPagamento ? `Pago em ${fmtData(dataPagamento)}` : prazo ? `Prazo: ${fmtData(prazo)}` : "—"}
+        {dataPagamento
+          ? `Pago em ${fmtData(dataPagamento)}`
+          : dataEnvio
+            ? `Boleto enviado em ${fmtData(dataEnvio)}`
+            : prazo
+              ? `Prazo: ${fmtData(prazo)}`
+              : "—"}
       </div>
       {!readOnly && (
-        <div className="flex justify-end">
+        <div className="flex flex-col items-end gap-1">
           {dataPagamento ? (
             <Button variant="ghost" size="sm" className="h-6 gap-1 px-1.5 text-xs text-muted-foreground" onClick={onDesmarcar}>
               <X className="h-3 w-3" /> Desfazer
             </Button>
           ) : (
-            <MarcarPagoButton onConfirm={onMarcarPago} />
+            <>
+              {dataEnvio ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 gap-1 px-1.5 text-xs text-muted-foreground"
+                  onClick={onDesmarcarEnviado}
+                >
+                  <X className="h-3 w-3" /> Desfazer envio
+                </Button>
+              ) : (
+                <MarcarDataButton
+                  label="Marcar boleto enviado"
+                  dialogTitle="Marcar boleto como enviado"
+                  fieldLabel="Data de envio"
+                  onConfirm={onMarcarEnviado}
+                />
+              )}
+              <MarcarDataButton
+                label="Marcar como pago"
+                dialogTitle="Marcar parcela como paga"
+                fieldLabel="Data do repasse"
+                onConfirm={onMarcarPago}
+              />
+            </>
           )}
         </div>
       )}
@@ -486,22 +525,32 @@ function ParcelaCell({
   );
 }
 
-function MarcarPagoButton({ onConfirm }: { onConfirm: (data: string) => void }) {
+function MarcarDataButton({
+  label,
+  dialogTitle,
+  fieldLabel,
+  onConfirm,
+}: {
+  label: string;
+  dialogTitle: string;
+  fieldLabel: string;
+  onConfirm: (data: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="h-6 px-1.5 text-xs">
-          Marcar como pago
+          {label}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Marcar parcela como paga</DialogTitle>
+          <DialogTitle>{dialogTitle}</DialogTitle>
         </DialogHeader>
         <div className="space-y-1">
-          <Label>Data do repasse</Label>
+          <Label>{fieldLabel}</Label>
           <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
         </div>
         <DialogFooter>
@@ -727,8 +776,11 @@ function SecaoGrupo({
                             valor={it.valor_parcela_1}
                             prazo={it.prazo_parcela_1}
                             status={it.status_parcela_1}
+                            dataEnvio={it.data_envio_parcela_1}
                             dataPagamento={it.data_pagamento_parcela_1}
                             readOnly={readOnly}
+                            onMarcarEnviado={(data) => updateItem.mutate({ id: it.id, data_envio_parcela_1: data })}
+                            onDesmarcarEnviado={() => updateItem.mutate({ id: it.id, data_envio_parcela_1: null })}
                             onMarcarPago={(data) => updateItem.mutate({ id: it.id, data_pagamento_parcela_1: data })}
                             onDesmarcar={() => updateItem.mutate({ id: it.id, data_pagamento_parcela_1: null })}
                           />
@@ -738,8 +790,11 @@ function SecaoGrupo({
                             valor={it.valor_parcela_2}
                             prazo={it.prazo_parcela_2}
                             status={it.status_parcela_2}
+                            dataEnvio={it.data_envio_parcela_2}
                             dataPagamento={it.data_pagamento_parcela_2}
                             readOnly={readOnly}
+                            onMarcarEnviado={(data) => updateItem.mutate({ id: it.id, data_envio_parcela_2: data })}
+                            onDesmarcarEnviado={() => updateItem.mutate({ id: it.id, data_envio_parcela_2: null })}
                             onMarcarPago={(data) => updateItem.mutate({ id: it.id, data_pagamento_parcela_2: data })}
                             onDesmarcar={() => updateItem.mutate({ id: it.id, data_pagamento_parcela_2: null })}
                           />
