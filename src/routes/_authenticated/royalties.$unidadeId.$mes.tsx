@@ -1096,20 +1096,20 @@ function SecaoGrupo({
           ) : (
             <div className="overflow-auto">
               <table className="w-full text-sm">
-                <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                <thead className="text-xs uppercase text-muted-foreground">
                   <tr>
-                    <th className="px-3 py-2 text-left">Cliente</th>
-                    <th className="px-3 py-2 text-center">Filiais</th>
-                    <th className="px-3 py-2 text-left">CNPJ</th>
-                    <th className="px-3 py-2 text-left">Data do ganho</th>
-                    {showMrr && <th className="px-3 py-2 text-right">MRR</th>}
-                    <th className="px-3 py-2 text-right">Omie</th>
-                    <th className="px-3 py-2 text-right">Confirmado</th>
-                    <th className="px-3 py-2 text-right">%</th>
-                    {toggleCac && <th className="px-3 py-2 text-center">CAC?</th>}
-                    <th className="px-3 py-2 text-right">Royalties</th>
-                    <th className="px-3 py-2 text-center">✓</th>
-                    <th className="px-3 py-2"></th>
+                    <th className="sticky left-0 top-[140px] z-30 bg-muted px-3 py-2 text-left">Cliente</th>
+                    <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-center">Filiais</th>
+                    <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-left">CNPJ</th>
+                    <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-left">Data do ganho</th>
+                    {showMrr && <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-right">MRR</th>}
+                    <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-right">Omie</th>
+                    <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-right">Confirmado</th>
+                    <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-right">%</th>
+                    {toggleCac && <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-center">CAC?</th>}
+                    <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-right">Royalties</th>
+                    <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-center">✓</th>
+                    <th className="sticky top-[140px] z-20 bg-muted px-3 py-2"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1129,7 +1129,7 @@ function SecaoGrupo({
                     const royal = (valor * pct) / 100;
                     return (
                       <tr key={it.id} className="border-t">
-                        <td className="px-3 py-2">
+                        <td className="sticky left-0 z-10 bg-card px-3 py-2">
                           {it.razao_social}
                           {it.churn_pipefy_card_id && (
                             <Badge className="ml-2 bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300 text-[10px] px-1.5 py-0 align-middle">
@@ -1324,21 +1324,21 @@ function BaseAntigaTable({
   return (
     <div className="overflow-auto">
       <table className="w-full text-sm">
-        <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+        <thead className="text-xs uppercase text-muted-foreground">
           <tr>
-            <th className="px-3 py-2 text-left">Cliente</th>
-            <th className="px-3 py-2 text-center">Filiais</th>
-            <th className="px-3 py-2 text-left">CNPJ</th>
-            <th className="px-3 py-2 text-right">Omie</th>
-            <th className="px-3 py-2 text-right">Confirmado</th>
-            <th className="px-3 py-2 text-center">✓</th>
-            <th className="px-3 py-2"></th>
+            <th className="sticky left-0 top-[140px] z-30 bg-muted px-3 py-2 text-left">Cliente</th>
+            <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-center">Filiais</th>
+            <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-left">CNPJ</th>
+            <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-right">Omie</th>
+            <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-right">Confirmado</th>
+            <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-center">✓</th>
+            <th className="sticky top-[140px] z-20 bg-muted px-3 py-2"></th>
           </tr>
         </thead>
         <tbody>
           {itens.map((it) => (
             <tr key={it.id} className="border-t">
-              <td className="px-3 py-2">{it.razao_social}</td>
+              <td className="sticky left-0 z-10 bg-card px-3 py-2">{it.razao_social}</td>
               <td className="px-3 py-2 text-center">
                 <FiliaisCell
                   it={it}
@@ -1422,19 +1422,19 @@ function ExcluidosSection({
         <CollapsibleContent>
           <div className="overflow-auto">
             <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+              <thead className="text-xs uppercase text-muted-foreground">
                 <tr>
-                  <th className="px-3 py-2 text-left">Cliente</th>
-                  <th className="px-3 py-2 text-left">CNPJ</th>
-                  <th className="px-3 py-2 text-left">Motivo</th>
-                  <th className="px-3 py-2 text-left">Excluído em</th>
-                  <th className="px-3 py-2"></th>
+                  <th className="sticky left-0 top-[140px] z-30 bg-muted px-3 py-2 text-left">Cliente</th>
+                  <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-left">CNPJ</th>
+                  <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-left">Motivo</th>
+                  <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-left">Excluído em</th>
+                  <th className="sticky top-[140px] z-20 bg-muted px-3 py-2"></th>
                 </tr>
               </thead>
               <tbody>
                 {itens.map((it) => (
                   <tr key={it.id} className="border-t text-muted-foreground">
-                    <td className="px-3 py-2">{it.razao_social}</td>
+                    <td className="sticky left-0 z-10 bg-card px-3 py-2">{it.razao_social}</td>
                     <td className="px-3 py-2 text-xs">{it.cnpj ?? "—"}</td>
                     <td className="px-3 py-2 text-xs">{it.motivo_exclusao ?? "—"}</td>
                     <td className="px-3 py-2 text-xs whitespace-nowrap">
