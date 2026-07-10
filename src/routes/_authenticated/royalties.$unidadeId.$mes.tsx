@@ -240,6 +240,10 @@ function ApuracaoLoaded({
   const soPipe = planning.filter((i) => i.status_match === "so_pipedrive");
   const soOmie = planning.filter((i) => i.status_match === "so_omie");
   const manual = planning.filter((i) => i.status_match === "manual");
+  // Única tabela de conciliação (matched + só pipedrive + só omie) — a divisão em
+  // situação vira uma coluna/filtro em vez de 3 cards com cabeçalho próprio, o que
+  // permite manter um único <thead> fixo ao rolar a lista inteira.
+  const conciliacao = isCscVariavel ? [...matched, ...soPipe] : [...matched, ...soPipe, ...soOmie];
 
   const valorEfetivo = (it: ApuracaoItem): number => {
     const raw = localValor[it.id];
@@ -467,37 +471,10 @@ function ApuracaoLoaded({
         {/* Coluna esquerda: seções */}
         <div className="space-y-6 min-w-0">
           <SecaoGrupo
-            title="✅ Matched"
-            description="CNPJ existe no Pipedrive e no Omie."
-            itens={matched}
-            readOnly={readOnly}
-            showMrr
-            showRoyalties
-            pctPadrao={pctPadrao}
-            apuracaoId={apuracaoId}
-            unidadeNome={u.nome_da_praca}
-            temOmie={u.tem_omie}
-            localValor={localValor}
-            setLocalValor={setLocalValor}
-            flushValor={flushValor}
-            localMrr={localMrr}
-            setLocalMrr={setLocalMrr}
-            flushMrr={flushMrr}
-            localPct={localPct}
-            setLocalPct={setLocalPct}
-            flushPct={flushPct}
-            toggleConfirm={toggleConfirm}
-            toggleCac={toggleCac}
-            onDelete={(it) => deleteItem.mutate({ id: it.id })}
-            onMarcarChurn={handleMarcarChurn}
-            churnPending={marcarChurn.isPending}
-            onExcluir={handleExcluir}
-            excluirPending={excluirItem.isPending}
-          />
-          <SecaoGrupo
-            title="⚠️ Só no Pipedrive"
-            description="Contrato ativo sem recebimento no Omie. Informe o valor recebido ou marque como inadimplente."
-            itens={soPipe}
+            title="📊 Conciliação Pipedrive × Omie"
+            description="Contratos ativos cruzados com recebimentos do Omie — filtre por situação abaixo."
+            itens={conciliacao}
+            showSituacao
             readOnly={readOnly}
             showMrr
             showRoyalties
@@ -524,31 +501,6 @@ function ApuracaoLoaded({
             onExcluir={handleExcluir}
             excluirPending={excluirItem.isPending}
           />
-          {!isCscVariavel && (
-            <SecaoGrupo
-              title="🔍 Só no Omie"
-              description="Recebimento sem contrato no Pipedrive. Pode ser venda direta — confirme se entra na base de royalties."
-              itens={soOmie}
-              readOnly={readOnly}
-              showMrr={false}
-              showRoyalties
-              pctPadrao={pctPadrao}
-              apuracaoId={apuracaoId}
-              unidadeNome={u.nome_da_praca}
-              temOmie={u.tem_omie}
-              localValor={localValor}
-              setLocalValor={setLocalValor}
-              flushValor={flushValor}
-              localPct={localPct}
-              setLocalPct={setLocalPct}
-              flushPct={flushPct}
-              toggleConfirm={toggleConfirm}
-              toggleCac={toggleCac}
-              onDelete={(it) => deleteItem.mutate({ id: it.id })}
-              onExcluir={handleExcluir}
-              excluirPending={excluirItem.isPending}
-            />
-          )}
           <SecaoGrupo
             title="➕ Adicionados manualmente"
             description="Itens criados pelo usuário."
@@ -753,6 +705,7 @@ interface GrupoProps {
   title: string;
   description: string;
   itens: ApuracaoItem[];
+  showSituacao?: boolean;
   readOnly: boolean;
   showMrr: boolean;
   showRoyalties: boolean;
@@ -1104,12 +1057,59 @@ function SortableTh<T extends string>({
   );
 }
 
-type ItemSortKey = "cliente" | "cnpj" | "data_ganho" | "mrr" | "omie" | "confirmado" | "pct" | "royalties";
+type ItemSortKey =
+  | "cliente"
+  | "situacao"
+  | "cnpj"
+  | "data_ganho"
+  | "mrr"
+  | "omie"
+  | "confirmado"
+  | "pct"
+  | "royalties";
+
+const SITUACAO_INFO: Record<string, { label: string; cls: string }> = {
+  matched: {
+    label: "✅ Matched",
+    cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300",
+  },
+  divergente: {
+    label: "⚠️ Divergente",
+    cls: "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300",
+  },
+  so_pipedrive: {
+    label: "⚠️ Só Pipedrive",
+    cls: "bg-orange-100 text-orange-800 dark:bg-orange-950/50 dark:text-orange-300",
+  },
+  so_omie: {
+    label: "🔍 Só Omie",
+    cls: "bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-300",
+  },
+};
+
+const SITUACAO_FILTROS = [
+  { value: "todos", label: "Todos" },
+  { value: "matched", label: "✅ Matched" },
+  { value: "divergente", label: "⚠️ Divergente" },
+  { value: "so_pipedrive", label: "⚠️ Só Pipedrive" },
+  { value: "so_omie", label: "🔍 Só Omie" },
+] as const;
+
+function SituacaoBadge({ status }: { status: string | null | undefined }) {
+  const info = status ? SITUACAO_INFO[status] : undefined;
+  if (!info) return <span className="text-xs text-muted-foreground">—</span>;
+  return (
+    <span className={cn("whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-medium", info.cls)}>
+      {info.label}
+    </span>
+  );
+}
 
 function SecaoGrupo({
   title,
   description,
   itens,
+  showSituacao,
   readOnly,
   showMrr,
   pctPadrao,
@@ -1137,9 +1137,25 @@ function SecaoGrupo({
   excluirPending,
 }: GrupoProps) {
   const [open, setOpen] = useState(true);
+  const [situacaoFiltro, setSituacaoFiltro] = useState<string>("todos");
   const { key: sortKey, dir: sortDir, onSort } = useSort<ItemSortKey>();
 
+  const situacaoCounts = useMemo(() => {
+    const counts: Record<string, number> = { todos: itens.length };
+    for (const it of itens) {
+      const k = it.status_match ?? "—";
+      counts[k] = (counts[k] ?? 0) + 1;
+    }
+    return counts;
+  }, [itens]);
+
+  const itensFiltrados = useMemo(() => {
+    if (!showSituacao || situacaoFiltro === "todos") return itens;
+    return itens.filter((it) => it.status_match === situacaoFiltro);
+  }, [itens, showSituacao, situacaoFiltro]);
+
   const sortedItens = useMemo(() => {
+    const itens = itensFiltrados;
     if (!sortKey) return itens;
     const dirMult = sortDir === "asc" ? 1 : -1;
     const getValorConfirmado = (it: ApuracaoItem) => {
@@ -1161,6 +1177,9 @@ function SecaoGrupo({
       switch (sortKey) {
         case "cliente":
           v = (it.razao_social ?? "").toLowerCase();
+          break;
+        case "situacao":
+          v = it.status_match ?? "";
           break;
         case "cnpj":
           v = it.cnpj ?? "";
@@ -1192,7 +1211,7 @@ function SecaoGrupo({
       return 0;
     });
     return withKey.map((x) => x.it);
-  }, [itens, sortKey, sortDir, localValor, localPct, localMrr, pctPadrao]);
+  }, [itensFiltrados, sortKey, sortDir, localValor, localPct, localMrr, pctPadrao]);
 
   if (itens.length === 0 && !extraHeader) return null;
   return (
@@ -1207,13 +1226,37 @@ function SecaoGrupo({
           </CollapsibleTrigger>
           {extraHeader}
         </div>
+        {showSituacao && (
+          <div className="flex flex-wrap gap-1.5 border-b px-4 py-2">
+            {SITUACAO_FILTROS.map((f) => {
+              const count = situacaoCounts[f.value] ?? 0;
+              if (f.value !== "todos" && count === 0) return null;
+              const active = situacaoFiltro === f.value;
+              return (
+                <button
+                  key={f.value}
+                  type="button"
+                  onClick={() => setSituacaoFiltro(f.value)}
+                  className={cn(
+                    "rounded-full px-2.5 py-1 text-xs transition-colors",
+                    active
+                      ? "bg-foreground text-background"
+                      : "bg-muted text-muted-foreground hover:bg-muted/70",
+                  )}
+                >
+                  {f.label} ({count})
+                </button>
+              );
+            })}
+          </div>
+        )}
         <CollapsibleContent>
           {itens.length === 0 ? (
             <div className="px-4 py-6 text-center text-sm text-muted-foreground">Nenhum item.</div>
           ) : (
             <div className="overflow-auto">
               <table className="w-full text-sm">
-                <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                <thead className="sticky top-[140px] z-[6] bg-muted text-xs uppercase text-muted-foreground">
                   <tr>
                     <SortableTh
                       label="Cliente"
@@ -1224,6 +1267,15 @@ function SecaoGrupo({
                       className="sticky left-0 z-10 bg-muted"
                     />
                     <th className="px-3 py-2 text-center">Filiais</th>
+                    {showSituacao && (
+                      <SortableTh
+                        label="Situação"
+                        sortKey="situacao"
+                        activeKey={sortKey}
+                        dir={sortDir}
+                        onSort={onSort}
+                      />
+                    )}
                     <SortableTh label="CNPJ" sortKey="cnpj" activeKey={sortKey} dir={sortDir} onSort={onSort} />
                     <SortableTh
                       label="Data do ganho"
@@ -1306,6 +1358,11 @@ function SecaoGrupo({
                             readOnly={readOnly}
                           />
                         </td>
+                        {showSituacao && (
+                          <td className="px-3 py-2">
+                            <SituacaoBadge status={it.status_match} />
+                          </td>
+                        )}
                         <td className="px-3 py-2 text-xs text-muted-foreground">
                           {it.cnpj ? (
                             it.cnpj
@@ -1326,25 +1383,29 @@ function SecaoGrupo({
                         </td>
                         {showMrr && (
                           <td className="px-3 py-2 text-right">
-                            <Input
-                              type="text"
-                              inputMode="decimal"
-                              disabled={readOnly}
-                              title={
-                                it.mrr_override != null && it.mrr_contratado != null
-                                  ? `Original do contrato: ${brl(it.mrr_contratado)}`
-                                  : undefined
-                              }
-                              value={
-                                localMrr?.[it.id] ??
-                                (it.mrr_override ?? it.mrr_contratado ?? "")
-                              }
-                              onChange={(e) =>
-                                setLocalMrr?.((s) => ({ ...s, [it.id]: e.target.value }))
-                              }
-                              onBlur={() => flushMrr?.(it)}
-                              className="h-8 w-28 text-right"
-                            />
+                            {it.contrato_id == null ? (
+                              <span className="text-muted-foreground">—</span>
+                            ) : (
+                              <Input
+                                type="text"
+                                inputMode="decimal"
+                                disabled={readOnly}
+                                title={
+                                  it.mrr_override != null && it.mrr_contratado != null
+                                    ? `Original do contrato: ${brl(it.mrr_contratado)}`
+                                    : undefined
+                                }
+                                value={
+                                  localMrr?.[it.id] ??
+                                  (it.mrr_override ?? it.mrr_contratado ?? "")
+                                }
+                                onChange={(e) =>
+                                  setLocalMrr?.((s) => ({ ...s, [it.id]: e.target.value }))
+                                }
+                                onBlur={() => flushMrr?.(it)}
+                                className="h-8 w-28 text-right"
+                              />
+                            )}
                           </td>
                         )}
                         <td className="px-3 py-2 text-right">
