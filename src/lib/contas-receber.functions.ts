@@ -20,23 +20,32 @@ export const listContasReceber = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<{ rows: ContaReceber[] }> => {
     const { supabase } = context;
     const pageSize = 1000;
-    let from = 0;
-    const all: ContaReceber[] = [];
-    // paginate to bypass the 1000-row default cap
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const { data, error } = await supabase
+
+    // Busca o total primeiro pra saber quantas páginas existem, depois dispara
+    // todas em paralelo — com a tabela em ~29 mil linhas, buscar em série (30
+    // requisições sequenciais) passa de 15s e estoura o timeout da function.
+    const { count, error: countErr } = await supabase
+      .from("contas_receber")
+      .select("id", { count: "exact", head: true });
+    if (countErr) throw new Error(countErr.message);
+
+    const totalPages = Math.max(1, Math.ceil((count ?? 0) / pageSize));
+    const pagePromises = Array.from({ length: totalPages }, (_, i) => {
+      const from = i * pageSize;
+      return supabase
         .from("contas_receber")
         .select(
           "id,num_documento,data_vencimento,data_competencia,data_pagamento,status_pagamento,valor,cliente,cpf_cnpj,unidade,codigo_omie",
         )
         .order("data_vencimento", { ascending: false })
         .range(from, from + pageSize - 1);
+    });
+
+    const results = await Promise.all(pagePromises);
+    const all: ContaReceber[] = [];
+    for (const { data, error } of results) {
       if (error) throw new Error(error.message);
-      const batch = (data ?? []) as ContaReceber[];
-      all.push(...batch);
-      if (batch.length < pageSize) break;
-      from += pageSize;
+      all.push(...((data ?? []) as ContaReceber[]));
     }
     return { rows: all };
   });
