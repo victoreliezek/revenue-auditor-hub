@@ -1208,6 +1208,7 @@ function SecaoGrupo({
 }: GrupoProps) {
   const [open, setOpen] = useState(true);
   const [situacaoFiltro, setSituacaoFiltro] = useState<string>("todos");
+  const [somentePendentes, setSomentePendentes] = useState(false);
   const { key: sortKey, dir: sortDir, onSort } = useSort<ItemSortKey>();
 
   const situacaoCounts = useMemo(() => {
@@ -1219,10 +1220,22 @@ function SecaoGrupo({
     return counts;
   }, [itens]);
 
-  const itensFiltrados = useMemo(() => {
+  // Filtro de situação (Matched/Só Pipedrive/Só Omie) combina com o toggle de
+  // pendentes — permite isolar, por exemplo, "Só Omie" que ainda não teve check.
+  const itensPorSituacao = useMemo(() => {
     if (!showSituacao || situacaoFiltro === "todos") return itens;
     return itens.filter((it) => it.status_match === situacaoFiltro);
   }, [itens, showSituacao, situacaoFiltro]);
+
+  const pendentesCount = useMemo(
+    () => itensPorSituacao.filter((it) => !it.confirmado).length,
+    [itensPorSituacao],
+  );
+
+  const itensFiltrados = useMemo(() => {
+    if (!somentePendentes) return itensPorSituacao;
+    return itensPorSituacao.filter((it) => !it.confirmado);
+  }, [itensPorSituacao, somentePendentes]);
 
   const sortedItens = useMemo(() => {
     const itens = itensFiltrados;
@@ -1299,7 +1312,7 @@ function SecaoGrupo({
           {extraHeader}
         </div>
         {showSituacao && (
-          <div className="flex flex-wrap gap-1.5 border-b px-4 py-2">
+          <div className="flex flex-wrap items-center gap-1.5 border-b px-4 py-2">
             {SITUACAO_FILTROS.map((f) => {
               const count = situacaoCounts[f.value] ?? 0;
               if (f.value !== "todos" && count === 0) return null;
@@ -1320,6 +1333,24 @@ function SecaoGrupo({
                 </button>
               );
             })}
+            {pendentesCount > 0 && (
+              <>
+                <span className="mx-1 h-4 w-px bg-border" />
+                <button
+                  type="button"
+                  onClick={() => setSomentePendentes((v) => !v)}
+                  title="Combina com o filtro de situação acima — ex.: Só Omie + Pendentes"
+                  className={cn(
+                    "rounded-full px-2.5 py-1 text-xs transition-colors",
+                    somentePendentes
+                      ? "bg-amber-500 text-white"
+                      : "bg-muted text-muted-foreground hover:bg-muted/70",
+                  )}
+                >
+                  ☐ Pendentes ({pendentesCount})
+                </button>
+              </>
+            )}
           </div>
         )}
         <CollapsibleContent>
