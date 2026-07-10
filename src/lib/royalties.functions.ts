@@ -643,6 +643,66 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
     return { created, skipped: false };
   });
 
+// ============ garantirApuracoesAno ============
+// Garante uma apuração (rascunho) + itens gerados pra cada unidade regional,
+// em cada mês do ano informado que ainda não tem apuração — do mês atual até
+// dezembro (meses passados não são tocados, criação não é retroativa). Usado
+// pela aba Receitas/DRE Partners pra projetar Royalties automaticamente nos
+// meses futuros sem entrada manual — a apuração já reflete contratos ativos e
+// churn conhecido em cada mês (ver gerarItensApuracaoCore/churnInfoParaMes).
+export const garantirApuracoesAno = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { ano: number }) => d)
+  .handler(async ({ data, context }): Promise<{ criadas: number }> => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+
+    const hoje = new Date();
+    const anoAtual = hoje.getFullYear();
+    if (data.ano < anoAtual) return { criadas: 0 };
+    const mesInicio = data.ano === anoAtual ? hoje.getMonth() + 1 : 1;
+
+    const { data: unidades, error: uErr } = await supabase
+      .from("unidades")
+      .select("id,royalties_percentual,csc_valor_fixo,csc_percentual_base_antiga")
+      .eq("tipo", "regional");
+    if (uErr) throw new Error(uErr.message);
+
+    let criadas = 0;
+    for (const u of unidades ?? []) {
+      for (let mes = mesInicio; mes <= 12; mes++) {
+        const firstDay = `${data.ano}-${String(mes).padStart(2, "0")}-01`;
+        const { data: existing, error: e1 } = await supabase
+          .from("royalties_apuracao")
+          .select("id")
+          .eq("unidade_id", u.id)
+          .eq("mes_referencia", firstDay)
+          .maybeSingle();
+        if (e1) throw new Error(e1.message);
+        if (existing) continue;
+
+        const { data: inserted, error: iErr } = await supabase
+          .from("royalties_apuracao")
+          .insert({
+            unidade_id: u.id,
+            mes_referencia: firstDay,
+            status: "rascunho",
+            royalties_percentual: u.royalties_percentual,
+            csc_valor_fixo: u.csc_valor_fixo,
+            csc_percentual_base_antiga: u.csc_percentual_base_antiga,
+          })
+          .select("id")
+          .single();
+        if (iErr) throw new Error(iErr.message);
+
+        await gerarItensApuracaoCore(supabase, inserted.id);
+        criadas++;
+      }
+    }
+
+    return { criadas };
+  });
+
 // ============ getApuracao ============
 export const getApuracao = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
