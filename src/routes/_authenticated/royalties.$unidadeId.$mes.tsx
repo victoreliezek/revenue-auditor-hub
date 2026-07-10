@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Ban, ChevronLeft, ChevronRight, FileDown, Info, Link2, Pencil, Plus, RefreshCw, Trash2, UserX } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Ban, ChevronLeft, ChevronRight, FileDown, Info, Link2, Pencil, Plus, RefreshCw, Trash2, UserX } from "lucide-react";
 import { GruposFiliaisDialog } from "@/components/royalties/grupos-filiais-dialog";
 
 import {
@@ -1048,6 +1048,64 @@ function FiliaisCell({
   );
 }
 
+type SortDir = "asc" | "desc";
+
+function useSort<T extends string>() {
+  const [key, setKey] = useState<T | null>(null);
+  const [dir, setDir] = useState<SortDir>("asc");
+  const onSort = (k: T) => {
+    if (key === k) setDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setKey(k);
+      setDir("asc");
+    }
+  };
+  return { key, dir, onSort };
+}
+
+function SortableTh<T extends string>({
+  label,
+  sortKey,
+  activeKey,
+  dir,
+  onSort,
+  align = "left",
+  className,
+}: {
+  label: string;
+  sortKey: T;
+  activeKey: T | null;
+  dir: SortDir;
+  onSort: (key: T) => void;
+  align?: "left" | "right" | "center";
+  className?: string;
+}) {
+  const active = activeKey === sortKey;
+  return (
+    <th
+      className={cn(
+        "cursor-pointer select-none px-3 py-2 hover:text-foreground",
+        align === "right" && "text-right",
+        align === "center" && "text-center",
+        align === "left" && "text-left",
+        className,
+      )}
+      onClick={() => onSort(sortKey)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active ? (
+          dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+        ) : (
+          <ArrowUpDown className="h-3 w-3 opacity-30" />
+        )}
+      </span>
+    </th>
+  );
+}
+
+type ItemSortKey = "cliente" | "cnpj" | "data_ganho" | "mrr" | "omie" | "confirmado" | "pct" | "royalties";
+
 function SecaoGrupo({
   title,
   description,
@@ -1079,6 +1137,63 @@ function SecaoGrupo({
   excluirPending,
 }: GrupoProps) {
   const [open, setOpen] = useState(true);
+  const { key: sortKey, dir: sortDir, onSort } = useSort<ItemSortKey>();
+
+  const sortedItens = useMemo(() => {
+    if (!sortKey) return itens;
+    const dirMult = sortDir === "asc" ? 1 : -1;
+    const getValorConfirmado = (it: ApuracaoItem) => {
+      const localV = localValor[it.id];
+      return localV !== undefined ? Number((localV || "0").replace(",", ".")) : Number(it.valor_confirmado ?? 0);
+    };
+    const getPct = (it: ApuracaoItem) => {
+      const localP = localPct[it.id];
+      return localP !== undefined
+        ? localP.trim() === ""
+          ? pctPadrao
+          : Number(localP.replace(",", ".")) || 0
+        : it.royalties_percentual_override != null
+          ? Number(it.royalties_percentual_override)
+          : pctPadrao;
+    };
+    const withKey = itens.map((it) => {
+      let v: string | number;
+      switch (sortKey) {
+        case "cliente":
+          v = (it.razao_social ?? "").toLowerCase();
+          break;
+        case "cnpj":
+          v = it.cnpj ?? "";
+          break;
+        case "data_ganho":
+          v = it.data_ganho ?? "";
+          break;
+        case "mrr":
+          v = Number(localMrr?.[it.id] ?? it.mrr_override ?? it.mrr_contratado ?? 0);
+          break;
+        case "omie":
+          v = Number(it.valor_omie ?? 0);
+          break;
+        case "confirmado":
+          v = getValorConfirmado(it);
+          break;
+        case "pct":
+          v = getPct(it);
+          break;
+        case "royalties":
+          v = (getValorConfirmado(it) * getPct(it)) / 100;
+          break;
+      }
+      return { it, v };
+    });
+    withKey.sort((a, b) => {
+      if (a.v < b.v) return -1 * dirMult;
+      if (a.v > b.v) return 1 * dirMult;
+      return 0;
+    });
+    return withKey.map((x) => x.it);
+  }, [itens, sortKey, sortDir, localValor, localPct, localMrr, pctPadrao]);
+
   if (itens.length === 0 && !extraHeader) return null;
   return (
     <Card>
@@ -1100,22 +1215,65 @@ function SecaoGrupo({
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
                   <tr>
-                    <th className="sticky left-0 z-10 bg-muted px-3 py-2 text-left">Cliente</th>
+                    <SortableTh
+                      label="Cliente"
+                      sortKey="cliente"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onSort={onSort}
+                      className="sticky left-0 z-10 bg-muted"
+                    />
                     <th className="px-3 py-2 text-center">Filiais</th>
-                    <th className="px-3 py-2 text-left">CNPJ</th>
-                    <th className="px-3 py-2 text-left">Data do ganho</th>
-                    {showMrr && <th className="px-3 py-2 text-right">MRR</th>}
-                    <th className="px-3 py-2 text-right">Omie</th>
-                    <th className="px-3 py-2 text-right">Confirmado</th>
-                    <th className="px-3 py-2 text-right">%</th>
+                    <SortableTh label="CNPJ" sortKey="cnpj" activeKey={sortKey} dir={sortDir} onSort={onSort} />
+                    <SortableTh
+                      label="Data do ganho"
+                      sortKey="data_ganho"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onSort={onSort}
+                    />
+                    {showMrr && (
+                      <SortableTh
+                        label="MRR"
+                        sortKey="mrr"
+                        activeKey={sortKey}
+                        dir={sortDir}
+                        onSort={onSort}
+                        align="right"
+                      />
+                    )}
+                    <SortableTh
+                      label="Omie"
+                      sortKey="omie"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onSort={onSort}
+                      align="right"
+                    />
+                    <SortableTh
+                      label="Confirmado"
+                      sortKey="confirmado"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onSort={onSort}
+                      align="right"
+                    />
+                    <SortableTh label="%" sortKey="pct" activeKey={sortKey} dir={sortDir} onSort={onSort} align="right" />
                     {toggleCac && <th className="px-3 py-2 text-center">CAC?</th>}
-                    <th className="px-3 py-2 text-right">Royalties</th>
+                    <SortableTh
+                      label="Royalties"
+                      sortKey="royalties"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onSort={onSort}
+                      align="right"
+                    />
                     <th className="px-3 py-2 text-center">✓</th>
                     <th className="px-3 py-2"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {itens.map((it) => {
+                  {sortedItens.map((it) => {
                     const localV = localValor[it.id];
                     const valor =
                       localV !== undefined
@@ -1321,6 +1479,41 @@ function BaseAntigaTable({
   onExcluir?: (it: ApuracaoItem, motivo: string) => void;
   excluirPending?: boolean;
 }) {
+  const { key: sortKey, dir: sortDir, onSort } = useSort<ItemSortKey>();
+
+  const sortedItens = useMemo(() => {
+    if (!sortKey) return itens;
+    const dirMult = sortDir === "asc" ? 1 : -1;
+    const withKey = itens.map((it) => {
+      let v: string | number;
+      switch (sortKey) {
+        case "cliente":
+          v = (it.razao_social ?? "").toLowerCase();
+          break;
+        case "cnpj":
+          v = it.cnpj ?? "";
+          break;
+        case "omie":
+          v = Number(it.valor_omie ?? 0);
+          break;
+        case "confirmado":
+          v = localValor[it.id] !== undefined
+            ? Number((localValor[it.id] || "0").replace(",", "."))
+            : Number(it.valor_confirmado ?? 0);
+          break;
+        default:
+          v = "";
+      }
+      return { it, v };
+    });
+    withKey.sort((a, b) => {
+      if (a.v < b.v) return -1 * dirMult;
+      if (a.v > b.v) return 1 * dirMult;
+      return 0;
+    });
+    return withKey.map((x) => x.it);
+  }, [itens, sortKey, sortDir, localValor]);
+
   if (itens.length === 0)
     return <div className="px-4 py-6 text-center text-sm text-muted-foreground">Nenhum item.</div>;
   return (
@@ -1328,17 +1521,38 @@ function BaseAntigaTable({
       <table className="w-full text-sm">
         <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
           <tr>
-            <th className="sticky left-0 z-10 bg-muted px-3 py-2 text-left">Cliente</th>
+            <SortableTh
+              label="Cliente"
+              sortKey="cliente"
+              activeKey={sortKey}
+              dir={sortDir}
+              onSort={onSort}
+              className="sticky left-0 z-10 bg-muted"
+            />
             <th className="px-3 py-2 text-center">Filiais</th>
-            <th className="px-3 py-2 text-left">CNPJ</th>
-            <th className="px-3 py-2 text-right">Omie</th>
-            <th className="px-3 py-2 text-right">Confirmado</th>
+            <SortableTh label="CNPJ" sortKey="cnpj" activeKey={sortKey} dir={sortDir} onSort={onSort} />
+            <SortableTh
+              label="Omie"
+              sortKey="omie"
+              activeKey={sortKey}
+              dir={sortDir}
+              onSort={onSort}
+              align="right"
+            />
+            <SortableTh
+              label="Confirmado"
+              sortKey="confirmado"
+              activeKey={sortKey}
+              dir={sortDir}
+              onSort={onSort}
+              align="right"
+            />
             <th className="px-3 py-2 text-center">✓</th>
             <th className="px-3 py-2"></th>
           </tr>
         </thead>
         <tbody>
-          {itens.map((it) => (
+          {sortedItens.map((it) => (
             <tr key={it.id} className="border-t">
               <td className="sticky left-0 z-10 bg-card px-3 py-2">{it.razao_social}</td>
               <td className="px-3 py-2 text-center">
