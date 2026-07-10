@@ -602,7 +602,8 @@ function ApuracaoLoaded({
                   {cscFixo != null ? "CSC Fixo" : `CSC Variável (${cscPctBaseAntiga}%)`}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Clientes pré-Planning. Recebimentos não entram em royalties.
+                  Clientes pré-Planning. Recebimentos não entram em royalties — a menos que "Cobrar
+                  royalties" seja marcado, movendo o cliente pra Conciliação com % escolhido.
                 </div>
               </div>
               <BaseAntigaTable
@@ -618,6 +619,7 @@ function ApuracaoLoaded({
                 onDelete={(it) => deleteItem.mutate({ id: it.id })}
                 onExcluir={handleExcluir}
                 excluirPending={excluirItem.isPending}
+                onCobrarRoyalties={handleCobrarRoyalties}
               />
             </Card>
           )}
@@ -809,6 +811,7 @@ interface GrupoProps {
   editarCnpjPending?: boolean;
   onExcluir?: (it: ApuracaoItem, motivo: string) => void;
   excluirPending?: boolean;
+  onMoverBaseAntiga?: (it: ApuracaoItem) => void;
 }
 
 function MarcarChurnButton({
@@ -1673,6 +1676,7 @@ function BaseAntigaTable({
   onDelete,
   onExcluir,
   excluirPending,
+  onCobrarRoyalties,
 }: {
   itens: ApuracaoItem[];
   readOnly: boolean;
@@ -1686,6 +1690,7 @@ function BaseAntigaTable({
   onDelete: (it: ApuracaoItem) => void;
   onExcluir?: (it: ApuracaoItem, motivo: string) => void;
   excluirPending?: boolean;
+  onCobrarRoyalties?: (it: ApuracaoItem) => void;
 }) {
   const { key: sortKey, dir: sortDir, onSort } = useSort<ItemSortKey>();
 
