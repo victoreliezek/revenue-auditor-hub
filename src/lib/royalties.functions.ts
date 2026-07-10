@@ -344,6 +344,13 @@ export async function gerarItensApuracaoCore(
     }
   >();
   const itensSemCnpj: any[] = [];
+  // Contratos com CNPJ próprio são agrupados por CNPJ antes de entrar no Map —
+  // é comum (e esperado) 1 empresa ter mais de 1 contrato ativo ao longo do tempo
+  // (ex: churn e recontratação, "Segunda Oportunidade"). Sem agrupar aqui, o
+  // Map por CNPJ mais abaixo sobrescreveria silenciosamente um contrato pelo
+  // outro, perdendo o match do Omie pra um deles pra sempre.
+  const contratosPorCnpjReal = new Map<string, any[]>();
+  const idsParaExcluirPorFusao: number[] = [];
   for (const c of contratos ?? []) {
     const k = digits(c.cnpj);
     const filiais = filiaisPorContrato.get(c.id) ?? [];
@@ -372,18 +379,71 @@ export async function gerarItensApuracaoCore(
       });
       continue;
     }
-    // Contrato sem CNPJ próprio mas com filiais vinculadas usa uma chave sintética
-    // (id do contrato) só pra não colidir no Map — o cnpj salvo no item continua null,
-    // o match acontece inteiramente pelas filiais.
-    const mapKey = k || `__filial_only_${c.id}`;
-    contratoMap.set(mapKey, {
-      id: c.id,
-      titulo: c.titulo ?? "—",
-      mrr: Number(c.mrr_mensal ?? 0),
-      cnpj: k || null,
-      ganhoEm: c.ganho_em ?? null,
-      pipedriveDealId: c.pipedrive_deal_id ?? null,
+    if (!k) {
+      // Sem CNPJ próprio mas com filiais vinculadas — chave sintética (id do
+      // contrato) sempre única, o match acontece inteiramente pelas filiais.
+      contratoMap.set(`__filial_only_${c.id}`, {
+        id: c.id,
+        titulo: c.titulo ?? "—",
+        mrr: Number(c.mrr_mensal ?? 0),
+        cnpj: null,
+        ganhoEm: c.ganho_em ?? null,
+        pipedriveDealId: c.pipedrive_deal_id ?? null,
+      });
+      continue;
+    }
+    const arr = contratosPorCnpjReal.get(k) ?? [];
+    arr.push(c);
+    contratosPorCnpjReal.set(k, arr);
+  }
+
+  for (const [k, grupo] of contratosPorCnpjReal) {
+    if (grupo.length === 1) {
+      const c = grupo[0];
+      contratoMap.set(k, {
+        id: c.id,
+        titulo: c.titulo ?? "—",
+        mrr: Number(c.mrr_mensal ?? 0),
+        cnpj: k,
+        ganhoEm: c.ganho_em ?? null,
+        pipedriveDealId: c.pipedrive_deal_id ?? null,
+      });
+      continue;
+    }
+    // 2+ contratos ativos com o mesmo CNPJ: agrupa em 1 item só, somando o MRR.
+    // O contrato com ganho_em mais recente é o "principal" (referência de
+    // contrato_id, título e data do ganho); os demais são fundidos nele — se
+    // já tinham item próprio nesta apuração (de antes desse agrupamento
+    // existir) e não estiverem confirmados/com churn/excluídos, esse item
+    // avulso é removido pra não duplicar linha.
+    const ordenado = [...grupo].sort((a, b) => {
+      const da = a.ganho_em ?? "";
+      const db = b.ganho_em ?? "";
+      if (da !== db) return da < db ? 1 : -1;
+      return b.id - a.id;
     });
+    const [principal, ...secundarios] = ordenado;
+    const mrrTotal = grupo.reduce((soma, g) => soma + Number(g.mrr_mensal ?? 0), 0);
+    contratoMap.set(k, {
+      id: principal.id,
+      titulo: principal.titulo ?? "—",
+      mrr: mrrTotal,
+      cnpj: k,
+      ganhoEm: principal.ganho_em ?? null,
+      pipedriveDealId: principal.pipedrive_deal_id ?? null,
+    });
+    for (const sec of secundarios) {
+      const itemSecundario = itemPorContrato.get(sec.id);
+      if (
+        itemSecundario &&
+        !itemSecundario.confirmado &&
+        !itemSecundario.churn_pipefy_card_id &&
+        !itemSecundario.excluido_em
+      ) {
+        idsParaExcluirPorFusao.push(itemSecundario.id);
+        itemPorContrato.delete(sec.id);
+      }
+    }
   }
 
   const itens: any[] = [...itensSemCnpj];
@@ -497,6 +557,17 @@ export async function gerarItensApuracaoCore(
       status_match: "so_omie",
       confirmado: false,
     });
+  }
+
+  // Remove itens avulsos de contratos "secundários" fundidos num grupo de CNPJ
+  // (ver contratosPorCnpjReal acima) — só os não confirmados/sem churn/sem
+  // exclusão manual chegam aqui, então é seguro apagar.
+  if (idsParaExcluirPorFusao.length > 0) {
+    const { error: fusErr } = await supabase
+      .from("royalties_itens")
+      .delete()
+      .in("id", idsParaExcluirPorFusao);
+    if (fusErr) throw new Error(fusErr.message);
   }
 
   // Atualiza itens já existentes cujo valor do Omie mudou desde a última geração

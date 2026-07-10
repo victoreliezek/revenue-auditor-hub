@@ -1,3 +1,5 @@
+import { parseISO } from "date-fns";
+
 export const brl = (v: number | null | undefined) =>
   (v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
@@ -6,7 +8,9 @@ export const num = (v: number | null | undefined) =>
 
 export const date = (v: string | null | undefined) => {
   if (!v) return "—";
-  const d = new Date(v);
+  // new Date("YYYY-MM-DD") parseia como meia-noite UTC — em fuso BR (UTC-3) isso
+  // exibe o dia anterior ao gravado no banco. parseISO trata data-only como hora local.
+  const d = parseISO(v);
   if (Number.isNaN(d.getTime())) return v;
   return d.toLocaleDateString("pt-BR");
 };
