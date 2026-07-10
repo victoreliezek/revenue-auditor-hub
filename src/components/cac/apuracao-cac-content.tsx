@@ -10,6 +10,8 @@ import { usePermissions } from "@/hooks/use-permissions";
 
 function defaultMes(): string {
   const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() - 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
@@ -17,6 +19,12 @@ function shiftMes(mes: string, delta: number): string {
   const [y, m] = mes.split("-").map(Number);
   const d = new Date(y, m - 1 + delta, 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function isMesEmAndamento(mes: string): boolean {
+  const d = new Date();
+  const atual = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  return mes >= atual;
 }
 
 function formatMesLabel(mes: string): string {
@@ -66,6 +74,12 @@ export function ApuracaoCacContent() {
           </Button>
         </div>
       </div>
+
+      {isMesEmAndamento(mes) && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+          Mês em andamento — a apuração só fecha depois que o mês termina. Use as setas para voltar ao mês anterior.
+        </div>
+      )}
 
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Carregando unidades…</div>
