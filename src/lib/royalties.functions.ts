@@ -1099,6 +1099,7 @@ export const MOTIVOS_EXCLUSAO_ROYALTIES = [
   "Cliente não pagou este mês",
   "Este é CAC",
   "Pagamento incoerente, não é um cliente",
+  "Contrato ainda não assinou",
 ] as const;
 export type MotivoExclusaoRoyalties = (typeof MOTIVOS_EXCLUSAO_ROYALTIES)[number];
 
