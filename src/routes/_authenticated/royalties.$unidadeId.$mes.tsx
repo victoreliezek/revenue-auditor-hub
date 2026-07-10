@@ -583,9 +583,11 @@ function ApuracaoLoaded({
           {isCscVariavel && (
             <Card>
               <div className="border-b px-4 py-3">
-                <div className="font-medium">Base Antiga — CSC Variável ({cscPctBaseAntiga}%)</div>
+                <div className="font-medium">
+                  Base Antiga — {cscFixo != null ? "CSC Fixo" : `CSC Variável (${cscPctBaseAntiga}%)`}
+                </div>
                 <div className="text-xs text-muted-foreground">
-                  Clientes pré-Planning. Recebimentos geram CSC, não royalties.
+                  Clientes pré-Planning. Recebimentos não entram em royalties.
                 </div>
               </div>
               <BaseAntigaTable
