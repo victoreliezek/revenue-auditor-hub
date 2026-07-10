@@ -1253,7 +1253,7 @@ function SecaoGrupo({
 }: GrupoProps) {
   const [open, setOpen] = useState(true);
   const [situacaoFiltro, setSituacaoFiltro] = useState<string>("todos");
-  const [somentePendentes, setSomentePendentes] = useState(false);
+  const [checkFiltro, setCheckFiltro] = useState<"todos" | "pendentes" | "confirmados">("todos");
   const { key: sortKey, dir: sortDir, onSort } = useSort<ItemSortKey>();
 
   const situacaoCounts = useMemo(() => {
@@ -1277,10 +1277,16 @@ function SecaoGrupo({
     [itensPorSituacao],
   );
 
+  const confirmadosCount = useMemo(
+    () => itensPorSituacao.filter((it) => it.confirmado).length,
+    [itensPorSituacao],
+  );
+
   const itensFiltrados = useMemo(() => {
-    if (!somentePendentes) return itensPorSituacao;
-    return itensPorSituacao.filter((it) => !it.confirmado);
-  }, [itensPorSituacao, somentePendentes]);
+    if (checkFiltro === "pendentes") return itensPorSituacao.filter((it) => !it.confirmado);
+    if (checkFiltro === "confirmados") return itensPorSituacao.filter((it) => it.confirmado);
+    return itensPorSituacao;
+  }, [itensPorSituacao, checkFiltro]);
 
   const sortedItens = useMemo(() => {
     const itens = itensFiltrados;
@@ -1378,22 +1384,43 @@ function SecaoGrupo({
                 </button>
               );
             })}
-            {pendentesCount > 0 && (
+            {(pendentesCount > 0 || confirmadosCount > 0) && (
               <>
                 <span className="mx-1 h-4 w-px bg-border" />
-                <button
-                  type="button"
-                  onClick={() => setSomentePendentes((v) => !v)}
-                  title="Combina com o filtro de situação acima — ex.: Só Omie + Pendentes"
-                  className={cn(
-                    "rounded-full px-2.5 py-1 text-xs transition-colors",
-                    somentePendentes
-                      ? "bg-amber-500 text-white"
-                      : "bg-muted text-muted-foreground hover:bg-muted/70",
-                  )}
-                >
-                  ☐ Pendentes ({pendentesCount})
-                </button>
+                {pendentesCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCheckFiltro((v) => (v === "pendentes" ? "todos" : "pendentes"))
+                    }
+                    title="Combina com o filtro de situação acima — ex.: Só Omie + Pendentes"
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-xs transition-colors",
+                      checkFiltro === "pendentes"
+                        ? "bg-amber-500 text-white"
+                        : "bg-muted text-muted-foreground hover:bg-muted/70",
+                    )}
+                  >
+                    ☐ Pendentes ({pendentesCount})
+                  </button>
+                )}
+                {confirmadosCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCheckFiltro((v) => (v === "confirmados" ? "todos" : "confirmados"))
+                    }
+                    title="Combina com o filtro de situação acima — ex.: Só Omie + Confirmados"
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-xs transition-colors",
+                      checkFiltro === "confirmados"
+                        ? "bg-emerald-600 text-white"
+                        : "bg-muted text-muted-foreground hover:bg-muted/70",
+                    )}
+                  >
+                    ☑ Confirmados ({confirmadosCount})
+                  </button>
+                )}
               </>
             )}
           </div>
