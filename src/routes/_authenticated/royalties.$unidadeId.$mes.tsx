@@ -1098,20 +1098,20 @@ function SecaoGrupo({
           ) : (
             <div className="overflow-auto">
               <table className="w-full text-sm">
-                <thead className="text-xs uppercase text-muted-foreground">
+                <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
                   <tr>
-                    <th className="sticky left-0 top-[140px] z-30 bg-muted px-3 py-2 text-left">Cliente</th>
-                    <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-center">Filiais</th>
-                    <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-left">CNPJ</th>
-                    <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-left">Data do ganho</th>
-                    {showMrr && <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-right">MRR</th>}
-                    <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-right">Omie</th>
-                    <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-right">Confirmado</th>
-                    <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-right">%</th>
-                    {toggleCac && <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-center">CAC?</th>}
-                    <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-right">Royalties</th>
-                    <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-center">✓</th>
-                    <th className="sticky top-[140px] z-20 bg-muted px-3 py-2"></th>
+                    <th className="sticky left-0 z-10 bg-muted px-3 py-2 text-left">Cliente</th>
+                    <th className="px-3 py-2 text-center">Filiais</th>
+                    <th className="px-3 py-2 text-left">CNPJ</th>
+                    <th className="px-3 py-2 text-left">Data do ganho</th>
+                    {showMrr && <th className="px-3 py-2 text-right">MRR</th>}
+                    <th className="px-3 py-2 text-right">Omie</th>
+                    <th className="px-3 py-2 text-right">Confirmado</th>
+                    <th className="px-3 py-2 text-right">%</th>
+                    {toggleCac && <th className="px-3 py-2 text-center">CAC?</th>}
+                    <th className="px-3 py-2 text-right">Royalties</th>
+                    <th className="px-3 py-2 text-center">✓</th>
+                    <th className="px-3 py-2"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1326,15 +1326,15 @@ function BaseAntigaTable({
   return (
     <div className="overflow-auto">
       <table className="w-full text-sm">
-        <thead className="text-xs uppercase text-muted-foreground">
+        <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
           <tr>
-            <th className="sticky left-0 top-[140px] z-30 bg-muted px-3 py-2 text-left">Cliente</th>
-            <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-center">Filiais</th>
-            <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-left">CNPJ</th>
-            <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-right">Omie</th>
-            <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-right">Confirmado</th>
-            <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-center">✓</th>
-            <th className="sticky top-[140px] z-20 bg-muted px-3 py-2"></th>
+            <th className="sticky left-0 z-10 bg-muted px-3 py-2 text-left">Cliente</th>
+            <th className="px-3 py-2 text-center">Filiais</th>
+            <th className="px-3 py-2 text-left">CNPJ</th>
+            <th className="px-3 py-2 text-right">Omie</th>
+            <th className="px-3 py-2 text-right">Confirmado</th>
+            <th className="px-3 py-2 text-center">✓</th>
+            <th className="px-3 py-2"></th>
           </tr>
         </thead>
         <tbody>
@@ -1424,13 +1424,13 @@ function ExcluidosSection({
         <CollapsibleContent>
           <div className="overflow-auto">
             <table className="w-full text-sm">
-              <thead className="text-xs uppercase text-muted-foreground">
+              <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
                 <tr>
-                  <th className="sticky left-0 top-[140px] z-30 bg-muted px-3 py-2 text-left">Cliente</th>
-                  <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-left">CNPJ</th>
-                  <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-left">Motivo</th>
-                  <th className="sticky top-[140px] z-20 bg-muted px-3 py-2 text-left">Excluído em</th>
-                  <th className="sticky top-[140px] z-20 bg-muted px-3 py-2"></th>
+                  <th className="sticky left-0 z-10 bg-muted px-3 py-2 text-left">Cliente</th>
+                  <th className="px-3 py-2 text-left">CNPJ</th>
+                  <th className="px-3 py-2 text-left">Motivo</th>
+                  <th className="px-3 py-2 text-left">Excluído em</th>
+                  <th className="px-3 py-2"></th>
                 </tr>
               </thead>
               <tbody>
