@@ -170,3 +170,58 @@ export function useReabrirApuracao(apuracaoId: number) {
     onError: defaultOnError,
   });
 }
+
+// ============ useRoyaltiesPorUnidade ============
+// Valor de royalties por unidade/mês vindo direto da apuração — fonte única
+// pra Royalties na aba Receitas/DRE Partners (substitui entrada manual).
+// Chave do Map: "NomeUnidade|MM" (mês com 2 dígitos). realizado = apuração
+// fechada (confirmado/faturado); do contrário é projeção (rascunho/em_revisao).
+export type RoyaltiesPorUnidadeInfo = { valor: number; status: string; realizado: boolean };
+
+export function useRoyaltiesPorUnidade(ano: number) {
+  return useQuery({
+    queryKey: ["royalties", "por-unidade", ano],
+    queryFn: async () => {
+      const [uRes, apRes] = await Promise.all([
+        supabase.from("unidades").select("id,nome_da_praca").eq("tipo", "regional"),
+        supabase
+          .from("royalties_apuracao")
+          .select("unidade_id,mes_referencia,royalties_valor,status")
+          .gte("mes_referencia", `${ano}-01-01`)
+          .lte("mes_referencia", `${ano}-12-31`),
+      ]);
+      if (uRes.error) throw uRes.error;
+      if (apRes.error) throw apRes.error;
+
+      const nomePorUnidadeId = new Map<number, string>();
+      (uRes.data ?? []).forEach((u: any) => nomePorUnidadeId.set(u.id, u.nome_da_praca));
+
+      const map = new Map<string, RoyaltiesPorUnidadeInfo>();
+      for (const a of apRes.data ?? []) {
+        const nome = nomePorUnidadeId.get(a.unidade_id);
+        if (!nome) continue;
+        const mes = String(a.mes_referencia).slice(5, 7);
+        const realizado = a.status === "confirmado" || a.status === "faturado";
+        map.set(`${nome}|${mes}`, {
+          valor: Number(a.royalties_valor ?? 0),
+          status: a.status,
+          realizado,
+        });
+      }
+      return map;
+    },
+    staleTime: 30_000,
+  });
+}
+
+export function useGarantirApuracoesAno() {
+  const fn = useServerFn(garantirApuracoesAno);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { ano: number }) => fn({ data: vars }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["royalties", "por-unidade"] });
+    },
+    onError: defaultOnError,
+  });
+}

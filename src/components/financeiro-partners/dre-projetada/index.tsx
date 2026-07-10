@@ -14,6 +14,7 @@ import { ItensView } from "./itens-view";
 import { ResumoView } from "./resumo-view";
 import { CadastrosDialog } from "./cadastros-dialog";
 import { toast } from "sonner";
+import { useRoyaltiesPorUnidade } from "@/hooks/use-royalties";
 
 const ANOS = [2024, 2025, 2026, 2027, 2028];
 
@@ -111,6 +112,11 @@ export function DreProjetadaView() {
   const receitas = useMemo(() => itens.filter((i) => i.natureza === "receita"), [itens]);
   const despesas = useMemo(() => itens.filter((i) => i.natureza === "despesa"), [itens]);
 
+  // Royalties (categoria "Royalties", só nas visões Base) vem direto da apuração
+  // em vez de valor_base/overrides — fonte única com a apuração de royalties.
+  const royaltiesQuery = useRoyaltiesPorUnidade(ano);
+  const royaltiesMap = cenarioId === null ? royaltiesQuery.data : undefined;
+
   return (
     <div className="p-4 space-y-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -190,7 +196,7 @@ export function DreProjetadaView() {
             </TabsList>
             <TabsContent value="resumo" className="mt-3">
               <ResumoView itens={itens} valores={valores} categorias={[...catReceita, ...catDespesa]} departamentos={deps}
-                modoPartners={modoPartners} rateio={rateio} granularidade={granularidade} />
+                modoPartners={modoPartners} rateio={rateio} granularidade={granularidade} royaltiesMap={royaltiesMap} />
             </TabsContent>
             <TabsContent value="despesas" className="mt-3">
               <ItensView natureza="despesa" cenarioId={cenarioId} ano={ano} itens={despesas} valores={valores}
@@ -200,7 +206,7 @@ export function DreProjetadaView() {
             <TabsContent value="receitas" className="mt-3">
               <ItensView natureza="receita" cenarioId={cenarioId} ano={ano} itens={receitas} valores={valores}
                 categorias={catReceita} departamentos={deps} tiposRateio={tipos} onChanged={reloadItens}
-                modoPartners={false} rateio={rateio} granularidade={granularidade} />
+                modoPartners={false} rateio={rateio} granularidade={granularidade} royaltiesMap={royaltiesMap} />
             </TabsContent>
           </Tabs>
         </>

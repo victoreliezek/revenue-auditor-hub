@@ -8,6 +8,7 @@ import { ItemFormDialog } from "./item-form-dialog";
 import { excluirItem, setValorCustomizado, excluirValorMes } from "./data";
 import { BRL, Cadastro, CategoriaRow, Granularidade, Item, MESES_LABEL, Natureza, RateioPartners, Valor, agruparMeses, pctPartnersFor } from "./types";
 import { toast } from "sonner";
+import type { RoyaltiesPorUnidadeInfo } from "@/hooks/use-royalties";
 
 interface Props {
   natureza: Natureza;
@@ -22,6 +23,8 @@ interface Props {
   modoPartners?: boolean;
   rateio?: RateioPartners;
   granularidade?: Granularidade;
+  /** Royalties (categoria "Royalties") vem daqui em vez de valor_base/overrides — só preenchido nas visões Base. */
+  royaltiesMap?: Map<string, RoyaltiesPorUnidadeInfo>;
 }
 
 const TIPO_LABEL: Record<string, string> = {
@@ -33,11 +36,13 @@ const TIPO_LABEL: Record<string, string> = {
 
 export function ItensView({
   natureza, cenarioId, ano, itens, valores, categorias, departamentos, tiposRateio, onChanged,
-  modoPartners = false, rateio, granularidade = "mensal",
+  modoPartners = false, rateio, granularidade = "mensal", royaltiesMap,
 }: Props) {
   const readonly = modoPartners && natureza === "despesa";
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Item | null>(null);
+
+  const isRoyalties = (i: Item) => i.cenario_id === null && i.categoria === "Royalties" && !!royaltiesMap;
 
   const valoresPorItem = useMemo(() => {
     const out = new Map<string, number[]>();
@@ -49,6 +54,14 @@ export function ItensView({
     });
     itens.forEach((i) => {
       const arr = Array(12).fill(0);
+      if (isRoyalties(i)) {
+        for (let m = 1; m <= 12; m++) {
+          const info = royaltiesMap!.get(`${i.nome}|${String(m).padStart(2, "0")}`);
+          arr[m - 1] = info?.valor ?? 0;
+        }
+        out.set(i.id, arr);
+        return;
+      }
       const inicio = Math.max(1, Math.min(12, i.mes_inicio || 1));
       const base = Number(i.valor_base) || 0;
       if (i.tipo === "fixo" || i.tipo === "fixo_variavel") {
@@ -64,6 +77,8 @@ export function ItensView({
       out.set(i.id, arr);
     });
     valores.forEach((v) => {
+      const item = itens.find((i) => i.id === v.item_id);
+      if (item && isRoyalties(item)) return; // Royalties ignora overrides — fonte é a apuração
       const arr = out.get(v.item_id);
       if (arr) arr[v.mes - 1] = Number(v.valor) || 0;
     });
@@ -78,7 +93,7 @@ export function ItensView({
       });
     }
     return out;
-  }, [itens, valores, readonly, rateio]);
+  }, [itens, valores, readonly, rateio, royaltiesMap]);
 
   function pctLabel(item: Item): string | null {
     if (!readonly || !rateio) return null;
@@ -183,7 +198,7 @@ export function ItensView({
                     const mes = b.meses[0];
                     const v = b.valor;
                     const isCustom = isSingleMonth && customSet.has(`${item.id}:${mes}`);
-                    const editable = isSingleMonth && !readonly && !isSintetico && item.tipo === "fixo_variavel";
+                    const editable = isSingleMonth && !readonly && !isSintetico && item.tipo === "fixo_variavel" && !isRoyalties(item);
                     return (
                       <td key={bi} className={"p-1 text-right tabular-nums relative group/cell " + (isCustom && !readonly ? "bg-amber-100/40 dark:bg-amber-500/10" : "")}>
                         {editable ? (

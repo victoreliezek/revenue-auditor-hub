@@ -37,12 +37,14 @@ import {
   CheckCircle2,
   Clock,
   MessageSquare,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CadastrosReceitasDialog } from "@/components/receitas/cadastros-dialog";
 import { useCategoriasReceita } from "@/hooks/use-cadastros-receitas";
 import { useDepartamentosDespesa } from "@/hooks/use-cadastros-despesas";
+import { useRoyaltiesPorUnidade, useGarantirApuracoesAno } from "@/hooks/use-royalties";
 
 const BRL = (n: number | null | undefined) =>
   (n ?? 0).toLocaleString("pt-BR", {
@@ -68,6 +70,7 @@ interface FornecedorRow {
   mes_inicio: number | null;
   parcelas: number | null;
   meses_pontuais: number[] | null;
+  unidade: string | null;
 }
 
 interface OverrideRow {
@@ -103,6 +106,9 @@ interface GridRow {
   realizado: number;
   diff: number;
   apuracao: ApuracaoStatus;
+  // null = não é linha de Royalties (planejado editável normalmente); true/false
+  // = vem da apuração de royalties, mês fechado (Realizado) ou não (Projetado).
+  royaltiesRealizado: boolean | null;
 }
 
 function itemAtivoNoMes(f: FornecedorRow, mesISO: string): boolean {
@@ -139,6 +145,10 @@ export function ReceitasView() {
   const cats = useCategoriasReceita();
   const deps = useDepartamentosDespesa();
 
+  const ano = Number(mes.slice(0, 4));
+  const royaltiesQuery = useRoyaltiesPorUnidade(ano);
+  const garantirApuracoes = useGarantirApuracoesAno();
+
   async function load() {
     setLoading(true);
     const [y, m] = mes.slice(0, 7).split("-").map(Number);
@@ -150,7 +160,7 @@ export function ReceitasView() {
       supabase
         .from("receitas_cm_fornecedores")
         .select(
-          "id,nome,categoria,departamento,tipo,valor_base,ativo,mes_inicio,parcelas,meses_pontuais",
+          "id,nome,categoria,departamento,tipo,valor_base,ativo,mes_inicio,parcelas,meses_pontuais,unidade",
         )
         .order("nome"),
       supabase
@@ -196,6 +206,7 @@ export function ReceitasView() {
 
   const gridRows: GridRow[] = useMemo(() => {
     const rows: GridRow[] = [];
+    const mesNum = mes.slice(5, 7);
     for (const f of fornecedores) {
       if (!itemAtivoNoMes(f, mes)) {
         // ainda permite linha se houver override naquele mês
@@ -203,9 +214,16 @@ export function ReceitasView() {
       }
       const ov = overrideMap.get(f.id) ?? null;
       if (ov?.inativo_no_mes) continue;
-      const planejado = Number(
-        ov?.valor != null ? ov.valor : (f.valor_base ?? 0),
-      );
+
+      const royaltiesInfo =
+        f.categoria === "Royalties" && f.unidade
+          ? royaltiesQuery.data?.get(`${f.unidade}|${mesNum}`)
+          : undefined;
+      const planejado =
+        royaltiesInfo != null
+          ? royaltiesInfo.valor
+          : Number(ov?.valor != null ? ov.valor : (f.valor_base ?? 0));
+
       const omie = ov?.codigo_omie ? (contasMap.get(ov.codigo_omie) ?? null) : null;
       const realizado = Number(omie?.valor ?? 0);
       const apuracao = (ov?.apuracao_status ?? "pendente") as ApuracaoStatus;
@@ -217,12 +235,13 @@ export function ReceitasView() {
         realizado,
         diff: realizado - planejado,
         apuracao,
+        royaltiesRealizado: royaltiesInfo != null ? royaltiesInfo.realizado : null,
       });
     }
     return rows.sort((a, b) =>
       a.fornecedor.nome.localeCompare(b.fornecedor.nome),
     );
-  }, [fornecedores, overrideMap, contasMap, mes]);
+  }, [fornecedores, overrideMap, contasMap, mes, royaltiesQuery.data]);
 
   const kpis = useMemo(() => {
     const planejado = gridRows.reduce((s, r) => s + r.planejado, 0);
@@ -398,7 +417,7 @@ export function ReceitasView() {
   return (
     <AppShell
       title="Receitas Partners"
-      subtitle="Planejado (manual) vs Realizado (Omie · contas_receber)"
+      subtitle="Planejado (manual, exceto Royalties — vem da apuração) vs Realizado (Omie · contas_receber)"
       headerExtra={
         <div className="flex items-center gap-2">
           <Select
@@ -435,6 +454,29 @@ export function ReceitasView() {
               ))}
             </SelectContent>
           </Select>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={garantirApuracoes.isPending}
+            onClick={() =>
+              garantirApuracoes.mutate(
+                { ano },
+                {
+                  onSuccess: (res) =>
+                    toast.success(
+                      res.criadas > 0
+                        ? `${res.criadas} apuração(ões) futura(s) criada(s).`
+                        : "Apurações futuras já estavam em dia.",
+                    ),
+                },
+              )
+            }
+          >
+            <RefreshCw
+              className={cn("h-4 w-4 mr-1", garantirApuracoes.isPending && "animate-spin")}
+            />
+            Gerar apurações futuras
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -716,17 +758,34 @@ function RowEditor({
         {row.fornecedor.departamento ?? "—"}
       </td>
       <td className="py-1.5 pr-2">
-        <Input
-          type="number"
-          step="0.01"
-          className="h-7 w-28 text-right tabular-nums"
-          value={val}
-          onChange={(e) => setVal(e.target.value)}
-          onBlur={() => {
-            const n = Number(val);
-            if (!Number.isNaN(n) && n !== row.planejado) onPlanejado(n);
-          }}
-        />
+        {row.royaltiesRealizado != null ? (
+          <div className="flex items-center justify-end gap-1.5">
+            <span className="tabular-nums">{BRL(row.planejado)}</span>
+            <span
+              className={cn(
+                "rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+                row.royaltiesRealizado
+                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
+                  : "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200",
+              )}
+              title="Vem da apuração de royalties — não editável aqui."
+            >
+              {row.royaltiesRealizado ? "Realizado" : "Projetado"}
+            </span>
+          </div>
+        ) : (
+          <Input
+            type="number"
+            step="0.01"
+            className="h-7 w-28 text-right tabular-nums"
+            value={val}
+            onChange={(e) => setVal(e.target.value)}
+            onBlur={() => {
+              const n = Number(val);
+              if (!Number.isNaN(n) && n !== row.planejado) onPlanejado(n);
+            }}
+          />
+        )}
       </td>
       <td className="py-1.5 pr-2 text-right tabular-nums">
         {row.omie ? BRL(row.realizado) : <span className="text-muted-foreground">—</span>}
