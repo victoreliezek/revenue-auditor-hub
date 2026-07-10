@@ -186,11 +186,7 @@ export async function gerarDemonstrativoRoyaltiesPdf(data: DemonstrativoData) {
     doc.setFontSize(9);
     doc.setTextColor(110);
     if (data.trafegoPago) {
-      doc.text(
-        `Tráfego pago (informativo, não entra no total): ${BRL(data.trafegoPago)}`,
-        40,
-        cursorY,
-      );
+      doc.text(`Tráfego pago: ${BRL(data.trafegoPago)}`, 40, cursorY);
       cursorY += 14;
     }
     if (data.outrasReceitas) {

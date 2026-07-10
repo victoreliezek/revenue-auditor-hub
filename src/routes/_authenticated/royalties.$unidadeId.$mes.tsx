@@ -311,7 +311,8 @@ function ApuracaoLoaded({
   const cscFixo = u.csc_valor_fixo != null ? Number(u.csc_valor_fixo) : null;
   const cscEfetivo = cscFixo ?? (isCscVariavel ? cscBaseAntigaValor : 0);
   const outras = Number(apuracao.outras_receitas ?? 0);
-  const totalFatura = cscEfetivo + royaltiesValor + cacValor + outras;
+  const trafegoPago = Number(apuracao.csc_trafego_pago ?? 0);
+  const totalFatura = cscEfetivo + royaltiesValor + cacValor + outras + trafegoPago;
   const badge = STATUS_BADGE[apuracao.status] ?? { label: apuracao.status, cls: "" };
 
   const flushValor = (it: ApuracaoItem) => {
@@ -620,7 +621,7 @@ function ApuracaoLoaded({
           </div>
           <div className="border-t pt-3 space-y-2">
             <div className="text-xs">
-              <Label className="text-xs text-muted-foreground">Tráfego pago (informativo)</Label>
+              <Label className="text-xs text-muted-foreground">Tráfego pago</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -656,7 +657,7 @@ function ApuracaoLoaded({
               <span className="text-lg font-bold">{brl(totalFatura)}</span>
             </div>
             <div className="text-[10px] text-muted-foreground">
-              CSC + Royalties + CAC + Outras (tráfego não entra)
+              CSC + Royalties + CAC + Outras + Tráfego pago
             </div>
           </div>
 

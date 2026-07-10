@@ -253,10 +253,6 @@ export async function gerarItensApuracaoCore(
     excluido_por?: string;
     motivo_exclusao?: string;
   }[] = [];
-  // Itens que já tinham churn marcado numa geração anterior a esta correção e
-  // ficaram presos em "so_pipedrive" sem nunca terem sido excluídos do mês.
-  const autoExclusoesChurnRetroativas: number[] = [];
-
   // contratos
   const { data: contratos, error: kErr } = await supabase
     .from("contratos")
@@ -283,11 +279,20 @@ export async function gerarItensApuracaoCore(
       .filter((t: any) => t.pipedrive_deal_id != null)
       .map((t: any) => [String(t.pipedrive_deal_id), t]),
   );
-  const churnInfoParaMes = (pipedriveDealId: string | number | null) => {
+  // Retorna null (sem churn ou churn futuro — contrato segue ativo normalmente),
+  // "expirado" (churn foi num mês ANTERIOR — contrato não deve mais aparecer
+  // nesta apuração, nem como ativo nem como excluído; ele só existiu no mês do
+  // churn) ou o objeto de churn (churn é exatamente este mês — cria o item já
+  // marcado como excluído, como sempre foi feito).
+  const churnInfoParaMes = (
+    pipedriveDealId: string | number | null,
+  ): "expirado" | { churn_pipefy_card_id: string | null; churn_reportado_em: string | null } | null => {
     if (pipedriveDealId == null) return null;
     const t = churnPorDealId.get(String(pipedriveDealId));
     if (!t || !t.data_churn) return null;
-    if (String(t.data_churn).slice(0, 7) > mes) return null; // churn é depois deste mês — ainda ativo aqui
+    const mesChurn = String(t.data_churn).slice(0, 7);
+    if (mesChurn > mes) return null; // churn é depois deste mês — ainda ativo aqui
+    if (mesChurn < mes) return "expirado"; // churn foi em mês anterior — não repete pra sempre
     return {
       churn_pipefy_card_id: t.pipefy_card_id ? String(t.pipefy_card_id) : null,
       churn_reportado_em: t.stage_change_time ?? null,
@@ -350,7 +355,7 @@ export async function gerarItensApuracaoCore(
   // Map por CNPJ mais abaixo sobrescreveria silenciosamente um contrato pelo
   // outro, perdendo o match do Omie pra um deles pra sempre.
   const contratosPorCnpjReal = new Map<string, any[]>();
-  const idsParaExcluirPorFusao: number[] = [];
+  const idsParaExcluirRegeneracao: number[] = [];
   for (const c of contratos ?? []) {
     const k = digits(c.cnpj);
     const filiais = filiaisPorContrato.get(c.id) ?? [];
@@ -360,6 +365,7 @@ export async function gerarItensApuracaoCore(
       // com o Omie (join é por CNPJ). Sem isso, o contrato desaparece silenciosamente
       // da apuração inteira.
       const churnInfoSemCnpj = churnInfoParaMes(c.pipedrive_deal_id);
+      if (churnInfoSemCnpj === "expirado") continue; // churn foi em mês anterior — não aparece mais
       itensSemCnpj.push({
         apuracao_id: apuracao_id,
         cnpj: null,
@@ -440,7 +446,7 @@ export async function gerarItensApuracaoCore(
         !itemSecundario.churn_pipefy_card_id &&
         !itemSecundario.excluido_em
       ) {
-        idsParaExcluirPorFusao.push(itemSecundario.id);
+        idsParaExcluirRegeneracao.push(itemSecundario.id);
         itemPorContrato.delete(sec.id);
       }
     }
@@ -471,16 +477,17 @@ export async function gerarItensApuracaoCore(
     // pra forçar revisão humana do valor atualizado.
     const churnInfo = churnInfoParaMes(c.pipedriveDealId);
     const itemExistente = itemPorContrato.get(c.id);
-    if (itemExistente) {
-      if (itemExistente.churn_pipefy_card_id) {
-        // Já tinha churn marcado numa geração anterior a esta correção — se
-        // ficou preso em so_pipedrive sem nunca ter sido excluído do mês,
-        // faz o self-heal agora (sem recalcular valor, churn é definitivo).
-        if (!itemExistente.excluido_em && !temOmie) {
-          autoExclusoesChurnRetroativas.push(itemExistente.id);
-        }
-        continue;
+    if (churnInfo === "expirado") {
+      // Churn foi num mês anterior a este — o contrato não deve mais aparecer
+      // nesta apuração (nem ativo, nem excluído): ele só existe no mês exato
+      // do churn. Se sobrou item de uma geração anterior a esta correção (e
+      // ele não estiver confirmado nem excluído por outro motivo), remove.
+      if (itemExistente && !itemExistente.confirmado && !itemExistente.excluido_em) {
+        idsParaExcluirRegeneracao.push(itemExistente.id);
       }
+      continue;
+    }
+    if (itemExistente) {
       if (itemExistente.excluido_em) continue; // excluído do mês manualmente, nunca recalcula
       const novoValorOmie = temOmie ? omieValor : null;
       const valorAtual = itemExistente.valor_omie == null ? null : Number(itemExistente.valor_omie);
@@ -562,11 +569,11 @@ export async function gerarItensApuracaoCore(
   // Remove itens avulsos de contratos "secundários" fundidos num grupo de CNPJ
   // (ver contratosPorCnpjReal acima) — só os não confirmados/sem churn/sem
   // exclusão manual chegam aqui, então é seguro apagar.
-  if (idsParaExcluirPorFusao.length > 0) {
+  if (idsParaExcluirRegeneracao.length > 0) {
     const { error: fusErr } = await supabase
       .from("royalties_itens")
       .delete()
-      .in("id", idsParaExcluirPorFusao);
+      .in("id", idsParaExcluirRegeneracao);
     if (fusErr) throw new Error(fusErr.message);
   }
 
@@ -587,21 +594,6 @@ export async function gerarItensApuracaoCore(
     if (upd.motivo_exclusao !== undefined) patch.motivo_exclusao = upd.motivo_exclusao;
     const { error: uErr } = await supabase.from("royalties_itens").update(patch).eq("id", upd.id);
     if (uErr) throw new Error(uErr.message);
-  }
-
-  // Self-heal: itens que já tinham churn marcado antes desta correção e ficaram
-  // presos em so_pipedrive sem nunca terem sido excluídos do mês.
-  if (autoExclusoesChurnRetroativas.length > 0) {
-    const { error: exErr } = await supabase
-      .from("royalties_itens")
-      .update({
-        excluido_em: new Date().toISOString(),
-        excluido_por: EXCLUIDO_POR_CHURN_AUTOMATICO,
-        motivo_exclusao: MOTIVO_EXCLUSAO_CHURN_AUTOMATICO,
-        confirmado: false,
-      })
-      .in("id", autoExclusoesChurnRetroativas);
-    if (exErr) throw new Error(exErr.message);
   }
 
   if (itens.length === 0) return { created: 0 };
@@ -943,7 +935,7 @@ export const fecharApuracao = createServerFn({ method: "POST" })
     const { data: ap, error: apErr } = await supabase
       .from("royalties_apuracao")
       .select(
-        "id,status,royalties_percentual,csc_valor_fixo,csc_percentual_base_antiga,outras_receitas",
+        "id,status,royalties_percentual,csc_valor_fixo,csc_percentual_base_antiga,outras_receitas,csc_trafego_pago",
       )
       .eq("id", data.id)
       .single();
@@ -987,7 +979,8 @@ export const fecharApuracao = createServerFn({ method: "POST" })
     const cscFixo = ap.csc_valor_fixo != null ? Number(ap.csc_valor_fixo) : null;
     const cscEfetivo = cscFixo ?? (ap.csc_percentual_base_antiga != null ? cscBaseAntigaValor : 0);
     const outras = Number(ap.outras_receitas ?? 0);
-    const total = cscEfetivo + royalties + cacValor + outras;
+    const trafegoPago = Number(ap.csc_trafego_pago ?? 0);
+    const total = cscEfetivo + royalties + cacValor + outras + trafegoPago;
 
     // Atualizar royalties_item por item (em paralelo para evitar estado parcial)
     const { data: itensFull, error: itensFullErr } = await supabase
