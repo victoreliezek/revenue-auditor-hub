@@ -55,11 +55,13 @@ export function ApuracaoRoyaltiesContent() {
           acc.royalties += Number(ap.royalties_valor ?? 0);
           acc.csc += Number((ap.csc_valor_fixo ?? ap.csc_base_antiga_valor ?? 0) as number);
           acc.cac += Number(ap.cac_valor ?? 0);
+          acc.midia += Number(ap.csc_trafego_pago ?? 0);
+          acc.outras += Number(ap.outras_receitas ?? 0);
           acc.totalFatura += Number(ap.total_fatura ?? 0);
           acc.comApuracao += 1;
           return acc;
         },
-        { royalties: 0, csc: 0, cac: 0, totalFatura: 0, comApuracao: 0 },
+        { royalties: 0, csc: 0, cac: 0, midia: 0, outras: 0, totalFatura: 0, comApuracao: 0 },
       ),
     [rows],
   );
@@ -107,7 +109,7 @@ export function ApuracaoRoyaltiesContent() {
               {totais.comApuracao} de {rows.length} unidades com apuração
             </div>
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-6">
             <div>
               <div className="text-xs text-muted-foreground">Royalties</div>
               <div className="font-medium">{brl(totais.royalties)}</div>
@@ -119,6 +121,14 @@ export function ApuracaoRoyaltiesContent() {
             <div>
               <div className="text-xs text-muted-foreground">CAC</div>
               <div className="font-medium">{brl(totais.cac)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Mídia</div>
+              <div className="font-medium">{brl(totais.midia)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Outras receitas</div>
+              <div className="font-medium">{brl(totais.outras)}</div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">Total fatura</div>
@@ -167,6 +177,14 @@ export function ApuracaoRoyaltiesContent() {
                     <div>
                       <div className="text-muted-foreground">CAC</div>
                       <div className="font-medium">{brl(ap.cac_valor ?? 0)}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Mídia</div>
+                      <div className="font-medium">{brl(ap.csc_trafego_pago ?? 0)}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Outras</div>
+                      <div className="font-medium">{brl(ap.outras_receitas ?? 0)}</div>
                     </div>
                     <div className="col-span-3">
                       <div className="text-muted-foreground">Total fatura</div>

@@ -23,6 +23,8 @@ export interface ApuracaoSummary {
   csc_valor_fixo: number | null;
   csc_base_antiga_valor: number | null;
   cac_valor: number | null;
+  csc_trafego_pago: number | null;
+  outras_receitas: number | null;
   confirmado_em: string | null;
 }
 
@@ -104,7 +106,7 @@ export const listRoyaltiesUnidades = createServerFn({ method: "GET" })
     const { data: aps, error: aErr } = await supabase
       .from("royalties_apuracao")
       .select(
-        "id,unidade_id,status,mes_referencia,total_fatura,receita_base,royalties_valor,csc_valor_fixo,csc_base_antiga_valor,cac_valor,confirmado_em",
+        "id,unidade_id,status,mes_referencia,total_fatura,receita_base,royalties_valor,csc_valor_fixo,csc_base_antiga_valor,cac_valor,csc_trafego_pago,outras_receitas,confirmado_em",
       )
       .eq("mes_referencia", firstDay);
     if (aErr) throw new Error(aErr.message);
