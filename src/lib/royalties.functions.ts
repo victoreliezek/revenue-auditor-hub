@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertAdmin, digits, monthRange } from "@/lib/server-utils";
 
-
 // ============ Types ============
 export interface UnidadeRoyalties {
   id: number;
@@ -83,7 +82,6 @@ export interface ApuracaoItem {
   excluido_por: string | null;
   motivo_exclusao: string | null;
 }
-
 
 // ============ listRoyaltiesUnidades ============
 export const listRoyaltiesUnidades = createServerFn({ method: "GET" })
@@ -168,7 +166,8 @@ export const getOrCreateApuracao = createServerFn({ method: "POST" })
 // do Omie no mês (ex: fatura residual paga antes do churn efetivar), o item
 // continua ativo normalmente pra um humano confirmar — só o "sem recebimento" é
 // automático.
-const MOTIVO_EXCLUSAO_CHURN_AUTOMATICO = "Churn registrado — sem recebimento no mês (exclusão automática)";
+const MOTIVO_EXCLUSAO_CHURN_AUTOMATICO =
+  "Churn registrado — sem recebimento no mês (exclusão automática)";
 const EXCLUIDO_POR_CHURN_AUTOMATICO = "sistema (churn automático)";
 const camposExclusaoChurn = (
   churnInfo: { churn_pipefy_card_id: string | null; churn_reportado_em: string | null } | null,
@@ -197,329 +196,355 @@ export async function apagarItensNaoConfirmados(supabase: any, apuracao_id: numb
   if (error) throw new Error(error.message);
 }
 
-export async function gerarItensApuracaoCore(supabase: any, apuracao_id: number): Promise<{ created: number }> {
-    const { data: ap, error: apErr } = await supabase
-      .from("royalties_apuracao")
-      .select("id,mes_referencia,unidade_id,status, unidade:unidades!inner(id,nome_da_praca,csc_percentual_base_antiga)")
-      .eq("id", apuracao_id)
-      .single();
-    if (apErr) throw new Error(apErr.message);
-    if (ap.status === "confirmado" || ap.status === "faturado") {
-      throw new Error("Apuração já fechada — não é possível regerar itens.");
-    }
+export async function gerarItensApuracaoCore(
+  supabase: any,
+  apuracao_id: number,
+): Promise<{ created: number }> {
+  const { data: ap, error: apErr } = await supabase
+    .from("royalties_apuracao")
+    .select(
+      "id,mes_referencia,unidade_id,status, unidade:unidades!inner(id,nome_da_praca,csc_percentual_base_antiga)",
+    )
+    .eq("id", apuracao_id)
+    .single();
+  if (apErr) throw new Error(apErr.message);
+  if (ap.status === "confirmado" || ap.status === "faturado") {
+    throw new Error("Apuração já fechada — não é possível regerar itens.");
+  }
 
-    const unidadeNome: string = ap.unidade.nome_da_praca;
-    const usaCscVariavel = ap.unidade.csc_percentual_base_antiga != null;
-    const mes = String(ap.mes_referencia).slice(0, 7);
-    const { start, end } = monthRange(mes);
+  const unidadeNome: string = ap.unidade.nome_da_praca;
+  const usaCscVariavel = ap.unidade.csc_percentual_base_antiga != null;
+  const mes = String(ap.mes_referencia).slice(0, 7);
+  const { start, end } = monthRange(mes);
 
-    // Itens que já existem nesta apuração (ex: confirmados, que regerarMatchApuracao
-    // preserva de propósito) nunca devem ganhar um item irmão duplicado — sem isso,
-    // rodar com force:true depois de itens confirmados gera duas linhas por contrato.
-    // O valor correto de referência é sempre o do Omie: se um item já existente (mesmo
-    // confirmado) tem um valor_omie desatualizado em relação ao que acabou de ser
-    // recalculado (ex: chegou uma 2ª fatura do mês depois da confirmação), ele é
-    // atualizado com o valor novo e volta pra "não confirmado" pra revisão humana.
-    // Itens com churn marcado ou excluídos do mês (excluirItemMes) nunca são recalculados.
-    const { data: itensExistentes, error: ieErr } = await supabase
-      .from("royalties_itens")
-      .select("id,contrato_id,cnpj,valor_omie,confirmado,churn_pipefy_card_id,excluido_em")
-      .eq("apuracao_id", apuracao_id);
-    if (ieErr) throw new Error(ieErr.message);
-    const itemPorContrato = new Map<number, any>(
-      (itensExistentes ?? [])
-        .filter((i: any) => i.contrato_id != null)
-        .map((i: any) => [i.contrato_id as number, i]),
-    );
-    const cnpjsSemContratoComItem = new Set(
-      (itensExistentes ?? []).filter((i: any) => i.contrato_id == null).map((i: any) => digits(i.cnpj)),
-    );
-    const atualizacoesValorOmie: {
-      id: number;
-      cnpj?: string | null;
-      valor_omie: number | null;
-      valor_confirmado: number | null;
-      confirmado: boolean;
-      status_match: string;
-      churn_pipefy_card_id?: string | null;
-      churn_reportado_em?: string | null;
-      excluido_em?: string;
-      excluido_por?: string;
-      motivo_exclusao?: string;
-    }[] = [];
-    // Itens que já tinham churn marcado numa geração anterior a esta correção e
-    // ficaram presos em "so_pipedrive" sem nunca terem sido excluídos do mês.
-    const autoExclusoesChurnRetroativas: number[] = [];
+  // Itens que já existem nesta apuração (ex: confirmados, que regerarMatchApuracao
+  // preserva de propósito) nunca devem ganhar um item irmão duplicado — sem isso,
+  // rodar com force:true depois de itens confirmados gera duas linhas por contrato.
+  // O valor correto de referência é sempre o do Omie: se um item já existente (mesmo
+  // confirmado) tem um valor_omie desatualizado em relação ao que acabou de ser
+  // recalculado (ex: chegou uma 2ª fatura do mês depois da confirmação), ele é
+  // atualizado com o valor novo e volta pra "não confirmado" pra revisão humana.
+  // Itens com churn marcado ou excluídos do mês (excluirItemMes) nunca são recalculados.
+  const { data: itensExistentes, error: ieErr } = await supabase
+    .from("royalties_itens")
+    .select("id,contrato_id,cnpj,valor_omie,confirmado,churn_pipefy_card_id,excluido_em")
+    .eq("apuracao_id", apuracao_id);
+  if (ieErr) throw new Error(ieErr.message);
+  const itemPorContrato = new Map<number, any>(
+    (itensExistentes ?? [])
+      .filter((i: any) => i.contrato_id != null)
+      .map((i: any) => [i.contrato_id as number, i]),
+  );
+  const cnpjsSemContratoComItem = new Set(
+    (itensExistentes ?? [])
+      .filter((i: any) => i.contrato_id == null)
+      .map((i: any) => digits(i.cnpj)),
+  );
+  const atualizacoesValorOmie: {
+    id: number;
+    cnpj?: string | null;
+    valor_omie: number | null;
+    valor_confirmado: number | null;
+    confirmado: boolean;
+    status_match: string;
+    churn_pipefy_card_id?: string | null;
+    churn_reportado_em?: string | null;
+    excluido_em?: string;
+    excluido_por?: string;
+    motivo_exclusao?: string;
+  }[] = [];
+  // Itens que já tinham churn marcado numa geração anterior a esta correção e
+  // ficaram presos em "so_pipedrive" sem nunca terem sido excluídos do mês.
+  const autoExclusoesChurnRetroativas: number[] = [];
 
-    // contratos
-    const { data: contratos, error: kErr } = await supabase
-      .from("contratos")
-      .select("id,cnpj,titulo,mrr_mensal,ganho_em,pipedrive_deal_id")
-      .eq("unidade", unidadeNome)
-      .eq("tipo_unidade", "franquia")
-      .eq("status_contrato", "Ativo");
-    if (kErr) throw new Error(kErr.message);
+  // contratos
+  const { data: contratos, error: kErr } = await supabase
+    .from("contratos")
+    .select("id,cnpj,titulo,mrr_mensal,ganho_em,pipedrive_deal_id")
+    .eq("unidade", unidadeNome)
+    .eq("tipo_unidade", "franquia")
+    .eq("status_contrato", "Ativo");
+  if (kErr) throw new Error(kErr.message);
 
-    // Churn já registrado no Pipefy (mesma fonte de verdade da página Clientes:
-    // central_tratativas com estagio=Perdido). Preenche o item já nascendo marcado
-    // como churn quando a apuração é de um mês novo (nunca gerado antes) — sem isso,
-    // um mês futuro (ex: apuração criada em agosto/2026 pela primeira vez) incluiria
-    // o contrato normalmente, já que nada além do próprio item de uma apuração já
-    // gerada sabia do churn.
-    const { data: tratativasChurn, error: tcErr } = await supabase
-      .from("central_tratativas")
-      .select("pipedrive_deal_id,pipefy_card_id,data_churn,stage_change_time")
-      .eq("estagio", "Perdido")
-      .eq("status", "lost");
-    if (tcErr) throw new Error(tcErr.message);
-    const churnPorDealId = new Map<string, any>(
-      (tratativasChurn ?? [])
-        .filter((t: any) => t.pipedrive_deal_id != null)
-        .map((t: any) => [String(t.pipedrive_deal_id), t]),
-    );
-    const churnInfoParaMes = (pipedriveDealId: string | number | null) => {
-      if (pipedriveDealId == null) return null;
-      const t = churnPorDealId.get(String(pipedriveDealId));
-      if (!t || !t.data_churn) return null;
-      if (String(t.data_churn).slice(0, 7) > mes) return null; // churn é depois deste mês — ainda ativo aqui
-      return {
-        churn_pipefy_card_id: t.pipefy_card_id ? String(t.pipefy_card_id) : null,
-        churn_reportado_em: t.stage_change_time ?? null,
-      };
+  // Churn já registrado no Pipefy (mesma fonte de verdade da página Clientes:
+  // central_tratativas com estagio=Perdido). Preenche o item já nascendo marcado
+  // como churn quando a apuração é de um mês novo (nunca gerado antes) — sem isso,
+  // um mês futuro (ex: apuração criada em agosto/2026 pela primeira vez) incluiria
+  // o contrato normalmente, já que nada além do próprio item de uma apuração já
+  // gerada sabia do churn.
+  const { data: tratativasChurn, error: tcErr } = await supabase
+    .from("central_tratativas")
+    .select("pipedrive_deal_id,pipefy_card_id,data_churn,stage_change_time")
+    .eq("estagio", "Perdido")
+    .eq("status", "lost");
+  if (tcErr) throw new Error(tcErr.message);
+  const churnPorDealId = new Map<string, any>(
+    (tratativasChurn ?? [])
+      .filter((t: any) => t.pipedrive_deal_id != null)
+      .map((t: any) => [String(t.pipedrive_deal_id), t]),
+  );
+  const churnInfoParaMes = (pipedriveDealId: string | number | null) => {
+    if (pipedriveDealId == null) return null;
+    const t = churnPorDealId.get(String(pipedriveDealId));
+    if (!t || !t.data_churn) return null;
+    if (String(t.data_churn).slice(0, 7) > mes) return null; // churn é depois deste mês — ainda ativo aqui
+    return {
+      churn_pipefy_card_id: t.pipefy_card_id ? String(t.pipefy_card_id) : null,
+      churn_reportado_em: t.stage_change_time ?? null,
     };
+  };
 
-    // contas_receber agregado por cnpj
-    const { data: recs, error: rErr } = await supabase
-      .from("contas_receber")
-      .select("cpf_cnpj,cliente,valor")
-      .eq("unidade", unidadeNome)
-      .eq("status_pagamento", "RECEBIDO")
-      .gte("data_pagamento", start)
-      .lte("data_pagamento", end);
-    if (rErr) throw new Error(rErr.message);
+  // contas_receber agregado por cnpj
+  const { data: recs, error: rErr } = await supabase
+    .from("contas_receber")
+    .select("cpf_cnpj,cliente,valor")
+    .eq("unidade", unidadeNome)
+    .eq("status_pagamento", "RECEBIDO")
+    .gte("data_pagamento", start)
+    .lte("data_pagamento", end);
+  if (rErr) throw new Error(rErr.message);
 
-    type OmieAgg = { cnpj: string; cliente: string; valor: number };
-    const omieMap = new Map<string, OmieAgg>();
-    for (const r of recs ?? []) {
-      const k = digits(r.cpf_cnpj);
-      if (!k) continue;
-      const cur = omieMap.get(k) ?? { cnpj: k, cliente: r.cliente ?? "—", valor: 0 };
-      cur.valor += Number(r.valor ?? 0);
-      omieMap.set(k, cur);
+  type OmieAgg = { cnpj: string; cliente: string; valor: number };
+  const omieMap = new Map<string, OmieAgg>();
+  for (const r of recs ?? []) {
+    const k = digits(r.cpf_cnpj);
+    if (!k) continue;
+    const cur = omieMap.get(k) ?? { cnpj: k, cliente: r.cliente ?? "—", valor: 0 };
+    cur.valor += Number(r.valor ?? 0);
+    omieMap.set(k, cur);
+  }
+
+  // Carrega filiais vinculadas a contratos desta unidade — precisa rodar antes de
+  // decidir quem vai pro branch "sem CNPJ", pois um contrato sem CNPJ próprio no
+  // Pipedrive ainda pode ter filiais vinculadas manualmente com CNPJ que bate com o Omie.
+  const todosContratoIds = (contratos ?? []).map((c: any) => c.id);
+  const filiaisPorContrato = new Map<number, string[]>();
+  if (todosContratoIds.length > 0) {
+    const { data: grupos, error: gErr } = await supabase
+      .from("contrato_omie_grupos")
+      .select("contrato_id,cpf_cnpj")
+      .in("contrato_id", todosContratoIds);
+    if (gErr) throw new Error(gErr.message);
+    for (const g of grupos ?? []) {
+      const arr = filiaisPorContrato.get(g.contrato_id) ?? [];
+      arr.push(digits(g.cpf_cnpj));
+      filiaisPorContrato.set(g.contrato_id, arr);
     }
+  }
 
-    // Carrega filiais vinculadas a contratos desta unidade — precisa rodar antes de
-    // decidir quem vai pro branch "sem CNPJ", pois um contrato sem CNPJ próprio no
-    // Pipedrive ainda pode ter filiais vinculadas manualmente com CNPJ que bate com o Omie.
-    const todosContratoIds = (contratos ?? []).map((c: any) => c.id);
-    const filiaisPorContrato = new Map<number, string[]>();
-    if (todosContratoIds.length > 0) {
-      const { data: grupos, error: gErr } = await supabase
-        .from("contrato_omie_grupos")
-        .select("contrato_id,cpf_cnpj")
-        .in("contrato_id", todosContratoIds);
-      if (gErr) throw new Error(gErr.message);
-      for (const g of grupos ?? []) {
-        const arr = filiaisPorContrato.get(g.contrato_id) ?? [];
-        arr.push(digits(g.cpf_cnpj));
-        filiaisPorContrato.set(g.contrato_id, arr);
+  const contratoMap = new Map<
+    string,
+    {
+      id: number;
+      titulo: string;
+      mrr: number;
+      cnpj: string | null;
+      ganhoEm: string | null;
+      pipedriveDealId: string | number | null;
+    }
+  >();
+  const itensSemCnpj: any[] = [];
+  for (const c of contratos ?? []) {
+    const k = digits(c.cnpj);
+    const filiais = filiaisPorContrato.get(c.id) ?? [];
+    if (!k && filiais.length === 0) {
+      if (itemPorContrato.has(c.id)) continue;
+      // Contrato sem CNPJ cadastrado e sem filiais vinculadas nunca pode ser cruzado
+      // com o Omie (join é por CNPJ). Sem isso, o contrato desaparece silenciosamente
+      // da apuração inteira.
+      const churnInfoSemCnpj = churnInfoParaMes(c.pipedrive_deal_id);
+      itensSemCnpj.push({
+        apuracao_id: apuracao_id,
+        cnpj: null,
+        razao_social: c.titulo ?? "—",
+        contrato_id: c.id,
+        categoria: "royalties",
+        mrr_contratado: Number(c.mrr_mensal ?? 0),
+        valor_omie: null,
+        valor_confirmado: null,
+        fonte: "pipedrive",
+        status_match: "so_pipedrive",
+        observacao: "Contrato sem CNPJ cadastrado — não foi possível conciliar com o Omie.",
+        confirmado: false,
+        data_ganho: c.ganho_em ?? null,
+        ...(churnInfoSemCnpj ?? {}),
+        ...camposExclusaoChurn(churnInfoSemCnpj, false),
+      });
+      continue;
+    }
+    // Contrato sem CNPJ próprio mas com filiais vinculadas usa uma chave sintética
+    // (id do contrato) só pra não colidir no Map — o cnpj salvo no item continua null,
+    // o match acontece inteiramente pelas filiais.
+    const mapKey = k || `__filial_only_${c.id}`;
+    contratoMap.set(mapKey, {
+      id: c.id,
+      titulo: c.titulo ?? "—",
+      mrr: Number(c.mrr_mensal ?? 0),
+      cnpj: k || null,
+      ganhoEm: c.ganho_em ?? null,
+      pipedriveDealId: c.pipedrive_deal_id ?? null,
+    });
+  }
+
+  const itens: any[] = [...itensSemCnpj];
+
+  // Matched + so_pipedrive (com expansão por filiais vinculadas)
+  for (const [, c] of contratoMap) {
+    const filiais = filiaisPorContrato.get(c.id) ?? [];
+    const cnpjsGrupo = [c.cnpj, ...filiais].filter((x): x is string => !!x);
+    let omieValor = 0;
+    let temOmie = false;
+    for (const cn of cnpjsGrupo) {
+      const om = omieMap.get(cn);
+      if (om) {
+        omieValor += om.valor;
+        temOmie = true;
+        omieMap.delete(cn);
       }
     }
-
-    const contratoMap = new Map<string, { id: number; titulo: string; mrr: number; cnpj: string | null; ganhoEm: string | null; pipedriveDealId: string | number | null }>();
-    const itensSemCnpj: any[] = [];
-    for (const c of contratos ?? []) {
-      const k = digits(c.cnpj);
-      const filiais = filiaisPorContrato.get(c.id) ?? [];
-      if (!k && filiais.length === 0) {
-        if (itemPorContrato.has(c.id)) continue;
-        // Contrato sem CNPJ cadastrado e sem filiais vinculadas nunca pode ser cruzado
-        // com o Omie (join é por CNPJ). Sem isso, o contrato desaparece silenciosamente
-        // da apuração inteira.
-        const churnInfoSemCnpj = churnInfoParaMes(c.pipedrive_deal_id);
-        itensSemCnpj.push({
-          apuracao_id: apuracao_id,
-          cnpj: null,
-          razao_social: c.titulo ?? "—",
-          contrato_id: c.id,
-          categoria: "royalties",
-          mrr_contratado: Number(c.mrr_mensal ?? 0),
-          valor_omie: null,
-          valor_confirmado: null,
-          fonte: "pipedrive",
-          status_match: "so_pipedrive",
-          observacao: "Contrato sem CNPJ cadastrado — não foi possível conciliar com o Omie.",
-          confirmado: false,
-          data_ganho: c.ganho_em ?? null,
-          ...(churnInfoSemCnpj ?? {}),
-          ...camposExclusaoChurn(churnInfoSemCnpj, false),
-        });
-        continue;
-      }
-      // Contrato sem CNPJ próprio mas com filiais vinculadas usa uma chave sintética
-      // (id do contrato) só pra não colidir no Map — o cnpj salvo no item continua null,
-      // o match acontece inteiramente pelas filiais.
-      const mapKey = k || `__filial_only_${c.id}`;
-      contratoMap.set(mapKey, { id: c.id, titulo: c.titulo ?? "—", mrr: Number(c.mrr_mensal ?? 0), cnpj: k || null, ganhoEm: c.ganho_em ?? null, pipedriveDealId: c.pipedrive_deal_id ?? null });
-    }
-
-    const itens: any[] = [...itensSemCnpj];
-
-    // Matched + so_pipedrive (com expansão por filiais vinculadas)
-    for (const [, c] of contratoMap) {
-      const filiais = filiaisPorContrato.get(c.id) ?? [];
-      const cnpjsGrupo = [c.cnpj, ...filiais].filter((x): x is string => !!x);
-      let omieValor = 0;
-      let temOmie = false;
-      for (const cn of cnpjsGrupo) {
-        const om = omieMap.get(cn);
-        if (om) {
-          omieValor += om.valor;
-          temOmie = true;
-          omieMap.delete(cn);
-        }
-      }
-      // Já existe item pra esse contrato nesta apuração (ex: confirmado, preservado
-      // de propósito por regerarMatchApuracao) — o Omie acima já foi consumido pra não
-      // sobrar como "só omie", mas não criamos um item irmão duplicado. Em vez disso,
-      // se o valor do Omie recalculado agora é diferente do que está salvo (ex: chegou
-      // uma 2ª fatura do mês depois da confirmação), atualiza o item existente com o
-      // valor novo do Omie — que é sempre a referência correta — e derruba confirmado
-      // pra forçar revisão humana do valor atualizado.
-      const churnInfo = churnInfoParaMes(c.pipedriveDealId);
-      const itemExistente = itemPorContrato.get(c.id);
-      if (itemExistente) {
-        if (itemExistente.churn_pipefy_card_id) {
-          // Já tinha churn marcado numa geração anterior a esta correção — se
-          // ficou preso em so_pipedrive sem nunca ter sido excluído do mês,
-          // faz o self-heal agora (sem recalcular valor, churn é definitivo).
-          if (!itemExistente.excluido_em && !temOmie) {
-            autoExclusoesChurnRetroativas.push(itemExistente.id);
-          }
-          continue;
-        }
-        if (itemExistente.excluido_em) continue; // excluído do mês manualmente, nunca recalcula
-        const novoValorOmie = temOmie ? omieValor : null;
-        const valorAtual = itemExistente.valor_omie == null ? null : Number(itemExistente.valor_omie);
-        // cnpj do contrato pode ter sido editado depois que este item já existia
-        // (ex: botão "Editar CNPJ" na apuração) — sem isso, o item nunca reflete
-        // o CNPJ novo mesmo depois de regerado, mesmo quando o valor não muda.
-        const cnpjMudou = digits(itemExistente.cnpj) !== (c.cnpj ?? "");
-        if (novoValorOmie !== valorAtual || churnInfo || cnpjMudou) {
-          const diff = c.mrr > 0 && novoValorOmie != null ? Math.abs(novoValorOmie - c.mrr) / c.mrr : 0;
-          atualizacoesValorOmie.push({
-            id: itemExistente.id,
-            cnpj: c.cnpj,
-            valor_omie: novoValorOmie,
-            valor_confirmado: novoValorOmie,
-            confirmado: false,
-            status_match: novoValorOmie == null ? "so_pipedrive" : diff > 0.25 ? "divergente" : "matched",
-            ...(churnInfo ?? {}),
-            ...camposExclusaoChurn(churnInfo, novoValorOmie != null),
-          });
+    // Já existe item pra esse contrato nesta apuração (ex: confirmado, preservado
+    // de propósito por regerarMatchApuracao) — o Omie acima já foi consumido pra não
+    // sobrar como "só omie", mas não criamos um item irmão duplicado. Em vez disso,
+    // se o valor do Omie recalculado agora é diferente do que está salvo (ex: chegou
+    // uma 2ª fatura do mês depois da confirmação), atualiza o item existente com o
+    // valor novo do Omie — que é sempre a referência correta — e derruba confirmado
+    // pra forçar revisão humana do valor atualizado.
+    const churnInfo = churnInfoParaMes(c.pipedriveDealId);
+    const itemExistente = itemPorContrato.get(c.id);
+    if (itemExistente) {
+      if (itemExistente.churn_pipefy_card_id) {
+        // Já tinha churn marcado numa geração anterior a esta correção — se
+        // ficou preso em so_pipedrive sem nunca ter sido excluído do mês,
+        // faz o self-heal agora (sem recalcular valor, churn é definitivo).
+        if (!itemExistente.excluido_em && !temOmie) {
+          autoExclusoesChurnRetroativas.push(itemExistente.id);
         }
         continue;
       }
-      if (temOmie) {
-        const diff = c.mrr > 0 ? Math.abs(omieValor - c.mrr) / c.mrr : 0;
-        itens.push({
-          apuracao_id: apuracao_id,
+      if (itemExistente.excluido_em) continue; // excluído do mês manualmente, nunca recalcula
+      const novoValorOmie = temOmie ? omieValor : null;
+      const valorAtual = itemExistente.valor_omie == null ? null : Number(itemExistente.valor_omie);
+      // cnpj do contrato pode ter sido editado depois que este item já existia
+      // (ex: botão "Editar CNPJ" na apuração) — sem isso, o item nunca reflete
+      // o CNPJ novo mesmo depois de regerado, mesmo quando o valor não muda.
+      const cnpjMudou = digits(itemExistente.cnpj) !== (c.cnpj ?? "");
+      if (novoValorOmie !== valorAtual || churnInfo || cnpjMudou) {
+        atualizacoesValorOmie.push({
+          id: itemExistente.id,
           cnpj: c.cnpj,
-          razao_social: c.titulo,
-          contrato_id: c.id,
-          categoria: "royalties",
-          mrr_contratado: c.mrr,
-          valor_omie: omieValor,
-          valor_confirmado: omieValor,
-          fonte: "pipedrive",
-          status_match: diff > 0.25 ? "divergente" : "matched",
+          valor_omie: novoValorOmie,
+          valor_confirmado: novoValorOmie,
           confirmado: false,
-          data_ganho: c.ganhoEm,
+          status_match: novoValorOmie == null ? "so_pipedrive" : "matched",
           ...(churnInfo ?? {}),
-        });
-      } else {
-        itens.push({
-          apuracao_id: apuracao_id,
-          cnpj: c.cnpj,
-          razao_social: c.titulo,
-          contrato_id: c.id,
-          categoria: "royalties",
-          mrr_contratado: c.mrr,
-          valor_omie: null,
-          valor_confirmado: null,
-          fonte: "pipedrive",
-          status_match: "so_pipedrive",
-          ...(churnInfo ?? {}),
-          ...camposExclusaoChurn(churnInfo, false),
-          confirmado: false,
-          data_ganho: c.ganhoEm,
+          ...camposExclusaoChurn(churnInfo, novoValorOmie != null),
         });
       }
+      continue;
     }
-
-    // Restantes do Omie → so_omie
-    for (const [k, o] of omieMap) {
-      if (cnpjsSemContratoComItem.has(k)) continue;
+    if (temOmie) {
+      // Recebido no Omie é sempre a referência de valor pra apuração do mês —
+      // divergir do MRR contratado (reajuste, upsell, atraso) é normal e não
+      // impede o match; não existe mais status "divergente".
       itens.push({
         apuracao_id: apuracao_id,
-        cnpj: k,
-        razao_social: o.cliente,
-        contrato_id: null,
-        categoria: usaCscVariavel ? "csc_base_antiga" : "royalties",
-        mrr_contratado: null,
-        valor_omie: o.valor,
-        valor_confirmado: o.valor,
-        fonte: "omie",
-        status_match: "so_omie",
+        cnpj: c.cnpj,
+        razao_social: c.titulo,
+        contrato_id: c.id,
+        categoria: "royalties",
+        mrr_contratado: c.mrr,
+        valor_omie: omieValor,
+        valor_confirmado: omieValor,
+        fonte: "pipedrive",
+        status_match: "matched",
         confirmado: false,
+        data_ganho: c.ganhoEm,
+        ...(churnInfo ?? {}),
+      });
+    } else {
+      itens.push({
+        apuracao_id: apuracao_id,
+        cnpj: c.cnpj,
+        razao_social: c.titulo,
+        contrato_id: c.id,
+        categoria: "royalties",
+        mrr_contratado: c.mrr,
+        valor_omie: null,
+        valor_confirmado: null,
+        fonte: "pipedrive",
+        status_match: "so_pipedrive",
+        ...(churnInfo ?? {}),
+        ...camposExclusaoChurn(churnInfo, false),
+        confirmado: false,
+        data_ganho: c.ganhoEm,
       });
     }
+  }
 
-    // Atualiza itens já existentes cujo valor do Omie mudou desde a última geração
-    for (const upd of atualizacoesValorOmie) {
-      const patch: any = {
-        valor_omie: upd.valor_omie,
-        valor_confirmado: upd.valor_confirmado,
-        confirmado: upd.confirmado,
-        status_match: upd.status_match,
-      };
-      if (upd.cnpj !== undefined) patch.cnpj = upd.cnpj;
-      if (upd.churn_pipefy_card_id !== undefined) patch.churn_pipefy_card_id = upd.churn_pipefy_card_id;
-      if (upd.churn_reportado_em !== undefined) patch.churn_reportado_em = upd.churn_reportado_em;
-      if (upd.excluido_em !== undefined) patch.excluido_em = upd.excluido_em;
-      if (upd.excluido_por !== undefined) patch.excluido_por = upd.excluido_por;
-      if (upd.motivo_exclusao !== undefined) patch.motivo_exclusao = upd.motivo_exclusao;
-      const { error: uErr } = await supabase.from("royalties_itens").update(patch).eq("id", upd.id);
-      if (uErr) throw new Error(uErr.message);
-    }
+  // Restantes do Omie → so_omie
+  for (const [k, o] of omieMap) {
+    if (cnpjsSemContratoComItem.has(k)) continue;
+    itens.push({
+      apuracao_id: apuracao_id,
+      cnpj: k,
+      razao_social: o.cliente,
+      contrato_id: null,
+      categoria: usaCscVariavel ? "csc_base_antiga" : "royalties",
+      mrr_contratado: null,
+      valor_omie: o.valor,
+      valor_confirmado: o.valor,
+      fonte: "omie",
+      status_match: "so_omie",
+      confirmado: false,
+    });
+  }
 
-    // Self-heal: itens que já tinham churn marcado antes desta correção e ficaram
-    // presos em so_pipedrive sem nunca terem sido excluídos do mês.
-    if (autoExclusoesChurnRetroativas.length > 0) {
-      const { error: exErr } = await supabase
-        .from("royalties_itens")
-        .update({
-          excluido_em: new Date().toISOString(),
-          excluido_por: EXCLUIDO_POR_CHURN_AUTOMATICO,
-          motivo_exclusao: MOTIVO_EXCLUSAO_CHURN_AUTOMATICO,
-          confirmado: false,
-        })
-        .in("id", autoExclusoesChurnRetroativas);
-      if (exErr) throw new Error(exErr.message);
-    }
+  // Atualiza itens já existentes cujo valor do Omie mudou desde a última geração
+  for (const upd of atualizacoesValorOmie) {
+    const patch: any = {
+      valor_omie: upd.valor_omie,
+      valor_confirmado: upd.valor_confirmado,
+      confirmado: upd.confirmado,
+      status_match: upd.status_match,
+    };
+    if (upd.cnpj !== undefined) patch.cnpj = upd.cnpj;
+    if (upd.churn_pipefy_card_id !== undefined)
+      patch.churn_pipefy_card_id = upd.churn_pipefy_card_id;
+    if (upd.churn_reportado_em !== undefined) patch.churn_reportado_em = upd.churn_reportado_em;
+    if (upd.excluido_em !== undefined) patch.excluido_em = upd.excluido_em;
+    if (upd.excluido_por !== undefined) patch.excluido_por = upd.excluido_por;
+    if (upd.motivo_exclusao !== undefined) patch.motivo_exclusao = upd.motivo_exclusao;
+    const { error: uErr } = await supabase.from("royalties_itens").update(patch).eq("id", upd.id);
+    if (uErr) throw new Error(uErr.message);
+  }
 
-    if (itens.length === 0) return { created: 0 };
+  // Self-heal: itens que já tinham churn marcado antes desta correção e ficaram
+  // presos em so_pipedrive sem nunca terem sido excluídos do mês.
+  if (autoExclusoesChurnRetroativas.length > 0) {
+    const { error: exErr } = await supabase
+      .from("royalties_itens")
+      .update({
+        excluido_em: new Date().toISOString(),
+        excluido_por: EXCLUIDO_POR_CHURN_AUTOMATICO,
+        motivo_exclusao: MOTIVO_EXCLUSAO_CHURN_AUTOMATICO,
+        confirmado: false,
+      })
+      .in("id", autoExclusoesChurnRetroativas);
+    if (exErr) throw new Error(exErr.message);
+  }
 
-    // Insert em chunks
-    const chunkSize = 500;
-    let created = 0;
-    for (let i = 0; i < itens.length; i += chunkSize) {
-      const chunk = itens.slice(i, i + chunkSize);
-      const { error } = await supabase.from("royalties_itens").insert(chunk);
-      if (error) throw new Error(error.message);
-      created += chunk.length;
-    }
-    return { created };
+  if (itens.length === 0) return { created: 0 };
+
+  // Insert em chunks
+  const chunkSize = 500;
+  let created = 0;
+  for (let i = 0; i < itens.length; i += chunkSize) {
+    const chunk = itens.slice(i, i + chunkSize);
+    const { error } = await supabase.from("royalties_itens").insert(chunk);
+    if (error) throw new Error(error.message);
+    created += chunk.length;
+  }
+  return { created };
 }
 
 // ============ gerarItensApuracao ============
@@ -548,58 +573,62 @@ export const gerarItensApuracao = createServerFn({ method: "POST" })
 export const getApuracao = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { apuracao_id: number }) => d)
-  .handler(async ({ data, context }): Promise<{ apuracao: ApuracaoFull; itens: ApuracaoItem[] }> => {
-    const { supabase, userId } = context;
-    await assertAdmin(supabase, userId);
+  .handler(
+    async ({ data, context }): Promise<{ apuracao: ApuracaoFull; itens: ApuracaoItem[] }> => {
+      const { supabase, userId } = context;
+      await assertAdmin(supabase, userId);
 
-    const { data: ap, error: apErr } = await supabase
-      .from("royalties_apuracao")
-      .select(
-        "id,unidade_id,mes_referencia,status,receita_base,royalties_percentual,royalties_valor,csc_valor_fixo,receita_base_antiga,csc_percentual_base_antiga,csc_base_antiga_valor,cac_valor,csc_trafego_pago,outras_receitas,total_fatura,confirmado_em,confirmado_por,observacao,unidade:unidades!inner(id,nome_da_praca,royalties_percentual,csc_valor_fixo,csc_percentual_base_antiga,observacoes_financeiras)",
-      )
-      .eq("id", data.apuracao_id)
-      .single();
-    if (apErr) throw new Error(apErr.message);
+      const { data: ap, error: apErr } = await supabase
+        .from("royalties_apuracao")
+        .select(
+          "id,unidade_id,mes_referencia,status,receita_base,royalties_percentual,royalties_valor,csc_valor_fixo,receita_base_antiga,csc_percentual_base_antiga,csc_base_antiga_valor,cac_valor,csc_trafego_pago,outras_receitas,total_fatura,confirmado_em,confirmado_por,observacao,unidade:unidades!inner(id,nome_da_praca,royalties_percentual,csc_valor_fixo,csc_percentual_base_antiga,observacoes_financeiras)",
+        )
+        .eq("id", data.apuracao_id)
+        .single();
+      if (apErr) throw new Error(apErr.message);
 
-    // tem_omie: existe pelo menos 1 recebimento histórico p/ unidade
-    const { count: omieCount } = await supabase
-      .from("contas_receber")
-      .select("id", { count: "exact", head: true })
-      .eq("unidade", ap.unidade.nome_da_praca)
-      .limit(1);
+      // tem_omie: existe pelo menos 1 recebimento histórico p/ unidade
+      const { count: omieCount } = await supabase
+        .from("contas_receber")
+        .select("id", { count: "exact", head: true })
+        .eq("unidade", ap.unidade.nome_da_praca)
+        .limit(1);
 
-    const { data: itens, error: iErr } = await supabase
-      .from("royalties_itens")
-      .select("*")
-      .eq("apuracao_id", data.apuracao_id)
-      .order("razao_social");
-    if (iErr) throw new Error(iErr.message);
+      const { data: itens, error: iErr } = await supabase
+        .from("royalties_itens")
+        .select("*")
+        .eq("apuracao_id", data.apuracao_id)
+        .order("razao_social");
+      if (iErr) throw new Error(iErr.message);
 
-    // Conta filiais vinculadas por contrato
-    const contratoIds = Array.from(
-      new Set((itens ?? []).map((i: any) => i.contrato_id).filter((x: any) => x != null)),
-    );
-    const countByContrato = new Map<number, number>();
-    if (contratoIds.length > 0) {
-      const { data: grupos } = await supabase
-        .from("contrato_omie_grupos")
-        .select("contrato_id")
-        .in("contrato_id", contratoIds as number[]);
-      for (const g of grupos ?? []) {
-        countByContrato.set(g.contrato_id, (countByContrato.get(g.contrato_id) ?? 0) + 1);
+      // Conta filiais vinculadas por contrato
+      const contratoIds = Array.from(
+        new Set((itens ?? []).map((i: any) => i.contrato_id).filter((x: any) => x != null)),
+      );
+      const countByContrato = new Map<number, number>();
+      if (contratoIds.length > 0) {
+        const { data: grupos } = await supabase
+          .from("contrato_omie_grupos")
+          .select("contrato_id")
+          .in("contrato_id", contratoIds as number[]);
+        for (const g of grupos ?? []) {
+          countByContrato.set(g.contrato_id, (countByContrato.get(g.contrato_id) ?? 0) + 1);
+        }
       }
-    }
-    const itensComFiliais = (itens ?? []).map((i: any) => ({
-      ...i,
-      filiais_count: i.contrato_id ? countByContrato.get(i.contrato_id) ?? 0 : 0,
-    }));
+      const itensComFiliais = (itens ?? []).map((i: any) => ({
+        ...i,
+        filiais_count: i.contrato_id ? (countByContrato.get(i.contrato_id) ?? 0) : 0,
+      }));
 
-    return {
-      apuracao: { ...(ap as any), unidade: { ...(ap as any).unidade, tem_omie: (omieCount ?? 0) > 0 } },
-      itens: itensComFiliais as ApuracaoItem[],
-    };
-  });
-
+      return {
+        apuracao: {
+          ...(ap as any),
+          unidade: { ...(ap as any).unidade, tem_omie: (omieCount ?? 0) > 0 },
+        },
+        itens: itensComFiliais as ApuracaoItem[],
+      };
+    },
+  );
 
 // ============ updateItem ============
 export const updateItem = createServerFn({ method: "POST" })
@@ -694,14 +723,16 @@ export const marcarChurn = createServerFn({ method: "POST" })
     if (status === "confirmado" || status === "faturado") {
       throw new Error("Apuração fechada — reabra antes de marcar churn.");
     }
-    if (!item.contrato_id) throw new Error("Só é possível marcar churn em itens com contrato vinculado.");
+    if (!item.contrato_id)
+      throw new Error("Só é possível marcar churn em itens com contrato vinculado.");
     if (item.churn_pipefy_card_id) throw new Error("Este cliente já tem churn registrado.");
 
     const pipefyToken = process.env.PIPEFY_TOKEN;
     if (!pipefyToken) throw new Error("PIPEFY_TOKEN não configurado no servidor.");
 
     const unidadeNome: string = (item as any).apuracao.unidade.nome_da_praca;
-    const pipedriveDealId: string | number | null = (item as any).contrato?.pipedrive_deal_id ?? null;
+    const pipedriveDealId: string | number | null =
+      (item as any).contrato?.pipedrive_deal_id ?? null;
 
     const mutation = `
       mutation($fields: [FieldValueInput!]) {
@@ -869,9 +900,10 @@ export const fecharApuracao = createServerFn({ method: "POST" })
       const v = Number(it.valor_confirmado ?? 0);
       if (it.categoria === "royalties") {
         receitaBase += v;
-        const pct = it.royalties_percentual_override != null
-          ? Number(it.royalties_percentual_override)
-          : pctPadrao;
+        const pct =
+          it.royalties_percentual_override != null
+            ? Number(it.royalties_percentual_override)
+            : pctPadrao;
         const computado = (v * pct) / 100;
         if (it.is_cac) cacValor += computado;
         else royalties += computado;
@@ -898,16 +930,16 @@ export const fecharApuracao = createServerFn({ method: "POST" })
       .filter((it: any) => it.categoria === "royalties")
       .map((it: any) => {
         const v = Number(it.valor_confirmado ?? 0);
-        const pct = it.royalties_percentual_override != null
-          ? Number(it.royalties_percentual_override)
-          : pctPadrao;
+        const pct =
+          it.royalties_percentual_override != null
+            ? Number(it.royalties_percentual_override)
+            : pctPadrao;
         const rv = it.confirmado ? (v * pct) / 100 : 0;
         return supabase.from("royalties_itens").update({ royalties_item: rv }).eq("id", it.id);
       });
     const results = await Promise.all(updates);
     const failed = results.find((r: any) => r?.error);
     if (failed?.error) throw new Error(`Falha ao atualizar itens: ${failed.error.message}`);
-
 
     const email = (claims as any)?.email ?? null;
     const { error: uErr } = await supabase

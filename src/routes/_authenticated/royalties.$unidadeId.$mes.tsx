@@ -1,19 +1,26 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Ban, ChevronLeft, ChevronRight, FileDown, Info, Link2, Pencil, Plus, RefreshCw, Trash2, UserX } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowUp,
+  ArrowUpDown,
+  Ban,
+  ChevronLeft,
+  ChevronRight,
+  FileDown,
+  Info,
+  Link2,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Trash2,
+  UserX,
+} from "lucide-react";
 import { GruposFiliaisDialog } from "@/components/royalties/grupos-filiais-dialog";
 
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,7 +40,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { brl } from "@/components/audit/format";
 import { usePermissions } from "@/hooks/use-permissions";
-import { MOTIVOS_EXCLUSAO_ROYALTIES, type MotivoExclusaoRoyalties } from "@/lib/royalties.functions";
+import {
+  MOTIVOS_EXCLUSAO_ROYALTIES,
+  type MotivoExclusaoRoyalties,
+} from "@/lib/royalties.functions";
 import {
   useAddItem,
   useApuracao,
@@ -67,6 +77,14 @@ function shiftMes(mes: string, delta: number): string {
   const [y, m] = mes.split("-").map(Number);
   const d = new Date(y, m - 1 + delta, 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatCnpjCpf(v: string | null | undefined): string {
+  if (!v) return "—";
+  const d = v.replace(/\D/g, "");
+  if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+  if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+  return v;
 }
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
@@ -117,10 +135,13 @@ function ApuracaoPage() {
   if (!validUnidade || !validMes)
     return (
       <div className="p-6 text-sm text-muted-foreground">
-        URL inválida. Volte para <Link to="/royalties" className="underline">Royalties</Link>.
+        URL inválida. Volte para{" "}
+        <Link to="/royalties" className="underline">
+          Royalties
+        </Link>
+        .
       </div>
     );
-
 
   if (loading) return <div className="p-6 text-sm text-muted-foreground">Carregando…</div>;
   if (!isAdmin)
@@ -236,7 +257,7 @@ function ApuracaoLoaded({
   const planning = ativos.filter((i) => i.categoria === "royalties");
   const baseAntiga = ativos.filter((i) => i.categoria === "csc_base_antiga");
 
-  const matched = planning.filter((i) => i.status_match === "matched" || i.status_match === "divergente");
+  const matched = planning.filter((i) => i.status_match === "matched");
   const soPipe = planning.filter((i) => i.status_match === "so_pipedrive");
   const soOmie = planning.filter((i) => i.status_match === "so_omie");
   const manual = planning.filter((i) => i.status_match === "manual");
@@ -261,7 +282,9 @@ function ApuracaoLoaded({
       const n = Number(raw.replace(",", "."));
       return Number.isFinite(n) ? n : pctPadrao;
     }
-    return it.royalties_percentual_override != null ? Number(it.royalties_percentual_override) : pctPadrao;
+    return it.royalties_percentual_override != null
+      ? Number(it.royalties_percentual_override)
+      : pctPadrao;
   };
 
   // totals (live)
@@ -314,7 +337,8 @@ function ApuracaoLoaded({
     if (raw === undefined) return;
     const n = raw.trim() === "" ? null : Number(raw.replace(",", "."));
     if (n !== null && !Number.isFinite(n)) return;
-    const atual = it.royalties_percentual_override != null ? Number(it.royalties_percentual_override) : null;
+    const atual =
+      it.royalties_percentual_override != null ? Number(it.royalties_percentual_override) : null;
     if (n === atual) return;
     updateItem.mutate({ id: it.id, royalties_percentual_override: n });
   };
@@ -409,14 +433,18 @@ function ApuracaoLoaded({
                           onClick={forcarAtualizacao}
                         >
                           <RefreshCw
-                            className={cn("h-3.5 w-3.5", (regerar.isPending || gerar.isPending) && "animate-spin")}
+                            className={cn(
+                              "h-3.5 w-3.5",
+                              (regerar.isPending || gerar.isPending) && "animate-spin",
+                            )}
                           />
                           Forçar atualização
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
-                        Reprocessa contratos e recebimentos do Omie do zero, mantendo itens já confirmados ou
-                        adicionados manualmente. Use quando um pagamento/contrato recente não aparecer na lista.
+                        Reprocessa contratos e recebimentos do Omie do zero, mantendo itens já
+                        confirmados ou adicionados manualmente. Use quando um pagamento/contrato
+                        recente não aparecer na lista.
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -428,7 +456,9 @@ function ApuracaoLoaded({
                         <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-sm">
-                        <div className="text-xs whitespace-pre-wrap">{u.observacoes_financeiras}</div>
+                        <div className="text-xs whitespace-pre-wrap">
+                          {u.observacoes_financeiras}
+                        </div>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -460,9 +490,7 @@ function ApuracaoLoaded({
       {readOnly && (
         <div className="mx-6 mt-4 rounded-md border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
           Apuração de {formatMesLabel(mes)} confirmada em{" "}
-          {apuracao.confirmado_em
-            ? new Date(apuracao.confirmado_em).toLocaleString("pt-BR")
-            : "—"}
+          {apuracao.confirmado_em ? new Date(apuracao.confirmado_em).toLocaleString("pt-BR") : "—"}
           {apuracao.confirmado_por ? ` por ${apuracao.confirmado_por}` : ""}.
         </div>
       )}
@@ -524,9 +552,7 @@ function ApuracaoLoaded({
             extraHeader={
               !readOnly && (
                 <AddItemDialog
-                  onAdd={(payload) =>
-                    addItem.mutate({ apuracao_id: apuracaoId, ...payload })
-                  }
+                  onAdd={(payload) => addItem.mutate({ apuracao_id: apuracaoId, ...payload })}
                 />
               )
             }
@@ -536,7 +562,8 @@ function ApuracaoLoaded({
             <Card>
               <div className="border-b px-4 py-3">
                 <div className="font-medium">
-                  Base Antiga — {cscFixo != null ? "CSC Fixo" : `CSC Variável (${cscPctBaseAntiga}%)`}
+                  Base Antiga —{" "}
+                  {cscFixo != null ? "CSC Fixo" : `CSC Variável (${cscPctBaseAntiga}%)`}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   Clientes pré-Planning. Recebimentos não entram em royalties.
@@ -567,16 +594,16 @@ function ApuracaoLoaded({
           />
         </div>
 
-
         {/* Sidebar de totais */}
         <Card className="p-4 space-y-4 h-fit sticky top-[140px]">
           <div className="text-sm font-semibold">Resumo da apuração</div>
-          <ResumoLinha label="Clientes confirmados" value={`${confirmadosCount} / ${ativos.length}`} />
+          <ResumoLinha
+            label="Clientes confirmados"
+            value={`${confirmadosCount} / ${ativos.length}`}
+          />
           <ResumoLinha label="Base Planning" value={brl(receitaBase)} />
           <ResumoLinha label={`Royalties (${pctPadrao}%)`} value={brl(royaltiesValor)} bold />
-          {cacValor > 0 && (
-            <ResumoLinha label="CAC (itens marcados)" value={brl(cacValor)} bold />
-          )}
+          {cacValor > 0 && <ResumoLinha label="CAC (itens marcados)" value={brl(cacValor)} bold />}
           <div className="border-t pt-3 space-y-2">
             {cscFixo != null ? (
               <ResumoLinha label="CSC fixo" value={brl(cscFixo)} bold />
@@ -655,7 +682,11 @@ function ApuracaoLoaded({
             </div>
           ) : (
             <div className="space-y-2">
-              <Button variant="outline" className="w-full gap-1.5" onClick={handleGerarDemonstrativo}>
+              <Button
+                variant="outline"
+                className="w-full gap-1.5"
+                onClick={handleGerarDemonstrativo}
+              >
                 <FileDown className="h-4 w-4" />
                 Gerar demonstrativo (PDF)
               </Button>
@@ -682,7 +713,17 @@ function ApuracaoLoaded({
   );
 }
 
-function Metric({ label, value, sub, highlight }: { label: string; value: string; sub?: string; highlight?: boolean }) {
+function Metric({
+  label,
+  value,
+  sub,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  highlight?: boolean;
+}) {
   return (
     <div>
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
@@ -788,7 +829,8 @@ function MarcarChurnButton({
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            Isso cria um card no pipe Tratativas do Pipefy já na fase "Perdido". Não é possível desfazer por aqui.
+            Isso cria um card no pipe Tratativas do Pipefy já na fase "Perdido". Não é possível
+            desfazer por aqui.
           </p>
         </div>
         <DialogFooter>
@@ -859,8 +901,8 @@ function ExcluirItemButton({
             </RadioGroup>
           </div>
           <p className="text-xs text-muted-foreground">
-            Remove este cliente só da apuração deste mês — não afeta meses anteriores/futuros nem os dados de
-            origem (Pipedrive/Omie). Pode ser desfeito em "Excluídos deste mês".
+            Remove este cliente só da apuração deste mês — não afeta meses anteriores/futuros nem os
+            dados de origem (Pipedrive/Omie). Pode ser desfeito em "Excluídos deste mês".
           </p>
         </div>
         <DialogFooter>
@@ -933,8 +975,8 @@ function EditarCnpjButton({
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            Ao salvar, a apuração é recalculada automaticamente — se o Omie já tiver um recebimento com esse CNPJ, o
-            item sai de "Só no Pipedrive" e vira "Matched" na hora.
+            Ao salvar, a apuração é recalculada automaticamente — se o Omie já tiver um recebimento
+            com esse CNPJ, o item sai de "Só no Pipedrive" e vira "Matched" na hora.
           </p>
         </div>
         <DialogFooter>
@@ -1048,7 +1090,11 @@ function SortableTh<T extends string>({
       <span className="inline-flex items-center gap-1">
         {label}
         {active ? (
-          dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+          dir === "asc" ? (
+            <ArrowUp className="h-3 w-3" />
+          ) : (
+            <ArrowDown className="h-3 w-3" />
+          )
         ) : (
           <ArrowUpDown className="h-3 w-3 opacity-30" />
         )}
@@ -1073,10 +1119,6 @@ const SITUACAO_INFO: Record<string, { label: string; cls: string }> = {
     label: "✅ Matched",
     cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300",
   },
-  divergente: {
-    label: "⚠️ Divergente",
-    cls: "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300",
-  },
   so_pipedrive: {
     label: "⚠️ Só Pipedrive",
     cls: "bg-orange-100 text-orange-800 dark:bg-orange-950/50 dark:text-orange-300",
@@ -1090,7 +1132,6 @@ const SITUACAO_INFO: Record<string, { label: string; cls: string }> = {
 const SITUACAO_FILTROS = [
   { value: "todos", label: "Todos" },
   { value: "matched", label: "✅ Matched" },
-  { value: "divergente", label: "⚠️ Divergente" },
   { value: "so_pipedrive", label: "⚠️ Só Pipedrive" },
   { value: "so_omie", label: "🔍 Só Omie" },
 ] as const;
@@ -1099,7 +1140,9 @@ function SituacaoBadge({ status }: { status: string | null | undefined }) {
   const info = status ? SITUACAO_INFO[status] : undefined;
   if (!info) return <span className="text-xs text-muted-foreground">—</span>;
   return (
-    <span className={cn("whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-medium", info.cls)}>
+    <span
+      className={cn("whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-medium", info.cls)}
+    >
       {info.label}
     </span>
   );
@@ -1160,7 +1203,9 @@ function SecaoGrupo({
     const dirMult = sortDir === "asc" ? 1 : -1;
     const getValorConfirmado = (it: ApuracaoItem) => {
       const localV = localValor[it.id];
-      return localV !== undefined ? Number((localV || "0").replace(",", ".")) : Number(it.valor_confirmado ?? 0);
+      return localV !== undefined
+        ? Number((localV || "0").replace(",", "."))
+        : Number(it.valor_confirmado ?? 0);
     };
     const getPct = (it: ApuracaoItem) => {
       const localP = localPct[it.id];
@@ -1276,7 +1321,13 @@ function SecaoGrupo({
                         onSort={onSort}
                       />
                     )}
-                    <SortableTh label="CNPJ" sortKey="cnpj" activeKey={sortKey} dir={sortDir} onSort={onSort} />
+                    <SortableTh
+                      label="CNPJ"
+                      sortKey="cnpj"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onSort={onSort}
+                    />
                     <SortableTh
                       label="Data do ganho"
                       sortKey="data_ganho"
@@ -1310,7 +1361,14 @@ function SecaoGrupo({
                       onSort={onSort}
                       align="right"
                     />
-                    <SortableTh label="%" sortKey="pct" activeKey={sortKey} dir={sortDir} onSort={onSort} align="right" />
+                    <SortableTh
+                      label="%"
+                      sortKey="pct"
+                      activeKey={sortKey}
+                      dir={sortDir}
+                      onSort={onSort}
+                      align="right"
+                    />
                     {toggleCac && <th className="px-3 py-2 text-center">CAC?</th>}
                     <SortableTh
                       label="Royalties"
@@ -1334,7 +1392,9 @@ function SecaoGrupo({
                     const localP = localPct[it.id];
                     const pct =
                       localP !== undefined
-                        ? (localP.trim() === "" ? pctPadrao : Number(localP.replace(",", ".")) || 0)
+                        ? localP.trim() === ""
+                          ? pctPadrao
+                          : Number(localP.replace(",", ".")) || 0
                         : it.royalties_percentual_override != null
                           ? Number(it.royalties_percentual_override)
                           : pctPadrao;
@@ -1365,7 +1425,7 @@ function SecaoGrupo({
                         )}
                         <td className="px-3 py-2 text-xs text-muted-foreground">
                           {it.cnpj ? (
-                            it.cnpj
+                            formatCnpjCpf(it.cnpj)
                           ) : !readOnly && it.contrato_id != null && onEditarCnpj ? (
                             <EditarCnpjButton
                               it={it}
@@ -1396,8 +1456,7 @@ function SecaoGrupo({
                                     : undefined
                                 }
                                 value={
-                                  localMrr?.[it.id] ??
-                                  (it.mrr_override ?? it.mrr_contratado ?? "")
+                                  localMrr?.[it.id] ?? it.mrr_override ?? it.mrr_contratado ?? ""
                                 }
                                 onChange={(e) =>
                                   setLocalMrr?.((s) => ({ ...s, [it.id]: e.target.value }))
@@ -1416,7 +1475,7 @@ function SecaoGrupo({
                             type="text"
                             inputMode="decimal"
                             disabled={readOnly}
-                            value={localV ?? (it.valor_confirmado ?? "")}
+                            value={localV ?? it.valor_confirmado ?? ""}
                             onChange={(e) =>
                               setLocalValor((s) => ({ ...s, [it.id]: e.target.value }))
                             }
@@ -1435,7 +1494,7 @@ function SecaoGrupo({
                                 ? `Override — padrão da unidade é ${pctPadrao}%`
                                 : `Usando padrão da unidade (${pctPadrao}%)`
                             }
-                            value={localP ?? (it.royalties_percentual_override ?? "")}
+                            value={localP ?? it.royalties_percentual_override ?? ""}
                             onChange={(e) =>
                               setLocalPct((s) => ({ ...s, [it.id]: e.target.value }))
                             }
@@ -1474,13 +1533,18 @@ function SecaoGrupo({
                           />
                         </td>
                         <td className="px-3 py-2 text-right whitespace-nowrap">
-                          {!readOnly && !it.churn_pipefy_card_id && it.contrato_id != null && onMarcarChurn && (
-                            <MarcarChurnButton
-                              it={it}
-                              pending={!!churnPending}
-                              onConfirm={(motivo, dataChurn) => onMarcarChurn(it, motivo, dataChurn)}
-                            />
-                          )}
+                          {!readOnly &&
+                            !it.churn_pipefy_card_id &&
+                            it.contrato_id != null &&
+                            onMarcarChurn && (
+                              <MarcarChurnButton
+                                it={it}
+                                pending={!!churnPending}
+                                onConfirm={(motivo, dataChurn) =>
+                                  onMarcarChurn(it, motivo, dataChurn)
+                                }
+                              />
+                            )}
                           {!readOnly && it.fonte === "manual" && (
                             <Button
                               size="icon"
@@ -1511,7 +1575,6 @@ function SecaoGrupo({
     </Card>
   );
 }
-
 
 function BaseAntigaTable({
   itens,
@@ -1558,9 +1621,10 @@ function BaseAntigaTable({
           v = Number(it.valor_omie ?? 0);
           break;
         case "confirmado":
-          v = localValor[it.id] !== undefined
-            ? Number((localValor[it.id] || "0").replace(",", "."))
-            : Number(it.valor_confirmado ?? 0);
+          v =
+            localValor[it.id] !== undefined
+              ? Number((localValor[it.id] || "0").replace(",", "."))
+              : Number(it.valor_confirmado ?? 0);
           break;
         default:
           v = "";
@@ -1591,7 +1655,13 @@ function BaseAntigaTable({
               className="sticky left-0 z-10 bg-muted"
             />
             <th className="px-3 py-2 text-center">Filiais</th>
-            <SortableTh label="CNPJ" sortKey="cnpj" activeKey={sortKey} dir={sortDir} onSort={onSort} />
+            <SortableTh
+              label="CNPJ"
+              sortKey="cnpj"
+              activeKey={sortKey}
+              dir={sortDir}
+              onSort={onSort}
+            />
             <SortableTh
               label="Omie"
               sortKey="omie"
@@ -1625,7 +1695,7 @@ function BaseAntigaTable({
                   readOnly={readOnly}
                 />
               </td>
-              <td className="px-3 py-2 text-xs text-muted-foreground">{it.cnpj ?? "—"}</td>
+              <td className="px-3 py-2 text-xs text-muted-foreground">{formatCnpjCpf(it.cnpj)}</td>
 
               <td className="px-3 py-2 text-right">
                 {it.valor_omie != null ? brl(it.valor_omie) : "—"}
@@ -1635,10 +1705,8 @@ function BaseAntigaTable({
                   type="text"
                   inputMode="decimal"
                   disabled={readOnly}
-                  value={localValor[it.id] ?? (it.valor_confirmado ?? "")}
-                  onChange={(e) =>
-                    setLocalValor((s) => ({ ...s, [it.id]: e.target.value }))
-                  }
+                  value={localValor[it.id] ?? it.valor_confirmado ?? ""}
+                  onChange={(e) => setLocalValor((s) => ({ ...s, [it.id]: e.target.value }))}
                   onBlur={() => flushValor(it)}
                   className="h-8 w-28 text-right"
                 />
@@ -1652,7 +1720,12 @@ function BaseAntigaTable({
               </td>
               <td className="px-3 py-2 text-right whitespace-nowrap">
                 {!readOnly && it.fonte === "manual" && (
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onDelete(it)}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    onClick={() => onDelete(it)}
+                  >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 )}
@@ -1691,9 +1764,12 @@ function ExcluidosSection({
         <CollapsibleTrigger className="flex w-full items-center justify-between border-b px-4 py-3 text-left">
           <div>
             <div className="font-medium">
-              🚫 Excluídos deste mês <span className="text-xs text-muted-foreground">({itens.length})</span>
+              🚫 Excluídos deste mês{" "}
+              <span className="text-xs text-muted-foreground">({itens.length})</span>
             </div>
-            <div className="text-xs text-muted-foreground">Não entram no cálculo de royalties deste mês.</div>
+            <div className="text-xs text-muted-foreground">
+              Não entram no cálculo de royalties deste mês.
+            </div>
           </div>
         </CollapsibleTrigger>
         <CollapsibleContent>
@@ -1712,7 +1788,7 @@ function ExcluidosSection({
                 {itens.map((it) => (
                   <tr key={it.id} className="border-t text-muted-foreground">
                     <td className="sticky left-0 z-10 bg-card px-3 py-2">{it.razao_social}</td>
-                    <td className="px-3 py-2 text-xs">{it.cnpj ?? "—"}</td>
+                    <td className="px-3 py-2 text-xs">{formatCnpjCpf(it.cnpj)}</td>
                     <td className="px-3 py-2 text-xs">{it.motivo_exclusao ?? "—"}</td>
                     <td className="px-3 py-2 text-xs whitespace-nowrap">
                       {it.excluido_em ? new Date(it.excluido_em).toLocaleDateString("pt-BR") : "—"}
@@ -1744,7 +1820,12 @@ function ExcluidosSection({
 function AddItemDialog({
   onAdd,
 }: {
-  onAdd: (payload: { razao_social: string; cnpj?: string; valor_confirmado?: number; observacao?: string }) => void;
+  onAdd: (payload: {
+    razao_social: string;
+    cnpj?: string;
+    valor_confirmado?: number;
+    observacao?: string;
+  }) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [razao, setRazao] = useState("");
@@ -1775,7 +1856,12 @@ function AddItemDialog({
           </div>
           <div>
             <Label>Valor confirmado</Label>
-            <Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} />
+            <Input
+              type="number"
+              step="0.01"
+              value={valor}
+              onChange={(e) => setValor(e.target.value)}
+            />
           </div>
           <div>
             <Label>Observação</Label>
