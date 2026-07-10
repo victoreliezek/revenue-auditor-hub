@@ -112,7 +112,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('planning-theme');var r=document.documentElement;if(t==='light'){r.classList.remove('dark');}else{r.classList.add('dark');}}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('planning-theme');var r=document.documentElement;var isLight;if(t==='light'){isLight=true;}else if(t==='dark'){isLight=false;}else{var h=new Date().getHours();isLight=h>=6&&h<18;}if(isLight){r.classList.remove('dark');}else{r.classList.add('dark');}}catch(e){}})();`,
           }}
         />
         <HeadContent />

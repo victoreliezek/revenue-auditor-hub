@@ -1,14 +1,24 @@
 import { useEffect, useState } from "react";
 
 export type Theme = "dark" | "light";
+export type ThemeMode = Theme | "auto";
 
 const STORAGE_KEY = "planning-theme";
 
-function getInitialTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
+// Horário comercial considerado "dia" no modo automático.
+const DIA_INICIO_HORA = 6;
+const DIA_FIM_HORA = 18;
+
+function autoTheme(): Theme {
+  const hora = new Date().getHours();
+  return hora >= DIA_INICIO_HORA && hora < DIA_FIM_HORA ? "light" : "dark";
+}
+
+function getInitialMode(): ThemeMode {
+  if (typeof window === "undefined") return "auto";
   const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (stored === "dark" || stored === "light") return stored;
-  return "dark"; // padrão Planning
+  if (stored === "dark" || stored === "light" || stored === "auto") return stored;
+  return "auto"; // padrão: acompanha o horário do computador
 }
 
 function applyTheme(theme: Theme) {
@@ -19,20 +29,38 @@ function applyTheme(theme: Theme) {
 }
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>(() => getInitialTheme());
+  const [mode, setMode] = useState<ThemeMode>(() => getInitialMode());
+  const [theme, setThemeState] = useState<Theme>(() => (mode === "auto" ? autoTheme() : mode));
+
+  // Modo automático: recalcula ao entrar no modo e reavalia a cada minuto,
+  // pra pegar a virada dia/noite sem precisar recarregar a página.
+  useEffect(() => {
+    if (mode !== "auto") {
+      setThemeState(mode);
+      return;
+    }
+    setThemeState(autoTheme());
+    const id = window.setInterval(() => setThemeState(autoTheme()), 60_000);
+    return () => window.clearInterval(id);
+  }, [mode]);
 
   useEffect(() => {
     applyTheme(theme);
+  }, [theme]);
+
+  useEffect(() => {
     try {
-      window.localStorage.setItem(STORAGE_KEY, theme);
+      window.localStorage.setItem(STORAGE_KEY, mode);
     } catch {
       /* ignore */
     }
-  }, [theme]);
+  }, [mode]);
 
   return {
     theme,
-    setTheme: setThemeState,
-    toggle: () => setThemeState((t) => (t === "dark" ? "light" : "dark")),
+    mode,
+    setMode,
+    // Ciclo: automático → claro → escuro → automático...
+    toggle: () => setMode((m) => (m === "auto" ? "light" : m === "light" ? "dark" : "auto")),
   };
 }
