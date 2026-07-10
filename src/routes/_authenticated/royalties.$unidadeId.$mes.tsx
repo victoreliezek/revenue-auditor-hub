@@ -1299,9 +1299,9 @@ function SecaoGrupo({
           {itens.length === 0 ? (
             <div className="px-4 py-6 text-center text-sm text-muted-foreground">Nenhum item.</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="max-h-[70vh] overflow-auto">
               <table className="w-full text-sm">
-                <thead className="sticky top-[140px] z-[6] bg-muted text-xs uppercase text-muted-foreground">
+                <thead className="sticky top-0 z-[6] bg-muted text-xs uppercase text-muted-foreground">
                   <tr>
                     <SortableTh
                       label="Cliente"
