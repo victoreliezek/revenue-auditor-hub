@@ -220,6 +220,28 @@ function ApuracaoLoaded({
     );
   };
 
+  // Migra um cliente "só Omie" sem contrato entre os dois regimes de cobrança:
+  // csc_base_antiga (entra só no CSC) ↔ royalties (sai do CSC, cobra % escolhido
+  // — mesmo tratamento da base nova, incluindo o campo de % editável por item).
+  const handleCobrarRoyalties = (it: ApuracaoItem) => {
+    updateItem.mutate(
+      { id: it.id, categoria: "royalties" },
+      {
+        onSuccess: () =>
+          toast.success(`${it.razao_social} passou a cobrar royalties — ajuste o % na tabela acima.`),
+      },
+    );
+  };
+
+  const handleMoverBaseAntiga = (it: ApuracaoItem) => {
+    updateItem.mutate(
+      { id: it.id, categoria: "csc_base_antiga" },
+      {
+        onSuccess: () => toast.success(`${it.razao_social} voltou para a Base Antiga.`),
+      },
+    );
+  };
+
   const forcarAtualizacao = async () => {
     try {
       // Remove primeiro os itens automáticos não confirmados (fonte pipedrive/omie);
@@ -272,8 +294,11 @@ function ApuracaoLoaded({
   const manual = planning.filter((i) => i.status_match === "manual");
   // Única tabela de conciliação (matched + só pipedrive + só omie) — a divisão em
   // situação vira uma coluna/filtro em vez de 3 cards com cabeçalho próprio, o que
-  // permite manter um único <thead> fixo ao rolar a lista inteira.
-  const conciliacao = isCscVariavel ? [...matched, ...soPipe] : [...matched, ...soPipe, ...soOmie];
+  // permite manter um único <thead> fixo ao rolar a lista inteira. Em unidades com
+  // CSC variável, "só Omie" normalmente nasce com categoria csc_base_antiga (por
+  // isso já cai fora daqui via `planning`), mas um item migrado manualmente pra
+  // "cobrar royalties" precisa continuar aparecendo aqui.
+  const conciliacao = [...matched, ...soPipe, ...soOmie];
 
   const valorEfetivo = (it: ApuracaoItem): number => {
     const raw = localValor[it.id];
@@ -538,6 +563,7 @@ function ApuracaoLoaded({
             editarCnpjPending={atualizarCnpj.isPending || regerar.isPending || gerar.isPending}
             onExcluir={handleExcluir}
             excluirPending={excluirItem.isPending}
+            onMoverBaseAntiga={isCscVariavel ? handleMoverBaseAntiga : undefined}
           />
           <SecaoGrupo
             title="➕ Adicionados manualmente"

@@ -716,6 +716,7 @@ export const updateItem = createServerFn({ method: "POST" })
       royalties_percentual_override?: number | null;
       mrr_override?: number | null;
       is_cac?: boolean;
+      categoria?: "royalties" | "csc_base_antiga";
     }) => d,
   )
   .handler(async ({ data, context }) => {
@@ -725,13 +726,20 @@ export const updateItem = createServerFn({ method: "POST" })
     // Bloqueia se apuração fechada
     const { data: item, error: e1 } = await supabase
       .from("royalties_itens")
-      .select("apuracao_id, apuracao:royalties_apuracao!inner(status)")
+      .select("apuracao_id, contrato_id, apuracao:royalties_apuracao!inner(status)")
       .eq("id", data.id)
       .single();
     if (e1) throw new Error(e1.message);
     const status = (item as any).apuracao.status;
     if (status === "confirmado" || status === "faturado") {
       throw new Error("Apuração fechada — reabra antes de editar.");
+    }
+    if ("categoria" in data && item.contrato_id != null) {
+      // A troca de categoria (royalties ↔ csc_base_antiga) só existe pra migrar
+      // clientes "só Omie" sem contrato ativo no Pipedrive entre os dois regimes
+      // de cobrança — itens com contrato vinculado já têm categoria "royalties"
+      // definida pela geração automática e não devem ser recategorizados.
+      throw new Error("Só é possível trocar a categoria de itens sem contrato vinculado.");
     }
 
     const patch: any = {};
@@ -742,6 +750,7 @@ export const updateItem = createServerFn({ method: "POST" })
       patch.royalties_percentual_override = data.royalties_percentual_override;
     if ("mrr_override" in data) patch.mrr_override = data.mrr_override;
     if ("is_cac" in data) patch.is_cac = data.is_cac;
+    if ("categoria" in data) patch.categoria = data.categoria;
 
     const { error } = await supabase.from("royalties_itens").update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
