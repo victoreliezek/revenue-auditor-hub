@@ -37,12 +37,21 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { brl } from "@/components/audit/format";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
   MOTIVOS_EXCLUSAO_ROYALTIES,
   type MotivoExclusaoRoyalties,
+  MOTIVOS_CHURN,
+  type MotivoChurn,
 } from "@/lib/royalties.functions";
 import {
   useAddItem,
@@ -184,9 +193,9 @@ function ApuracaoLoaded({
   const excluirItem = useExcluirItem(apuracaoId);
   const reincluirItem = useReincluirItem(apuracaoId);
 
-  const handleMarcarChurn = (it: ApuracaoItem, motivo: string, dataChurn: string) => {
+  const handleMarcarChurn = (it: ApuracaoItem, motivo: string, observacao: string, dataChurn: string) => {
     marcarChurn.mutate(
-      { item_id: it.id, motivo, data_churn: dataChurn },
+      { item_id: it.id, motivo, observacao, data_churn: dataChurn },
       {
         onSuccess: () => toast.success(`Churn registrado para ${it.razao_social}.`),
       },
@@ -768,7 +777,7 @@ interface GrupoProps {
   toggleCac?: (it: ApuracaoItem, c: boolean) => void;
   onDelete: (it: ApuracaoItem) => void;
   extraHeader?: React.ReactNode;
-  onMarcarChurn?: (it: ApuracaoItem, motivo: string, dataChurn: string) => void;
+  onMarcarChurn?: (it: ApuracaoItem, motivo: string, observacao: string, dataChurn: string) => void;
   churnPending?: boolean;
   onEditarCnpj?: (it: ApuracaoItem, cnpj: string) => void;
   editarCnpjPending?: boolean;
@@ -782,21 +791,23 @@ function MarcarChurnButton({
   pending,
 }: {
   it: ApuracaoItem;
-  onConfirm: (motivo: string, dataChurn: string) => void;
+  onConfirm: (motivo: string, observacao: string, dataChurn: string) => void;
   pending: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const [motivo, setMotivo] = useState("");
+  const [motivo, setMotivo] = useState<MotivoChurn | "">("");
+  const [observacao, setObservacao] = useState("");
   const [dataChurn, setDataChurn] = useState(() => new Date().toISOString().slice(0, 10));
 
   const submit = () => {
-    if (!motivo.trim()) {
-      toast.error("Informe o motivo do churn.");
+    if (!motivo) {
+      toast.error("Selecione o motivo do churn.");
       return;
     }
-    onConfirm(motivo.trim(), dataChurn);
+    onConfirm(motivo, observacao.trim(), dataChurn);
     setOpen(false);
     setMotivo("");
+    setObservacao("");
   };
 
   return (
@@ -822,10 +833,25 @@ function MarcarChurnButton({
           </div>
           <div className="space-y-1">
             <Label>Motivo</Label>
+            <Select value={motivo} onValueChange={(v) => setMotivo(v as MotivoChurn)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o motivo" />
+              </SelectTrigger>
+              <SelectContent>
+                {MOTIVOS_CHURN.map((opcao) => (
+                  <SelectItem key={opcao} value={opcao}>
+                    {opcao}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>Observação</Label>
             <Textarea
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              placeholder="Por que o cliente saiu?"
+              value={observacao}
+              onChange={(e) => setObservacao(e.target.value)}
+              placeholder="Detalhes adicionais (opcional)"
               rows={3}
             />
           </div>
@@ -1541,8 +1567,8 @@ function SecaoGrupo({
                               <MarcarChurnButton
                                 it={it}
                                 pending={!!churnPending}
-                                onConfirm={(motivo, dataChurn) =>
-                                  onMarcarChurn(it, motivo, dataChurn)
+                                onConfirm={(motivo, observacao, dataChurn) =>
+                                  onMarcarChurn(it, motivo, observacao, dataChurn)
                                 }
                               />
                             )}

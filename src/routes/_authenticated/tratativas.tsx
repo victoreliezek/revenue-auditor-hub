@@ -50,6 +50,7 @@ type Tratativa = {
   update_time: string | null;
   stage_change_time: string | null;
   motivo: string | null;
+  observacao: string | null;
   data_churn: string | null;
   pipedrive_deal_id: number | null;
 };
@@ -93,7 +94,7 @@ function TratativasPage() {
       const [tratativasRes, contratosRes] = await Promise.all([
         supabase
           .from("central_tratativas")
-          .select("id,titulo,estagio,status,unidade,mrr,update_time,stage_change_time,motivo,data_churn,pipedrive_deal_id")
+          .select("id,titulo,estagio,status,unidade,mrr,update_time,stage_change_time,motivo,observacao,data_churn,pipedrive_deal_id")
           .limit(5000),
         supabase
           .from("contratos")
@@ -475,6 +476,7 @@ function TratativasPage() {
                 <TableHead className="bg-background">Status</TableHead>
                 <TableHead className="bg-background text-right">MRR</TableHead>
                 <TableHead className="bg-background">Motivo da perda</TableHead>
+                <TableHead className="bg-background">Observação</TableHead>
                 <TableHead className="bg-background">Tempo como cliente</TableHead>
                 <TableHead className="bg-background">Data do ganho</TableHead>
                 <TableHead className="bg-background">Data do churn</TableHead>
@@ -491,6 +493,9 @@ function TratativasPage() {
                   <TableCell className="max-w-[280px] truncate" title={r.motivo ?? undefined}>
                     {r.motivo ?? NA}
                   </TableCell>
+                  <TableCell className="max-w-[280px] truncate" title={r.observacao ?? undefined}>
+                    {r.observacao ?? NA}
+                  </TableCell>
                   <TableCell>{fmtTenure(tenureDias(r))}</TableCell>
                   <TableCell>{ganhoEmDe(r) ? fmtDate(ganhoEmDe(r)) : ""}</TableCell>
                   <TableCell>{r.data_churn ? fmtDate(r.data_churn) : ""}</TableCell>
@@ -498,7 +503,7 @@ function TratativasPage() {
               ))}
               {!loading && tabela.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-6">
+                  <TableCell colSpan={10} className="text-center text-muted-foreground py-6">
                     Nenhuma tratativa encontrada com os filtros atuais.
                   </TableCell>
                 </TableRow>

@@ -192,7 +192,11 @@ export async function apagarItensNaoConfirmados(supabase: any, apuracao_id: numb
     .eq("apuracao_id", apuracao_id)
     .in("fonte", ["pipedrive", "omie"])
     .eq("confirmado", false)
-    .is("churn_pipefy_card_id", null);
+    .is("churn_pipefy_card_id", null)
+    // Preserva qualquer exclusão manual (ex: "Cliente não pagou este mês"),
+    // não só churn — sem isso, "Forçar atualização" apagava e recriava do
+    // zero qualquer item excluído manualmente, perdendo o motivo/registro.
+    .is("excluido_em", null);
   if (error) throw new Error(error.message);
 }
 
@@ -480,9 +484,16 @@ export async function gerarItensApuracaoCore(
     if (churnInfo === "expirado") {
       // Churn foi num mês anterior a este — o contrato não deve mais aparecer
       // nesta apuração (nem ativo, nem excluído): ele só existe no mês exato
-      // do churn. Se sobrou item de uma geração anterior a esta correção (e
-      // ele não estiver confirmado nem excluído por outro motivo), remove.
-      if (itemExistente && !itemExistente.confirmado && !itemExistente.excluido_em) {
+      // do churn. Se sobrou item de uma geração anterior a esta correção,
+      // remove — seja ele um item ainda não excluído, seja um já excluído
+      // automaticamente por churn (churn_pipefy_card_id setado). Uma exclusão
+      // MANUAL por outro motivo (ex: "Cliente não pagou este mês", sem card de
+      // churn) nunca é tocada aqui.
+      if (
+        itemExistente &&
+        !itemExistente.confirmado &&
+        (itemExistente.churn_pipefy_card_id != null || !itemExistente.excluido_em)
+      ) {
         idsParaExcluirRegeneracao.push(itemExistente.id);
       }
       continue;
@@ -825,9 +836,12 @@ export const marcarChurn = createServerFn({ method: "POST" })
     const fields = [
       { field_id: "unidade_de_neg_cio", field_value: [unidadeNome] },
       { field_id: "mrr_r", field_value: [String(item.mrr_contratado ?? 0)] },
-      { field_id: "motivo_do_churn", field_value: [data.motivo.trim()] },
+      { field_id: "categoria_do_churn", field_value: [data.motivo] },
       { field_id: "data_do_churn", field_value: [data.data_churn] },
     ];
+    if (data.observacao?.trim()) {
+      fields.push({ field_id: "motivo_do_churn", field_value: [data.observacao.trim()] });
+    }
     // Link de volta pro deal do Pipedrive — é o que clientes.tsx usa pra cruzar
     // central_tratativas.pipedrive_deal_id com empresas.pipedrive_id e mostrar o
     // badge de churn. Sem isso o card fica órfão (Tratativas mostra, Clientes não).
