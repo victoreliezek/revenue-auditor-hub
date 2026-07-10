@@ -1066,7 +1066,11 @@ export const deleteItem = createServerFn({ method: "POST" })
 // Diferente de marcarChurn: não cria card no Pipefy nem propaga para outros
 // meses — royalties_itens é gerado por apuração, então o cliente volta a
 // aparecer normalmente no mês seguinte se voltar a pagar.
-export const MOTIVOS_EXCLUSAO_ROYALTIES = ["Cliente não pagou este mês", "Este é CAC"] as const;
+export const MOTIVOS_EXCLUSAO_ROYALTIES = [
+  "Cliente não pagou este mês",
+  "Este é CAC",
+  "Pagamento incoerente, não é um cliente",
+] as const;
 export type MotivoExclusaoRoyalties = (typeof MOTIVOS_EXCLUSAO_ROYALTIES)[number];
 
 export const excluirItemMes = createServerFn({ method: "POST" })
