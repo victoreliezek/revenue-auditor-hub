@@ -96,6 +96,14 @@ export function ResumoView({ itens, valores, categorias, modoPartners, rateio, g
     });
     itens.forEach((i) => {
       const arr = zero12();
+      if (isRoyalties(i)) {
+        for (let m2 = 1; m2 <= 12; m2++) {
+          const info = royaltiesMap!.get(`${i.nome}|${String(m2).padStart(2, "0")}`);
+          arr[m2 - 1] = info?.valor ?? 0;
+        }
+        m.set(i.id, arr);
+        return;
+      }
       const inicio = Math.max(1, Math.min(12, i.mes_inicio || 1));
       const base = Number(i.valor_base) || 0;
       if (i.tipo === "fixo" || i.tipo === "fixo_variavel") {
@@ -111,6 +119,8 @@ export function ResumoView({ itens, valores, categorias, modoPartners, rateio, g
       m.set(i.id, arr);
     });
     valores.forEach((v) => {
+      const item = itens.find((i) => i.id === v.item_id);
+      if (item && isRoyalties(item)) return; // Royalties ignora overrides — fonte é a apuração
       const arr = m.get(v.item_id);
       if (arr) arr[v.mes - 1] = Number(v.valor) || 0;
     });
@@ -126,7 +136,7 @@ export function ResumoView({ itens, valores, categorias, modoPartners, rateio, g
       });
     }
     return m;
-  }, [itens, valores, modoPartners, rateio]);
+  }, [itens, valores, modoPartners, rateio, royaltiesMap]);
 
   const blocos = useMemo(() => {
     const acc = new Map<BlocoKey, BlocoAgg>();

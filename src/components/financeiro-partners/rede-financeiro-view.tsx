@@ -266,7 +266,7 @@ export function RedeFinanceiroView() {
         </>
       )}
 
-      {/* Validação Royalties — Projetado x Cobrado x Recebido */}
+      {/* Validação Royalties — Cobrado x Recebido */}
       <ValidacaoRoyaltiesSection />
     </div>
   );
@@ -389,7 +389,7 @@ function PivotTable({ pivot, months }: { pivot: PivotUnidade[]; months: string[]
 }
 
 // ============================================================
-// Validação Royalties — Projetado x Cobrado x Recebido por unidade
+// Validação Royalties — Cobrado x Recebido por unidade
 // ============================================================
 type ApuracaoRow = {
   id: number;
@@ -419,7 +419,6 @@ type RoyaltiesItem = {
 };
 
 type ValidacaoCell = {
-  projetado: number | null;
   cobrado: number | null;
   cobradoStatus?: string;
   cobradoApuracaoId?: number;
@@ -437,7 +436,6 @@ const STATUS_APURACAO_LABEL: Record<string, string> = {
 function ValidacaoRoyaltiesSection() {
   const [loading, setLoading] = useState(true);
   const [apuracoes, setApuracoes] = useState<ApuracaoRow[]>([]);
-  const [overrides, setOverrides] = useState<{ unidade: string; mes: string; valor: number }[]>([]);
   const [recebidos, setRecebidos] = useState<RecebidoLanc[]>([]);
   const [mapaUnidade, setMapaUnidade] = useState<Map<string, string>>(new Map());
   const [unidadesById, setUnidadesById] = useState<Map<number, string>>(new Map());
@@ -451,15 +449,11 @@ function ValidacaoRoyaltiesSection() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const [uRes, apRes, fornRes, mapRes, pfRes] = await Promise.all([
+      const [uRes, apRes, mapRes, pfRes] = await Promise.all([
         supabase.from("unidades").select("id,nome_da_praca").eq("tipo", "regional"),
         supabase
           .from("royalties_apuracao")
           .select("id,unidade_id,mes_referencia,royalties_valor,status"),
-        (supabase as any)
-          .from("receitas_cm_fornecedores")
-          .select("id,unidade")
-          .eq("categoria", "Royalties"),
         (supabase as any).from("partners_financeiro_unidade_map").select("razao_social,unidade"),
         supabase
           .from("partners_financeiro")
@@ -472,24 +466,6 @@ function ValidacaoRoyaltiesSection() {
       (uRes.data ?? []).forEach((u: any) => uMap.set(u.id, u.nome_da_praca));
       setUnidadesById(uMap);
       setApuracoes((apRes.data ?? []) as ApuracaoRow[]);
-
-      const fornUnidade = new Map<number, string>();
-      (fornRes.data ?? []).forEach((f: any) => fornUnidade.set(f.id, f.unidade));
-      const fornecedorIds = Array.from(fornUnidade.keys());
-      let ovs: any[] = [];
-      if (fornecedorIds.length) {
-        const { data } = await supabase
-          .from("receitas_cm_overrides")
-          .select("fornecedor_id,mes,valor")
-          .in("fornecedor_id", fornecedorIds);
-        ovs = data ?? [];
-      }
-      if (!mounted) return;
-      setOverrides(
-        ovs
-          .filter((o) => o.valor != null)
-          .map((o) => ({ unidade: fornUnidade.get(o.fornecedor_id) ?? "", mes: o.mes, valor: Number(o.valor) })),
-      );
 
       const mMap = new Map<string, string>();
       (mapRes.data ?? []).forEach((m: any) => mMap.set(m.razao_social, m.unidade));
@@ -511,7 +487,7 @@ function ValidacaoRoyaltiesSection() {
       const key = `${unidade}|${mes}`;
       let c = cellMap.get(key);
       if (!c) {
-        c = { projetado: null, cobrado: null, recebido: 0, recebidoItems: [] };
+        c = { cobrado: null, recebido: 0, recebidoItems: [] };
         cellMap.set(key, c);
       }
       monthsSet.add(mes);
@@ -527,13 +503,6 @@ function ValidacaoRoyaltiesSection() {
       c.cobrado = (c.cobrado ?? 0) + (a.royalties_valor ?? 0);
       c.cobradoApuracaoId = a.id;
       c.cobradoStatus = a.status;
-    }
-
-    for (const o of overrides) {
-      if (!o.unidade) continue;
-      const mes = String(o.mes).slice(0, 7);
-      const c = getCell(o.unidade, mes);
-      c.projetado = (c.projetado ?? 0) + o.valor;
     }
 
     for (const r of recebidos) {
@@ -553,7 +522,7 @@ function ValidacaoRoyaltiesSection() {
       months: Array.from(monthsSet).sort(),
       unidadesList: Array.from(unidadesSet).sort(),
     };
-  }, [apuracoes, overrides, recebidos, mapaUnidade, unidadesById]);
+  }, [apuracoes, recebidos, mapaUnidade, unidadesById]);
 
   const toggle = (unidade: string) =>
     setExpanded((prev) => {
@@ -572,7 +541,6 @@ function ValidacaoRoyaltiesSection() {
   }
 
   const ROW_DEFS = [
-    { key: "projetado" as const, label: "Projetado" },
     { key: "cobrado" as const, label: "Cobrado" },
     { key: "recebido" as const, label: "Recebido" },
   ];
@@ -580,10 +548,10 @@ function ValidacaoRoyaltiesSection() {
   return (
     <Card className="overflow-x-auto">
       <div className="border-b p-3">
-        <div className="text-sm font-semibold">Validação Royalties — Projetado × Cobrado × Recebido</div>
+        <div className="text-sm font-semibold">Validação Royalties — Cobrado × Recebido</div>
         <div className="text-xs text-muted-foreground">
-          Projetado: página Receitas (manual). Cobrado: apuração de royalties por unidade. Recebido: Omie da
-          Partners, por razão social mapeada à unidade. Clique num valor de Cobrado/Recebido para ver o detalhe.
+          Cobrado: apuração de royalties por unidade (também é a fonte da linha Royalties na aba Receitas/DRE).
+          Recebido: Omie da Partners, por razão social mapeada à unidade. Clique num valor pra ver o detalhe.
         </div>
       </div>
       <Table>
@@ -647,13 +615,6 @@ function ValidacaoRoyaltiesSection() {
                           return (
                             <TableCell key={m} className="text-right tabular-nums py-1.5 text-sm text-muted-foreground/40">
                               —
-                            </TableCell>
-                          );
-                        }
-                        if (key === "projetado") {
-                          return (
-                            <TableCell key={m} className="text-right tabular-nums py-1.5 text-sm">
-                              {c.projetado != null ? fmtBRL(c.projetado) : "—"}
                             </TableCell>
                           );
                         }

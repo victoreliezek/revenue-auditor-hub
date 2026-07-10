@@ -90,6 +90,12 @@ function shiftMes(mes: string, delta: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function isMesEmAndamento(mes: string): boolean {
+  const d = new Date();
+  const atual = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  return mes >= atual;
+}
+
 function formatCnpjCpf(v: string | null | undefined): string {
   if (!v) return "—";
   const d = v.replace(/\D/g, "");
@@ -517,6 +523,13 @@ function ApuracaoLoaded({
           </div>
         </div>
       </div>
+
+      {isMesEmAndamento(mes) && (
+        <div className="mx-6 mt-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+          Mês em andamento ou futuro — os valores aqui são projeção (gerada automaticamente a partir dos contratos
+          ativos), não apuração real. A apuração só fecha depois que o mês termina.
+        </div>
+      )}
 
       {!u.tem_omie && (
         <div className="mx-6 mt-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
