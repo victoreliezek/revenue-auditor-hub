@@ -1254,7 +1254,7 @@ function SecaoGrupo({
           {itens.length === 0 ? (
             <div className="px-4 py-6 text-center text-sm text-muted-foreground">Nenhum item.</div>
           ) : (
-            <div className="overflow-auto">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="sticky top-[140px] z-[6] bg-muted text-xs uppercase text-muted-foreground">
                   <tr>
