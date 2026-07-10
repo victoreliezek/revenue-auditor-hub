@@ -236,6 +236,7 @@ export async function gerarItensApuracaoCore(supabase: any, apuracao_id: number)
     );
     const atualizacoesValorOmie: {
       id: number;
+      cnpj?: string | null;
       valor_omie: number | null;
       valor_confirmado: number | null;
       confirmado: boolean;
@@ -400,10 +401,15 @@ export async function gerarItensApuracaoCore(supabase: any, apuracao_id: number)
         if (itemExistente.excluido_em) continue; // excluído do mês manualmente, nunca recalcula
         const novoValorOmie = temOmie ? omieValor : null;
         const valorAtual = itemExistente.valor_omie == null ? null : Number(itemExistente.valor_omie);
-        if (novoValorOmie !== valorAtual || churnInfo) {
+        // cnpj do contrato pode ter sido editado depois que este item já existia
+        // (ex: botão "Editar CNPJ" na apuração) — sem isso, o item nunca reflete
+        // o CNPJ novo mesmo depois de regerado, mesmo quando o valor não muda.
+        const cnpjMudou = digits(itemExistente.cnpj) !== (c.cnpj ?? "");
+        if (novoValorOmie !== valorAtual || churnInfo || cnpjMudou) {
           const diff = c.mrr > 0 && novoValorOmie != null ? Math.abs(novoValorOmie - c.mrr) / c.mrr : 0;
           atualizacoesValorOmie.push({
             id: itemExistente.id,
+            cnpj: c.cnpj,
             valor_omie: novoValorOmie,
             valor_confirmado: novoValorOmie,
             confirmado: false,
@@ -477,6 +483,7 @@ export async function gerarItensApuracaoCore(supabase: any, apuracao_id: number)
         confirmado: upd.confirmado,
         status_match: upd.status_match,
       };
+      if (upd.cnpj !== undefined) patch.cnpj = upd.cnpj;
       if (upd.churn_pipefy_card_id !== undefined) patch.churn_pipefy_card_id = upd.churn_pipefy_card_id;
       if (upd.churn_reportado_em !== undefined) patch.churn_reportado_em = upd.churn_reportado_em;
       if (upd.excluido_em !== undefined) patch.excluido_em = upd.excluido_em;
