@@ -46,6 +46,24 @@ export function ApuracaoRoyaltiesContent() {
 
   const rows = useMemo(() => data?.rows ?? [], [data]);
 
+  const totais = useMemo(
+    () =>
+      rows.reduce(
+        (acc, u) => {
+          const ap = u.apuracao;
+          if (!ap) return acc;
+          acc.royalties += Number(ap.royalties_valor ?? 0);
+          acc.csc += Number((ap.csc_valor_fixo ?? ap.csc_base_antiga_valor ?? 0) as number);
+          acc.cac += Number(ap.cac_valor ?? 0);
+          acc.totalFatura += Number(ap.total_fatura ?? 0);
+          acc.comApuracao += 1;
+          return acc;
+        },
+        { royalties: 0, csc: 0, cac: 0, totalFatura: 0, comApuracao: 0 },
+      ),
+    [rows],
+  );
+
   if (loading) return <div className="p-6 text-sm text-muted-foreground">Carregando…</div>;
   if (!isAdmin)
     return <div className="p-6 text-sm text-muted-foreground">Acesso restrito a usuários admin.</div>;
@@ -79,6 +97,35 @@ export function ApuracaoRoyaltiesContent() {
         <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
           Mês em andamento — a apuração só fecha depois que o mês termina. Use as setas para voltar ao mês anterior.
         </div>
+      )}
+
+      {!isLoading && rows.length > 0 && (
+        <Card className="p-4 bg-primary/5 border-primary/20">
+          <div className="flex items-center justify-between gap-2">
+            <div className="font-semibold">Total da rede</div>
+            <div className="text-xs text-muted-foreground">
+              {totais.comApuracao} de {rows.length} unidades com apuração
+            </div>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div>
+              <div className="text-xs text-muted-foreground">Royalties</div>
+              <div className="font-medium">{brl(totais.royalties)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">CSC</div>
+              <div className="font-medium">{brl(totais.csc)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">CAC</div>
+              <div className="font-medium">{brl(totais.cac)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Total fatura</div>
+              <div className="text-base font-semibold">{brl(totais.totalFatura)}</div>
+            </div>
+          </div>
+        </Card>
       )}
 
       {isLoading ? (
