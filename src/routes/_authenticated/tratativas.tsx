@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { MessageSquareWarning, Search } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { MessageSquareWarning, RefreshCw, Search } from "lucide-react";
+import { toast } from "sonner";
+import { syncTratativas } from "@/lib/tratativas.functions";
 import {
   BarChart,
   Bar,
@@ -16,6 +20,7 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -35,6 +40,7 @@ import {
 } from "@/components/ui/table";
 import { usePermissions, unitMatches } from "@/hooks/use-permissions";
 import { isFranquiaUnidade } from "@/lib/franquias";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/tratativas")({
   component: TratativasPage,
@@ -88,36 +94,53 @@ function TratativasPage() {
   const [statusFilter, setStatusFilter] = useState<string>("__all__");
   const [q, setQ] = useState("");
 
+  const carregar = useCallback(async () => {
+    const [tratativasRes, contratosRes] = await Promise.all([
+      supabase
+        .from("central_tratativas")
+        .select("id,titulo,estagio,status,unidade,mrr,update_time,stage_change_time,motivo,observacao,data_churn,pipedrive_deal_id")
+        .limit(5000),
+      supabase
+        .from("contratos")
+        .select("pipedrive_deal_id,ganho_em")
+        .not("pipedrive_deal_id", "is", null)
+        .not("ganho_em", "is", null)
+        .limit(10000),
+    ]);
+    if (tratativasRes.data) setRows(tratativasRes.data as Tratativa[]);
+    if (contratosRes.data) {
+      const map = new Map<string, string>();
+      for (const c of contratosRes.data as { pipedrive_deal_id: string | null; ganho_em: string | null }[]) {
+        if (c.pipedrive_deal_id && c.ganho_em) map.set(String(c.pipedrive_deal_id), c.ganho_em);
+      }
+      setGanhoEmPorDealId(map);
+    }
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const [tratativasRes, contratosRes] = await Promise.all([
-        supabase
-          .from("central_tratativas")
-          .select("id,titulo,estagio,status,unidade,mrr,update_time,stage_change_time,motivo,observacao,data_churn,pipedrive_deal_id")
-          .limit(5000),
-        supabase
-          .from("contratos")
-          .select("pipedrive_deal_id,ganho_em")
-          .not("pipedrive_deal_id", "is", null)
-          .not("ganho_em", "is", null)
-          .limit(10000),
-      ]);
+      await carregar();
       if (!mounted) return;
-      if (tratativasRes.data) setRows(tratativasRes.data as Tratativa[]);
-      if (contratosRes.data) {
-        const map = new Map<string, string>();
-        for (const c of contratosRes.data as { pipedrive_deal_id: string | null; ganho_em: string | null }[]) {
-          if (c.pipedrive_deal_id && c.ganho_em) map.set(String(c.pipedrive_deal_id), c.ganho_em);
-        }
-        setGanhoEmPorDealId(map);
-      }
-      setLoading(false);
     })();
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [carregar]);
+
+  const syncFn = useServerFn(syncTratativas);
+  const sync = useMutation({
+    mutationFn: () => syncFn(),
+    onSuccess: async (res) => {
+      await carregar();
+      toast.success(`Tratativas atualizadas do Pipefy: ${res.total} card(s).`);
+    },
+    onError: (e: unknown) => {
+      const msg = e instanceof Error ? e.message : "Erro inesperado";
+      toast.error(msg);
+    },
+  });
 
   function tenureDias(r: Tratativa): number | null {
     if (r.pipedrive_deal_id == null || !r.data_churn) return null;
@@ -270,14 +293,26 @@ function TratativasPage() {
 
   return (
     <div className="space-y-4 p-4 md:p-6">
-      <div className="flex items-center gap-3">
-        <MessageSquareWarning className="h-6 w-6 text-primary" />
-        <div>
-          <h1 className="text-2xl font-bold">Tratativas</h1>
-          <p className="text-sm text-muted-foreground">
-            Análise gerencial de churn, recuperações e tratativas em aberto
-          </p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <MessageSquareWarning className="h-6 w-6 text-primary" />
+          <div>
+            <h1 className="text-2xl font-bold">Tratativas</h1>
+            <p className="text-sm text-muted-foreground">
+              Análise gerencial de churn, recuperações e tratativas em aberto
+            </p>
+          </div>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          disabled={sync.isPending}
+          onClick={() => sync.mutate()}
+        >
+          <RefreshCw className={cn("h-3.5 w-3.5", sync.isPending && "animate-spin")} />
+          Forçar atualização
+        </Button>
       </div>
 
       {/* KPIs */}
