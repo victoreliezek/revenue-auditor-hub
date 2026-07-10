@@ -14,9 +14,7 @@ export const FRANQUIA_UNIDADES = [
   "São Luis",
   "Fortaleza",
   "Maceió",
-  // legadas/inativas
-  "São Paulo",
-  "ROIT",
+  // legada/inativa
   "Itaúna",
 ] as const;
 
