@@ -213,7 +213,7 @@ export function ItensView({
                         ) : (
                           v ? v.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : "—"
                         )}
-                        {isSingleMonth && !readonly && !isSintetico && v > 0 && (
+                        {isSingleMonth && !readonly && !isSintetico && !isRoyalties(item) && v > 0 && (
                           <button
                             type="button"
                             title={`Apagar ${MESES_LABEL[mes - 1]}/${ano}`}

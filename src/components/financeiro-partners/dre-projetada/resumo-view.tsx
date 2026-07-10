@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { BRL, Cadastro, CategoriaRow, Granularidade, GrupoDRE, GRUPO_DRE_LABEL, Item, RateioPartners, Valor, agruparMeses, pctPartnersFor } from "./types";
 import { cn } from "@/lib/utils";
+import type { RoyaltiesPorUnidadeInfo } from "@/hooks/use-royalties";
 
 interface Props {
   itens: Item[];
@@ -11,6 +12,8 @@ interface Props {
   modoPartners?: boolean;
   rateio?: RateioPartners;
   granularidade?: Granularidade;
+  /** Royalties (categoria "Royalties") vem daqui em vez de valor_base/overrides — só preenchido nas visões Base. */
+  royaltiesMap?: Map<string, RoyaltiesPorUnidadeInfo>;
 }
 
 function sum(arr: number[]) { return arr.reduce((a, b) => a + b, 0); }
@@ -54,7 +57,8 @@ const BLOCO_LABEL: Record<BlocoKey, string> = {
   nao_classificado: "Não classificado",
 };
 
-export function ResumoView({ itens, valores, categorias, modoPartners, rateio, granularidade = "mensal" }: Props) {
+export function ResumoView({ itens, valores, categorias, modoPartners, rateio, granularidade = "mensal", royaltiesMap }: Props) {
+  const isRoyalties = (i: Item) => i.cenario_id === null && i.categoria === "Royalties" && !!royaltiesMap;
   const [expanded, setExpanded] = useState<Set<string>>(new Set([
     "bloco:entrada", "bloco:imposto_direto", "bloco:custo_variavel", "bloco:custo_fixo", "bloco:aporte",
   ]));
