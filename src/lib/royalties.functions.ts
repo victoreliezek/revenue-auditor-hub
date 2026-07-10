@@ -976,6 +976,7 @@ export const addItemManual = createServerFn({ method: "POST" })
       cnpj?: string | null;
       valor_confirmado?: number | null;
       observacao?: string | null;
+      categoria?: "royalties" | "csc_base_antiga";
     }) => d,
   )
   .handler(async ({ data, context }) => {
@@ -988,7 +989,7 @@ export const addItemManual = createServerFn({ method: "POST" })
       cnpj: data.cnpj ? digits(data.cnpj) : null,
       valor_confirmado: data.valor_confirmado ?? null,
       observacao: data.observacao ?? null,
-      categoria: "royalties",
+      categoria: data.categoria ?? "royalties",
       fonte: "manual",
       status_match: "manual",
       confirmado: false,

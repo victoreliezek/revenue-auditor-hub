@@ -611,15 +611,29 @@ function ApuracaoLoaded({
 
           {isCscVariavel && (
             <Card>
-              <div className="border-b px-4 py-3">
-                <div className="font-medium">
-                  Base Antiga —{" "}
-                  {cscFixo != null ? "CSC Fixo" : `CSC Variável (${cscPctBaseAntiga}%)`}
+              <div className="flex items-center justify-between border-b px-4 py-3">
+                <div>
+                  <div className="font-medium">
+                    Base Antiga —{" "}
+                    {cscFixo != null ? "CSC Fixo" : `CSC Variável (${cscPctBaseAntiga}%)`}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Clientes pré-Planning. Recebimentos não entram em royalties — a menos que
+                    "Cobrar royalties" seja marcado, movendo o cliente pra Conciliação com %
+                    escolhido.
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  Clientes pré-Planning. Recebimentos não entram em royalties — a menos que "Cobrar
-                  royalties" seja marcado, movendo o cliente pra Conciliação com % escolhido.
-                </div>
+                {!readOnly && (
+                  <AddItemDialog
+                    onAdd={(payload) =>
+                      addItem.mutate({
+                        apuracao_id: apuracaoId,
+                        categoria: "csc_base_antiga",
+                        ...payload,
+                      })
+                    }
+                  />
+                )}
               </div>
               <BaseAntigaTable
                 itens={baseAntiga}
