@@ -114,32 +114,47 @@ export async function gerarDemonstrativoRoyaltiesPdf(data: DemonstrativoData) {
     { label: data.cscLabel, value: BRL(data.cscValor) },
   ];
   if (data.cacValor > 0) kpis.push({ label: "CAC", value: BRL(data.cacValor) });
+  if (data.trafegoPago) kpis.push({ label: "Tráfego pago", value: BRL(data.trafegoPago) });
+  if (data.outrasReceitas) kpis.push({ label: "Outras receitas", value: BRL(data.outrasReceitas) });
   kpis.push({ label: "Total fatura", value: BRL(data.totalFatura) });
 
-  const kpiW = (pageWidth - 80 - (kpis.length - 1) * 10) / kpis.length;
-  kpis.forEach((k, i) => {
-    const x = 40 + i * (kpiW + 10);
-    const isTotal = i === kpis.length - 1;
-    doc.setDrawColor(220);
-    doc.setFillColor(250, 250, 250);
-    doc.roundedRect(x, kpiY, kpiW, 54, 4, 4, "FD");
-    if (isTotal) {
-      doc.setFillColor(BRAND_GREEN[0], BRAND_GREEN[1], BRAND_GREEN[2]);
-      doc.roundedRect(x, kpiY, 4, 54, 2, 2, "F");
-    }
-    doc.setFontSize(8);
-    doc.setTextColor(110);
-    doc.text(k.label.toUpperCase(), x + 8, kpiY + 16);
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    if (isTotal) doc.setTextColor(BRAND_GREEN[0], BRAND_GREEN[1], BRAND_GREEN[2]);
-    else doc.setTextColor(BRAND_DARK[0], BRAND_DARK[1], BRAND_DARK[2]);
-    doc.text(k.value, x + 8, kpiY + 38);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(0);
+  // Máximo 4 boxes por linha — com 5+ (tráfego/outras somam ao Base/Royalties/
+  // CSC/CAC/Total) os rótulos maiores ("Outras receitas") ficam apertados
+  // demais numa linha só.
+  const KPIS_POR_LINHA = 4;
+  const kpiRows: { label: string; value: string }[][] = [];
+  for (let i = 0; i < kpis.length; i += KPIS_POR_LINHA) {
+    kpiRows.push(kpis.slice(i, i + KPIS_POR_LINHA));
+  }
+  const kpiRowHeight = 64;
+  kpiRows.forEach((row, rowIdx) => {
+    const y = kpiY + rowIdx * kpiRowHeight;
+    const kpiW = (pageWidth - 80 - (row.length - 1) * 10) / row.length;
+    row.forEach((k, i) => {
+      const x = 40 + i * (kpiW + 10);
+      const globalIdx = rowIdx * KPIS_POR_LINHA + i;
+      const isTotal = globalIdx === kpis.length - 1;
+      doc.setDrawColor(220);
+      doc.setFillColor(250, 250, 250);
+      doc.roundedRect(x, y, kpiW, 54, 4, 4, "FD");
+      if (isTotal) {
+        doc.setFillColor(BRAND_GREEN[0], BRAND_GREEN[1], BRAND_GREEN[2]);
+        doc.roundedRect(x, y, 4, 54, 2, 2, "F");
+      }
+      doc.setFontSize(8);
+      doc.setTextColor(110);
+      doc.text(k.label.toUpperCase(), x + 8, y + 16);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      if (isTotal) doc.setTextColor(BRAND_GREEN[0], BRAND_GREEN[1], BRAND_GREEN[2]);
+      else doc.setTextColor(BRAND_DARK[0], BRAND_DARK[1], BRAND_DARK[2]);
+      doc.text(k.value, x + 8, y + 38);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0);
+    });
   });
 
-  let cursorY = kpiY + 80;
+  let cursorY = kpiY + kpiRows.length * kpiRowHeight + 26;
 
   const itemTable = (title: string, rows: DemonstrativoItem[]) => {
     if (rows.length === 0) return;
@@ -177,25 +192,6 @@ export async function gerarDemonstrativoRoyaltiesPdf(data: DemonstrativoData) {
   itemTable("Clientes — royalties", royalties);
   itemTable("Clientes — CAC", cac);
   itemTable("Base antiga — CSC variável", baseAntiga);
-
-  if (data.trafegoPago || data.outrasReceitas) {
-    if (cursorY > 700) {
-      doc.addPage();
-      cursorY = 50;
-    }
-    doc.setFontSize(9);
-    doc.setTextColor(110);
-    if (data.trafegoPago) {
-      doc.text(`Tráfego pago: ${BRL(data.trafegoPago)}`, 40, cursorY);
-      cursorY += 14;
-    }
-    if (data.outrasReceitas) {
-      doc.text(`Outras receitas: ${BRL(data.outrasReceitas)}`, 40, cursorY);
-      cursorY += 14;
-    }
-    doc.setTextColor(0);
-    cursorY += 10;
-  }
 
   if (data.excluidos.length > 0) {
     if (cursorY > 660) {
