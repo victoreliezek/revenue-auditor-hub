@@ -763,14 +763,29 @@ export const atualizarCnpjContrato = createServerFn({ method: "POST" })
 const PIPEFY_PIPE_TRATATIVAS = "307196408";
 const PIPEFY_FASE_PERDIDO = "343394578";
 
+// Opções fechadas do campo select "Categoria do Churn" (field_id
+// categoria_do_churn) criado na fase Perdido do pipe Tratativas — precisa
+// ficar em sincronia com as `options` desse campo no Pipefy.
+export const MOTIVOS_CHURN = [
+  "Inadimplência",
+  "Insatisfação com o serviço",
+  "Encerramento das atividades",
+  "Trocou de fornecedor/concorrente",
+  "Motivo financeiro do cliente",
+  "Outro",
+] as const;
+export type MotivoChurn = (typeof MOTIVOS_CHURN)[number];
+
 export const marcarChurn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { item_id: number; motivo: string; data_churn: string }) => d)
+  .inputValidator((d: { item_id: number; motivo: string; observacao?: string; data_churn: string }) => d)
   .handler(async ({ data, context }): Promise<{ ok: true; pipefy_card_id: string }> => {
     const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
 
-    if (!data.motivo?.trim()) throw new Error("Motivo do churn é obrigatório.");
+    if (!MOTIVOS_CHURN.includes(data.motivo as MotivoChurn)) {
+      throw new Error("Selecione um motivo de churn válido.");
+    }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(data.data_churn)) throw new Error("Data do churn inválida.");
 
     const { data: item, error: iErr } = await supabase
