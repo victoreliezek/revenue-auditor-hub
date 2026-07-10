@@ -3,11 +3,13 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowLeft,
+  ArrowLeftRight,
   ArrowUp,
   ArrowUpDown,
   Ban,
   ChevronLeft,
   ChevronRight,
+  Coins,
   FileDown,
   Info,
   Link2,
@@ -1234,6 +1236,7 @@ function SecaoGrupo({
   editarCnpjPending,
   onExcluir,
   excluirPending,
+  onMoverBaseAntiga,
 }: GrupoProps) {
   const [open, setOpen] = useState(true);
   const [situacaoFiltro, setSituacaoFiltro] = useState<string>("todos");
@@ -1621,6 +1624,28 @@ function SecaoGrupo({
                         </td>
                         <td className="px-3 py-2 text-right whitespace-nowrap">
                           {!readOnly &&
+                            it.status_match === "so_omie" &&
+                            it.contrato_id == null &&
+                            onMoverBaseAntiga && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                title="Mover de volta pra Base Antiga (CSC) — desfaz a cobrança de royalties"
+                                onClick={() => {
+                                  if (
+                                    confirm(
+                                      `Mover ${it.razao_social} de volta pra Base Antiga? Ele deixa de cobrar royalties.`,
+                                    )
+                                  ) {
+                                    onMoverBaseAntiga(it);
+                                  }
+                                }}
+                              >
+                                <ArrowLeftRight className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          {!readOnly &&
                             !it.churn_pipefy_card_id &&
                             it.contrato_id != null &&
                             onMarcarChurn && (
@@ -1808,6 +1833,25 @@ function BaseAntigaTable({
                 />
               </td>
               <td className="px-3 py-2 text-right whitespace-nowrap">
+                {!readOnly && onCobrarRoyalties && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
+                    title="Cobrar royalties deste cliente — move pra Conciliação com % escolhido"
+                    onClick={() => {
+                      if (
+                        confirm(
+                          `Passar ${it.razao_social} a cobrar royalties? Ele sai do CSC e vai pra Conciliação, onde você escolhe o %.`,
+                        )
+                      ) {
+                        onCobrarRoyalties(it);
+                      }
+                    }}
+                  >
+                    <Coins className="h-3.5 w-3.5" />
+                  </Button>
+                )}
                 {!readOnly && it.fonte === "manual" && (
                   <Button
                     size="icon"
