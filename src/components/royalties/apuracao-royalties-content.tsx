@@ -106,7 +106,7 @@ export function ApuracaoRoyaltiesContent() {
                   )}
                 </div>
                 {ap && (
-                  <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="grid grid-cols-3 gap-2 text-xs">
                     <div>
                       <div className="text-muted-foreground">Royalties</div>
                       <div className="font-medium">{brl(ap.royalties_valor ?? 0)}</div>
@@ -117,7 +117,11 @@ export function ApuracaoRoyaltiesContent() {
                         {brl((ap.csc_valor_fixo ?? ap.csc_base_antiga_valor ?? 0) as number)}
                       </div>
                     </div>
-                    <div className="col-span-2">
+                    <div>
+                      <div className="text-muted-foreground">CAC</div>
+                      <div className="font-medium">{brl(ap.cac_valor ?? 0)}</div>
+                    </div>
+                    <div className="col-span-3">
                       <div className="text-muted-foreground">Total fatura</div>
                       <div className="text-base font-semibold">{brl(ap.total_fatura ?? 0)}</div>
                     </div>
