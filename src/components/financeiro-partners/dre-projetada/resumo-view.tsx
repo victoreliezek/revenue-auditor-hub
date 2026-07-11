@@ -2,7 +2,11 @@ import { useMemo, useState } from "react";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { BRL, Cadastro, CategoriaRow, Granularidade, GrupoDRE, GRUPO_DRE_LABEL, Item, RateioPartners, Valor, agruparMeses, pctPartnersFor } from "./types";
 import { cn } from "@/lib/utils";
-import type { RoyaltiesPorUnidadeInfo } from "@/hooks/use-royalties";
+import {
+  categoriaVemDaApuracao,
+  valorDaApuracao,
+  type RoyaltiesPorUnidadeInfo,
+} from "@/hooks/use-royalties";
 
 interface Props {
   itens: Item[];
@@ -12,7 +16,7 @@ interface Props {
   modoPartners?: boolean;
   rateio?: RateioPartners;
   granularidade?: Granularidade;
-  /** Royalties (categoria "Royalties") vem daqui em vez de valor_base/overrides — só preenchido nas visões Base. */
+  /** Royalties/CSC/CAC/Verba de mídia/Outras vêm daqui em vez de valor_base/overrides — só preenchido nas visões Base. */
   royaltiesMap?: Map<string, RoyaltiesPorUnidadeInfo>;
 }
 
@@ -58,7 +62,8 @@ const BLOCO_LABEL: Record<BlocoKey, string> = {
 };
 
 export function ResumoView({ itens, valores, categorias, modoPartners, rateio, granularidade = "mensal", royaltiesMap }: Props) {
-  const isRoyalties = (i: Item) => i.cenario_id === null && i.categoria === "Royalties" && !!royaltiesMap;
+  const isDaApuracao = (i: Item) =>
+    i.cenario_id === null && !!royaltiesMap && categoriaVemDaApuracao(i.categoria);
   const [expanded, setExpanded] = useState<Set<string>>(new Set([
     "bloco:entrada", "bloco:imposto_direto", "bloco:custo_variavel", "bloco:custo_fixo", "bloco:aporte",
   ]));
@@ -96,10 +101,10 @@ export function ResumoView({ itens, valores, categorias, modoPartners, rateio, g
     });
     itens.forEach((i) => {
       const arr = zero12();
-      if (isRoyalties(i)) {
+      if (isDaApuracao(i)) {
         for (let m2 = 1; m2 <= 12; m2++) {
           const info = royaltiesMap!.get(`${i.unidade}|${String(m2).padStart(2, "0")}`);
-          arr[m2 - 1] = info?.valor ?? 0;
+          arr[m2 - 1] = valorDaApuracao(info, i.categoria)?.valor ?? 0;
         }
         m.set(i.id, arr);
         return;
@@ -120,7 +125,7 @@ export function ResumoView({ itens, valores, categorias, modoPartners, rateio, g
     });
     valores.forEach((v) => {
       const item = itens.find((i) => i.id === v.item_id);
-      if (item && isRoyalties(item)) return; // Royalties ignora overrides — fonte é a apuração
+      if (item && isDaApuracao(item)) return; // vem da apuração — ignora overrides manuais
       const arr = m.get(v.item_id);
       if (arr) arr[v.mes - 1] = Number(v.valor) || 0;
     });

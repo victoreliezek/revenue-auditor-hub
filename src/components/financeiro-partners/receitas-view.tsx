@@ -44,7 +44,12 @@ import { cn } from "@/lib/utils";
 import { CadastrosReceitasDialog } from "@/components/receitas/cadastros-dialog";
 import { useCategoriasReceita } from "@/hooks/use-cadastros-receitas";
 import { useDepartamentosDespesa } from "@/hooks/use-cadastros-despesas";
-import { useRoyaltiesPorUnidade, useGarantirApuracoesAno } from "@/hooks/use-royalties";
+import {
+  useRoyaltiesPorUnidade,
+  useGarantirApuracoesAno,
+  categoriaVemDaApuracao,
+  valorDaApuracao,
+} from "@/hooks/use-royalties";
 
 const BRL = (n: number | null | undefined) =>
   (n ?? 0).toLocaleString("pt-BR", {
@@ -106,9 +111,10 @@ interface GridRow {
   realizado: number;
   diff: number;
   apuracao: ApuracaoStatus;
-  // null = não é linha de Royalties (planejado editável normalmente); true/false
-  // = vem da apuração de royalties, mês fechado (Realizado) ou não (Projetado).
-  royaltiesRealizado: boolean | null;
+  // null = não é item de unidade (planejado editável normalmente); true/false
+  // = vem da apuração (Royalties/CSC/CAC/Mídia/Outras), mês fechado
+  // (Realizado) ou não (Projetado).
+  apuracaoRealizado: boolean | null;
 }
 
 function itemAtivoNoMes(f: FornecedorRow, mesISO: string): boolean {
@@ -215,13 +221,13 @@ export function ReceitasView() {
       const ov = overrideMap.get(f.id) ?? null;
       if (ov?.inativo_no_mes) continue;
 
-      const royaltiesInfo =
-        f.categoria === "Royalties" && f.unidade
-          ? royaltiesQuery.data?.get(`${f.unidade}|${mesNum}`)
+      const apuracaoInfo =
+        f.unidade && categoriaVemDaApuracao(f.categoria)
+          ? valorDaApuracao(royaltiesQuery.data?.get(`${f.unidade}|${mesNum}`), f.categoria)
           : undefined;
       const planejado =
-        royaltiesInfo != null
-          ? royaltiesInfo.valor
+        apuracaoInfo != null
+          ? apuracaoInfo.valor
           : Number(ov?.valor != null ? ov.valor : (f.valor_base ?? 0));
 
       const omie = ov?.codigo_omie ? (contasMap.get(ov.codigo_omie) ?? null) : null;
@@ -235,7 +241,7 @@ export function ReceitasView() {
         realizado,
         diff: realizado - planejado,
         apuracao,
-        royaltiesRealizado: royaltiesInfo != null ? royaltiesInfo.realizado : null,
+        apuracaoRealizado: apuracaoInfo != null ? apuracaoInfo.realizado : null,
       });
     }
     return rows.sort((a, b) =>
@@ -758,19 +764,19 @@ function RowEditor({
         {row.fornecedor.departamento ?? "—"}
       </td>
       <td className="py-1.5 pr-2">
-        {row.royaltiesRealizado != null ? (
+        {row.apuracaoRealizado != null ? (
           <div className="flex items-center justify-end gap-1.5">
             <span className="tabular-nums">{BRL(row.planejado)}</span>
             <span
               className={cn(
                 "rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide",
-                row.royaltiesRealizado
+                row.apuracaoRealizado
                   ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
                   : "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200",
               )}
               title="Vem da apuração de royalties — não editável aqui."
             >
-              {row.royaltiesRealizado ? "Realizado" : "Projetado"}
+              {row.apuracaoRealizado ? "Realizado" : "Projetado"}
             </span>
           </div>
         ) : (
@@ -800,7 +806,11 @@ function RowEditor({
         {row.omie ? BRL(row.diff) : "—"}
       </td>
       <td className="py-1.5 pr-2 text-xs">
-        {row.omie ? (
+        {row.apuracaoRealizado != null ? (
+          <span className="text-muted-foreground" title="Vem da apuração — não precisa vincular ao Omie aqui.">
+            —
+          </span>
+        ) : row.omie ? (
           <span className="inline-flex items-center gap-1">
             {row.omie.status_pagamento ?? "—"}
             <button
@@ -824,6 +834,9 @@ function RowEditor({
         )}
       </td>
       <td className="py-1.5 pr-2 text-center">
+        {row.apuracaoRealizado != null ? (
+          <span className="text-xs text-muted-foreground">—</span>
+        ) : (
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="ghost" size="sm" className="h-7 gap-1">
@@ -870,6 +883,7 @@ function RowEditor({
             </div>
           </PopoverContent>
         </Popover>
+        )}
       </td>
       <td className="py-1.5 pr-2">
         <div className="flex gap-1">
