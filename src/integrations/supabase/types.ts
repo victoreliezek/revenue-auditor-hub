@@ -123,6 +123,8 @@ export type Database = {
           contrato_id: number | null
           created_at: string
           data_assinatura_contrato: string | null
+          data_envio_parcela_1: string | null
+          data_envio_parcela_2: string | null
           data_pagamento_parcela_1: string | null
           data_pagamento_parcela_2: string | null
           data_recebimento_cliente: string | null
@@ -149,6 +151,8 @@ export type Database = {
           contrato_id?: number | null
           created_at?: string
           data_assinatura_contrato?: string | null
+          data_envio_parcela_1?: string | null
+          data_envio_parcela_2?: string | null
           data_pagamento_parcela_1?: string | null
           data_pagamento_parcela_2?: string | null
           data_recebimento_cliente?: string | null
@@ -175,6 +179,8 @@ export type Database = {
           contrato_id?: number | null
           created_at?: string
           data_assinatura_contrato?: string | null
+          data_envio_parcela_1?: string | null
+          data_envio_parcela_2?: string | null
           data_pagamento_parcela_1?: string | null
           data_pagamento_parcela_2?: string | null
           data_recebimento_cliente?: string | null
@@ -245,6 +251,7 @@ export type Database = {
           id: number
           motivo: string | null
           mrr: number | null
+          observacao: string | null
           pipedrive_deal_id: number | null
           pipefy_card_id: string | null
           stage_change_time: string | null
@@ -260,6 +267,7 @@ export type Database = {
           id?: number
           motivo?: string | null
           mrr?: number | null
+          observacao?: string | null
           pipedrive_deal_id?: number | null
           pipefy_card_id?: string | null
           stage_change_time?: string | null
@@ -275,6 +283,7 @@ export type Database = {
           id?: number
           motivo?: string | null
           mrr?: number | null
+          observacao?: string | null
           pipedrive_deal_id?: number | null
           pipefy_card_id?: string | null
           stage_change_time?: string | null
@@ -706,6 +715,36 @@ export type Database = {
           },
         ]
       }
+      despesas_cm_rateio_performance: {
+        Row: {
+          mes: string
+          pct_construcao_civil: number
+          pct_consultoria: number
+          pct_matriz: number
+          pct_partners: number
+          updated_at: string | null
+          valor_total_propostas: number | null
+        }
+        Insert: {
+          mes: string
+          pct_construcao_civil?: number
+          pct_consultoria?: number
+          pct_matriz?: number
+          pct_partners?: number
+          updated_at?: string | null
+          valor_total_propostas?: number | null
+        }
+        Update: {
+          mes?: string
+          pct_construcao_civil?: number
+          pct_consultoria?: number
+          pct_matriz?: number
+          pct_partners?: number
+          updated_at?: string | null
+          valor_total_propostas?: number | null
+        }
+        Relationships: []
+      }
       dre_sim_categorias: {
         Row: {
           created_at: string
@@ -1033,6 +1072,27 @@ export type Database = {
           mes?: string
           unidade?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      investimento_bu: {
+        Row: {
+          bu: string
+          id: number
+          mes: string
+          valor: number
+        }
+        Insert: {
+          bu: string
+          id?: number
+          mes: string
+          valor?: number
+        }
+        Update: {
+          bu?: string
+          id?: number
+          mes?: string
+          valor?: number
         }
         Relationships: []
       }

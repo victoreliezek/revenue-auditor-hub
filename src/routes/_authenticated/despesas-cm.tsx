@@ -179,9 +179,13 @@ interface Criterio {
   percentuais_custom: Record<string, number> | null;
 }
 
-interface SqlRow {
-  bu: string;
-  valor: number;
+interface RateioPerformanceRow {
+  mes: string;
+  valor_total_propostas: number | null;
+  pct_matriz: number;
+  pct_partners: number;
+  pct_construcao_civil: number;
+  pct_consultoria: number;
   updated_at: string | null;
 }
 
@@ -326,7 +330,12 @@ export function DespesasCmPage({ section }: { section?: "dre" | "despesas" } = {
   const [sortKey, setSortKey] = useState<keyof ConfrontoRow>("status");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [sqls, setSqls] = useState<SqlRow[]>([]);
+  const [perfRateio, setPerfRateio] = useState<RateioPerformanceRow | null>(null);
+  const [pctsPerf, setPctsPerf] = useState<Record<BuFixa, string>>({
+    Matriz: "25", Partners: "25", "Construção Civil": "25", Consultoria: "25",
+  });
+  const [valorTotalPropostasPerf, setValorTotalPropostasPerf] = useState<string>("");
+  const [savingPerf, setSavingPerf] = useState(false);
   const [resumo, setResumo] = useState<ResumoMes[]>([]);
   const [criterioModal, setCriterioModal] = useState<{ fornecedor: string } | null>(null);
   const [orc, setOrc] = useState<OrcRow[]>([]);
@@ -429,7 +438,7 @@ export function DespesasCmPage({ section }: { section?: "dre" | "despesas" } = {
 
   const load = async () => {
     setLoading(true);
-    const [d, c, r, cr, s, o] = await Promise.all([
+    const [d, c, r, cr, perf, o] = await Promise.all([
       supabase
         .from("despesas_cm")
         .select("id,mes,fornecedor,tipo_despesa,categoria,dpto,valor_total,valor_pago,data_pagamento,observacao,origem,status,apuracao_status,motivo_contestacao,origem_apuracao")
@@ -440,17 +449,28 @@ export function DespesasCmPage({ section }: { section?: "dre" | "despesas" } = {
         .from("criterios_rateio_cm")
         .select("id,fornecedor,tipo_rateio,bu_direto,percentuais_custom")
         .eq("ativo", true),
-      supabase.from("sqls_por_bu").select("bu,valor,updated_at").eq("mes", mes),
+      supabase.from("despesas_cm_rateio_performance").select("*").eq("mes", mes).maybeSingle(),
       supabase.from("partners_orcamento").select("tipo,categoria,valor").eq("mes", mes),
     ]);
     if (d.error) toast.error("Erro carregando despesas: " + d.error.message);
     if (c.error) toast.error("Erro carregando confronto: " + c.error.message);
     if (r.error) toast.error("Erro carregando rateio: " + r.error.message);
+    if (perf.error) toast.error("Erro carregando base de performance: " + perf.error.message);
     setDespesas((d.data ?? []) as unknown as DespesaRow[]);
     setConfronto((c.data ?? []) as unknown as ConfrontoRow[]);
     setRateio((r.data ?? []) as unknown as RateioRow[]);
     setCriterios((cr.data ?? []) as Criterio[]);
-    setSqls((s.data ?? []) as SqlRow[]);
+    const perfRow = (perf.data ?? null) as RateioPerformanceRow | null;
+    setPerfRateio(perfRow);
+    setPctsPerf({
+      Matriz: String(perfRow?.pct_matriz ?? 25),
+      Partners: String(perfRow?.pct_partners ?? 25),
+      "Construção Civil": String(perfRow?.pct_construcao_civil ?? 25),
+      Consultoria: String(perfRow?.pct_consultoria ?? 25),
+    });
+    setValorTotalPropostasPerf(
+      perfRow?.valor_total_propostas != null ? String(perfRow.valor_total_propostas) : "",
+    );
     setOrc(((o.data ?? []) as OrcRow[]).filter((x) => x.categoria !== "_TOTAL"));
     setLoading(false);
   };
@@ -494,7 +514,41 @@ export function DespesasCmPage({ section }: { section?: "dre" | "despesas" } = {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mes]);
 
-  const sqlsTotal = useMemo(() => sqls.reduce((s, r) => s + Number(r.valor ?? 0), 0), [sqls]);
+  async function salvarRateioPerformance() {
+    const somaPct = BUS_FIXAS.reduce(
+      (s, bu) => s + (parseFloat(pctsPerf[bu].replace(",", ".")) || 0),
+      0,
+    );
+    if (Math.abs(somaPct - 100) > 0.01) {
+      toast.error("A soma dos percentuais precisa ser 100%.");
+      return;
+    }
+    setSavingPerf(true);
+    try {
+      const payload = {
+        mes,
+        valor_total_propostas:
+          valorTotalPropostasPerf.trim() === ""
+            ? null
+            : parseFloat(valorTotalPropostasPerf.replace(",", ".")) || 0,
+        pct_matriz: parseFloat(pctsPerf.Matriz.replace(",", ".")) || 0,
+        pct_partners: parseFloat(pctsPerf.Partners.replace(",", ".")) || 0,
+        pct_construcao_civil: parseFloat(pctsPerf["Construção Civil"].replace(",", ".")) || 0,
+        pct_consultoria: parseFloat(pctsPerf.Consultoria.replace(",", ".")) || 0,
+        updated_at: new Date().toISOString(),
+      };
+      const { error } = await supabase
+        .from("despesas_cm_rateio_performance")
+        .upsert(payload, { onConflict: "mes" });
+      if (error) throw error;
+      toast.success("Base de performance salva.");
+      await load();
+    } catch (e) {
+      toast.error("Erro ao salvar: " + (e as Error).message);
+    } finally {
+      setSavingPerf(false);
+    }
+  }
 
   // KPIs
   const kpis = useMemo(() => {
@@ -995,66 +1049,81 @@ export function DespesasCmPage({ section }: { section?: "dre" | "despesas" } = {
               )}
             </div>
           </div>
-          {/* Propostas (SQLs) usadas no rateio padrão */}
+          {/* Base de Performance manual usada no rateio padrão */}
           <div className="border-t bg-muted/20 px-4 py-3">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Propostas (SQLs) usadas no rateio padrão deste mês
+                Base de Performance usada no rateio padrão deste mês
               </h3>
-              <div className="flex items-center gap-3">
-                {(() => {
-                  const ts = sqls
-                    .map((s) => (s.updated_at ? new Date(s.updated_at).getTime() : 0))
-                    .filter((n) => n > 0);
-                  if (ts.length === 0) return null;
-                  const last = new Date(Math.max(...ts));
-                  const stale = Date.now() - last.getTime() > 36 * 3600 * 1000;
-                  return (
-                    <span
-                      className={cn("text-xs", stale ? "text-amber-600" : "text-muted-foreground")}
-                      title={stale ? "Script externo pode estar atrasado" : undefined}
-                    >
-                      Atualizado em{" "}
-                      {last.toLocaleString("pt-BR", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                  );
-                })()}
-                <span className="text-xs text-muted-foreground">Total: {BRL(sqlsTotal)}</span>
-              </div>
-            </div>
-            {sqls.length === 0 ? (
-              <div className="text-xs text-muted-foreground">
-                Sem propostas em <code>sqls_por_bu</code> para {mes.slice(0, 7)} — rateio padrão usa divisão igual entre as 4 BUs.
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {sqls
-                  .slice()
-                  .sort((a, b) => Number(b.valor) - Number(a.valor))
-                  .map((s) => {
-                    const pct = sqlsTotal > 0 ? (Number(s.valor) / sqlsTotal) * 100 : 0;
-                    return (
-                      <div key={s.bu} className="rounded-md border bg-card p-2">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <span
-                            className="inline-block h-2 w-2 rounded-full"
-                            style={{ background: BU_COLORS[s.bu] ?? "#94a3b8" }}
-                          />
-                          {s.bu}
-                        </div>
-                        <div className="mt-1 text-sm font-semibold tabular-nums">{BRL(Number(s.valor))}</div>
-                        <div className="text-[11px] text-muted-foreground tabular-nums">{pct.toFixed(1)}%</div>
-                      </div>
-                    );
+              {perfRateio?.updated_at && (
+                <span className="text-xs text-muted-foreground">
+                  Atualizado em{" "}
+                  {new Date(perfRateio.updated_at).toLocaleString("pt-BR", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
                   })}
+                </span>
+              )}
+            </div>
+            {!perfRateio && (
+              <div className="mb-3 text-xs text-muted-foreground">
+                Sem dados manuais para {mes.slice(0, 7)} — rateio padrão usa divisão igual entre as 4 BUs até você preencher abaixo.
               </div>
             )}
+            <div className="grid gap-3 sm:grid-cols-[200px_repeat(4,1fr)] sm:items-end">
+              <div>
+                <Label htmlFor="perf-total" className="text-xs">
+                  Valor total das propostas
+                </Label>
+                <Input
+                  id="perf-total"
+                  inputMode="decimal"
+                  placeholder="R$ 0,00"
+                  value={valorTotalPropostasPerf}
+                  onChange={(e) => setValorTotalPropostasPerf(e.target.value)}
+                />
+              </div>
+              {BUS_FIXAS.map((bu) => (
+                <div key={bu}>
+                  <Label className="flex items-center gap-1.5 text-xs">
+                    <span
+                      className="inline-block h-2 w-2 rounded-full"
+                      style={{ background: BU_COLORS[bu] ?? "#94a3b8" }}
+                    />
+                    {bu} (%)
+                  </Label>
+                  <Input
+                    inputMode="decimal"
+                    value={pctsPerf[bu]}
+                    onChange={(e) => setPctsPerf({ ...pctsPerf, [bu]: e.target.value })}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 flex items-center justify-between">
+              {(() => {
+                const soma = BUS_FIXAS.reduce(
+                  (s, bu) => s + (parseFloat(pctsPerf[bu].replace(",", ".")) || 0),
+                  0,
+                );
+                return (
+                  <span
+                    className={cn(
+                      "text-xs tabular-nums",
+                      Math.abs(soma - 100) > 0.01 ? "text-red-600" : "text-muted-foreground",
+                    )}
+                  >
+                    Soma: {soma.toFixed(1)}%
+                  </span>
+                );
+              })()}
+              <Button size="sm" disabled={savingPerf} onClick={salvarRateioPerformance}>
+                {savingPerf ? "Salvando…" : "Salvar"}
+              </Button>
+            </div>
           </div>
         </section>
 
