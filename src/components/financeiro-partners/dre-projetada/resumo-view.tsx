@@ -98,7 +98,7 @@ export function ResumoView({ itens, valores, categorias, modoPartners, rateio, g
       const arr = zero12();
       if (isRoyalties(i)) {
         for (let m2 = 1; m2 <= 12; m2++) {
-          const info = royaltiesMap!.get(`${i.nome}|${String(m2).padStart(2, "0")}`);
+          const info = royaltiesMap!.get(`${i.unidade}|${String(m2).padStart(2, "0")}`);
           arr[m2 - 1] = info?.valor ?? 0;
         }
         m.set(i.id, arr);

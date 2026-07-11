@@ -56,7 +56,7 @@ export function ItensView({
       const arr = Array(12).fill(0);
       if (isRoyalties(i)) {
         for (let m = 1; m <= 12; m++) {
-          const info = royaltiesMap!.get(`${i.nome}|${String(m).padStart(2, "0")}`);
+          const info = royaltiesMap!.get(`${i.unidade}|${String(m).padStart(2, "0")}`);
           arr[m - 1] = info?.valor ?? 0;
         }
         out.set(i.id, arr);

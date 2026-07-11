@@ -81,6 +81,7 @@ export interface Item {
   natureza: Natureza;
   nome: string;
   categoria: string | null;
+  unidade?: string | null;
   departamento: string | null;
   tipo_rateio: string | null;
   tipo: TipoItem;

@@ -105,6 +105,7 @@ function rowToItem(r: any, natureza: Natureza): Item {
     natureza,
     nome: r.nome,
     categoria: r.categoria ?? null,
+    unidade: r.unidade ?? null,
     departamento: r.departamento ?? null,
     tipo_rateio: r.rateio_regra ?? null,
     tipo: (r.tipo ?? "fixo") as TipoItem,
