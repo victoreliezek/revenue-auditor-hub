@@ -3,13 +3,6 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertAdmin, digits, monthRange } from "@/lib/server-utils";
 
 // ============ Types ============
-export interface UnidadeCac {
-  id: number;
-  nome_da_praca: string;
-  paga_cac: boolean | null;
-  apuracao: ApuracaoCacSummary | null;
-}
-
 export interface ApuracaoCacSummary {
   id: number;
   status: string;
@@ -118,39 +111,96 @@ function withLiveStatus(it: ApuracaoCacItem, hoje: string): ApuracaoCacItem {
   };
 }
 
-// ============ listCacUnidades ============
-export const listCacUnidades = createServerFn({ method: "GET" })
+// ============ listCacUnidadesResumo ============
+// A tela por unidade (listApuracaoCacItensUnidade) já é contínua — todos os
+// meses numa lista só, sem navegação. Essa listagem precisa seguir o mesmo
+// princípio: nenhuma noção de "mês selecionado", porque o que importa pro CAC
+// é se a 2ª parcela de cada cliente (repasse liberado só depois que o cliente
+// paga a Planning pela 1ª vez) já foi cobrada, não em qual mês o cliente foi
+// ganho. Um card por unidade com a pendência acumulada de todos os tempos.
+export interface CacUnidadeResumo {
+  id: number;
+  nome_da_praca: string;
+  total_clientes: number;
+  parcela1_atrasado: number;
+  parcela2_aguardando_cliente: number;
+  parcela2_pendente: number;
+  parcela2_atrasado: number;
+  valor_parcela2_pendente: number;
+}
+
+export const listCacUnidadesResumo = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { mes: string }) => d)
-  .handler(async ({ data, context }): Promise<{ rows: UnidadeCac[] }> => {
+  .handler(async ({ context }): Promise<{ rows: CacUnidadeResumo[] }> => {
     const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
-    const { firstDay } = monthRange(data.mes);
 
     const { data: unidades, error: uErr } = await supabase
       .from("unidades")
-      .select("id,nome_da_praca,paga_cac")
+      .select("id,nome_da_praca")
       .eq("tipo", "regional")
       .eq("paga_cac", true)
       .order("nome_da_praca");
     if (uErr) throw new Error(uErr.message);
 
+    const vazio = (u: any): CacUnidadeResumo => ({
+      id: u.id,
+      nome_da_praca: u.nome_da_praca,
+      total_clientes: 0,
+      parcela1_atrasado: 0,
+      parcela2_aguardando_cliente: 0,
+      parcela2_pendente: 0,
+      parcela2_atrasado: 0,
+      valor_parcela2_pendente: 0,
+    });
+    const acc = new Map<number, CacUnidadeResumo>((unidades ?? []).map((u: any) => [u.id, vazio(u)]));
+    if (!unidades || unidades.length === 0) return { rows: [] };
+
+    const unidadeIds = unidades.map((u: any) => u.id);
     const { data: aps, error: aErr } = await (supabase as any)
       .from("cac_apuracao")
-      .select("id,unidade_id,status,mes_referencia,total_parcela_1,total_parcela_2,total_cac,confirmado_em")
-      .eq("mes_referencia", firstDay);
+      .select("id,unidade_id")
+      .in("unidade_id", unidadeIds);
     if (aErr) throw new Error(aErr.message);
+    const unidadePorApuracao = new Map<number, number>((aps ?? []).map((a: any) => [a.id, a.unidade_id]));
+    const apuracaoIds = (aps ?? []).map((a: any) => a.id);
+    if (apuracaoIds.length === 0) return { rows: Array.from(acc.values()) };
 
-    const byUnit = new Map<number, ApuracaoCacSummary>();
-    for (const a of aps ?? []) byUnit.set(a.unidade_id, a as ApuracaoCacSummary);
+    const { data: itens, error: itErr } = await (supabase as any)
+      .from("cac_apuracao_itens")
+      .select(
+        "apuracao_id,valor_parcela_2,prazo_parcela_1,data_envio_parcela_1,data_pagamento_parcela_1,data_recebimento_cliente,prazo_parcela_2,data_envio_parcela_2,data_pagamento_parcela_2",
+      )
+      .in("apuracao_id", apuracaoIds)
+      .is("excluido_em", null);
+    if (itErr) throw new Error(itErr.message);
 
-    return {
-      rows: (unidades ?? []).map((u: any) => ({
-        ...u,
-        apuracao: byUnit.get(u.id) ?? null,
-      })),
-    };
-  });
+    const hoje = todayISO();
+    for (const it of itens ?? []) {
+      const unidadeId = unidadePorApuracao.get(it.apuracao_id);
+      const r = unidadeId != null ? acc.get(unidadeId) : undefined;
+      if (!r) continue;
+      r.total_clientes += 1;
+      const s1 = statusParcela1(it.prazo_parcela_1, it.data_envio_parcela_1, it.data_pagamento_parcela_1, hoje);
+      const s2 = statusParcela2(
+        it.data_recebimento_cliente,
+        it.prazo_parcela_2,
+        it.data_envio_parcela_2,
+        it.data_pagamento_parcela_2,
+        hoje,
+      );
+      if (s1 === "atrasado") r.parcela1_atrasado += 1;
+      if (s2 === "aguardando_cliente") r.parcela2_aguardando_cliente += 1;
+      if (s2 === "pendente" || s2 === "cobrado" || s2 === "atrasado") {
+        r.parcela2_pendente += 1;
+        r.valor_parcela2_pendente += Number(it.valor_parcela_2 ?? 0);
+      }
+      if (s2 === "atrasado") r.parcela2_atrasado += 1;
+    }
+
+    return { rows: Array.from(acc.values()) };
+  },
+);
 
 // ============ gerarItensParaApuracao (helper reaproveitado) ============
 async function gerarItensParaApuracao(

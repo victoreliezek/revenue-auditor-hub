@@ -7,7 +7,7 @@ import {
   excluirItemMesCac,
   fecharApuracaoCac,
   listApuracaoCacItensUnidade,
-  listCacUnidades,
+  listCacUnidadesResumo,
   reabrirApuracaoCac,
   reincluirItemMesCac,
   updateItemCac,
@@ -21,11 +21,11 @@ const defaultOnError = (e: unknown) => {
   toast.error(msg);
 };
 
-export function useCacUnidades(mes: string) {
-  const fn = useServerFn(listCacUnidades);
+export function useCacUnidadesResumo() {
+  const fn = useServerFn(listCacUnidadesResumo);
   return useQuery({
-    queryKey: ["cac", "unidades", mes],
-    queryFn: () => fn({ data: { mes } }),
+    queryKey: ["cac", "unidades-resumo"],
+    queryFn: () => fn(),
     staleTime: 30_000,
   });
 }
