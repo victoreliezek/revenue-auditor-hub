@@ -354,6 +354,18 @@ export async function gerarItensApuracaoCore(
     .lte("data_pagamento", end);
   if (rErr) throw new Error(rErr.message);
 
+  // Data de cadastro do cliente no Omie — usada como "data do ganho" para
+  // clientes só-Omie (sem contrato/deal no Pipedrive), onde não existe
+  // ganho_em de verdade.
+  const { data: cadastros, error: cadErr } = await supabase
+    .from("omie_clientes_cadastro")
+    .select("cnpj,data_cadastro")
+    .eq("unidade", unidadeNome);
+  if (cadErr) throw new Error(cadErr.message);
+  const cadastroPorCnpj = new Map<string, string | null>(
+    (cadastros ?? []).map((c: any) => [c.cnpj, c.data_cadastro]),
+  );
+
   type OmieAgg = { cnpj: string; cliente: string; valor: number };
   const omieMap = new Map<string, OmieAgg>();
   for (const r of recs ?? []) {
@@ -615,6 +627,7 @@ export async function gerarItensApuracaoCore(
       fonte: "omie",
       status_match: "so_omie",
       confirmado: false,
+      data_ganho: cadastroPorCnpj.get(k) ?? null,
     });
   }
 

@@ -1574,7 +1574,7 @@ function SecaoGrupo({
                       onSort={onSort}
                     />
                     <SortableTh
-                      label="Data do ganho"
+                      label="Ganho e Cadastro no Omie"
                       sortKey="data_ganho"
                       activeKey={sortKey}
                       dir={sortDir}
