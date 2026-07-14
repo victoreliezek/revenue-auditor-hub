@@ -4,8 +4,10 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   addItemManual,
+  addOutraReceitaItem,
   atualizarCnpjContrato,
   deleteItem,
+  deleteOutraReceitaItem,
   excluirItemMes,
   fecharApuracao,
   garantirApuracoesAno,
@@ -18,6 +20,7 @@ import {
   reincluirItemMes,
   updateApuracao,
   updateItem,
+  updateOutraReceitaItem,
 } from "@/lib/royalties.functions";
 
 // Default error handler — garante que falhas silenciosas sempre virem toast.
@@ -167,6 +170,36 @@ export function useReabrirApuracao(apuracaoId: number) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["royalties"] });
     },
+    onError: defaultOnError,
+  });
+}
+
+export function useAddOutraReceita(apuracaoId: number) {
+  const fn = useServerFn(addOutraReceitaItem);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: Parameters<typeof addOutraReceitaItem>[0]["data"]) => fn({ data: vars }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["royalties", "apuracao", apuracaoId] }),
+    onError: defaultOnError,
+  });
+}
+
+export function useUpdateOutraReceita(apuracaoId: number) {
+  const fn = useServerFn(updateOutraReceitaItem);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: Parameters<typeof updateOutraReceitaItem>[0]["data"]) => fn({ data: vars }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["royalties", "apuracao", apuracaoId] }),
+    onError: defaultOnError,
+  });
+}
+
+export function useDeleteOutraReceita(apuracaoId: number) {
+  const fn = useServerFn(deleteOutraReceitaItem);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: number }) => fn({ data: vars }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["royalties", "apuracao", apuracaoId] }),
     onError: defaultOnError,
   });
 }

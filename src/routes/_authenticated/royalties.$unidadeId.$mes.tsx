@@ -57,9 +57,11 @@ import {
 } from "@/lib/royalties.functions";
 import {
   useAddItem,
+  useAddOutraReceita,
   useApuracao,
   useAtualizarCnpjContrato,
   useDeleteItem,
+  useDeleteOutraReceita,
   useExcluirItem,
   useFecharApuracao,
   useGerarItens,
@@ -69,10 +71,11 @@ import {
   useReincluirItem,
   useUpdateApuracao,
   useUpdateItem,
+  useUpdateOutraReceita,
 } from "@/hooks/use-royalties";
 import { useRegerarMatch } from "@/hooks/use-grupos-filiais";
 import { cn } from "@/lib/utils";
-import type { ApuracaoItem } from "@/lib/royalties.functions";
+import type { ApuracaoItem, OutraReceitaItem } from "@/lib/royalties.functions";
 import { gerarDemonstrativoRoyaltiesPdf } from "@/lib/royalties-demonstrativo";
 
 export const Route = createFileRoute("/_authenticated/royalties/$unidadeId/$mes")({
@@ -200,6 +203,9 @@ function ApuracaoLoaded({
   const atualizarCnpj = useAtualizarCnpjContrato(apuracaoId);
   const excluirItem = useExcluirItem(apuracaoId);
   const reincluirItem = useReincluirItem(apuracaoId);
+  const addOutraReceita = useAddOutraReceita(apuracaoId);
+  const updateOutraReceita = useUpdateOutraReceita(apuracaoId);
+  const deleteOutraReceita = useDeleteOutraReceita(apuracaoId);
 
   const handleMarcarChurn = (it: ApuracaoItem, motivo: string, observacao: string, dataChurn: string) => {
     marcarChurn.mutate(
@@ -284,7 +290,7 @@ function ApuracaoLoaded({
     return <div className="p-6 text-sm text-muted-foreground">Carregando…</div>;
   }
 
-  const { apuracao, itens } = data;
+  const { apuracao, itens, outrasReceitasItens } = data;
   const u = apuracao.unidade;
   const readOnly = apuracao.status === "confirmado" || apuracao.status === "faturado";
   const isCscVariavel = u.csc_percentual_base_antiga != null;
@@ -701,21 +707,14 @@ function ApuracaoLoaded({
                 }}
               />
             </div>
-            <div className="text-xs">
-              <Label className="text-xs text-muted-foreground">Outras receitas</Label>
-              <Input
-                type="number"
-                step="0.01"
-                disabled={readOnly}
-                defaultValue={apuracao.outras_receitas ?? ""}
-                onBlur={(e) => {
-                  const v = e.target.value === "" ? null : Number(e.target.value);
-                  if (v !== Number(apuracao.outras_receitas ?? 0)) {
-                    updateAp.mutate({ id: apuracaoId, outras_receitas: v });
-                  }
-                }}
-              />
-            </div>
+            <OutrasReceitasSection
+              itens={outrasReceitasItens}
+              total={outras}
+              readOnly={readOnly}
+              onAdd={(nome, valor) => addOutraReceita.mutate({ apuracao_id: apuracaoId, nome, valor })}
+              onUpdateValor={(id, valor) => updateOutraReceita.mutate({ id, valor })}
+              onDelete={(id) => deleteOutraReceita.mutate({ id })}
+            />
           </div>
           <div className="border-t pt-3">
             <div className="flex items-baseline justify-between">
@@ -805,6 +804,107 @@ function ResumoLinha({ label, value, bold }: { label: string; value: string; bol
     <div className="flex items-baseline justify-between gap-2 text-xs">
       <span className="text-muted-foreground">{label}</span>
       <span className={bold ? "font-semibold text-foreground" : "text-foreground"}>{value}</span>
+    </div>
+  );
+}
+
+// Cada unidade paga um conjunto diferente de softwares/serviços (Qulture.rocks,
+// Pipedrive, Panda Pé, etc.) — em vez de um valor único digitado à mão, é uma
+// lista itemizada; o backend soma os itens em outras_receitas automaticamente.
+function OutrasReceitasSection({
+  itens,
+  total,
+  readOnly,
+  onAdd,
+  onUpdateValor,
+  onDelete,
+}: {
+  itens: OutraReceitaItem[];
+  total: number;
+  readOnly: boolean;
+  onAdd: (nome: string, valor: number) => void;
+  onUpdateValor: (id: number, valor: number) => void;
+  onDelete: (id: number) => void;
+}) {
+  const [novoNome, setNovoNome] = useState("");
+  const [novoValor, setNovoValor] = useState("");
+
+  const handleAdd = () => {
+    const nome = novoNome.trim();
+    const valor = Number(novoValor.replace(",", "."));
+    if (!nome || !Number.isFinite(valor)) return;
+    onAdd(nome, valor);
+    setNovoNome("");
+    setNovoValor("");
+  };
+
+  return (
+    <div className="text-xs space-y-1.5">
+      <Label className="text-xs text-muted-foreground">Outras receitas</Label>
+      {itens.length === 0 && (
+        <div className="text-[11px] text-muted-foreground italic">
+          Nenhum item — adicione abaixo.
+        </div>
+      )}
+      {itens.map((it) => (
+        <div key={it.id} className="flex items-center gap-1.5">
+          <span className="flex-1 truncate" title={it.nome}>
+            {it.nome}
+          </span>
+          <Input
+            type="number"
+            step="0.01"
+            disabled={readOnly}
+            defaultValue={it.valor}
+            className="h-7 w-24 text-xs"
+            onBlur={(e) => {
+              const v = Number(e.target.value);
+              if (Number.isFinite(v) && v !== Number(it.valor)) onUpdateValor(it.id, v);
+            }}
+          />
+          {!readOnly && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              onClick={() => onDelete(it.id)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+      ))}
+      {!readOnly && (
+        <div className="flex items-center gap-1.5 pt-1">
+          <Input
+            placeholder="Software/serviço"
+            value={novoNome}
+            onChange={(e) => setNovoNome(e.target.value)}
+            className="h-7 flex-1 text-xs"
+          />
+          <Input
+            type="number"
+            step="0.01"
+            placeholder="Valor"
+            value={novoValor}
+            onChange={(e) => setNovoValor(e.target.value)}
+            className="h-7 w-24 text-xs"
+          />
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-7 w-7 shrink-0"
+            disabled={!novoNome.trim() || novoValor.trim() === ""}
+            onClick={handleAdd}
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+      <div className="flex items-baseline justify-between pt-1 border-t">
+        <span className="text-muted-foreground">Total</span>
+        <span className="font-semibold">{brl(total)}</span>
+      </div>
     </div>
   );
 }

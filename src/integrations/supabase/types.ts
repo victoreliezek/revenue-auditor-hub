@@ -2074,6 +2074,44 @@ export type Database = {
           },
         ]
       }
+      royalties_outras_receitas_itens: {
+        Row: {
+          apuracao_id: number
+          created_at: string
+          id: number
+          nome: string
+          observacao: string | null
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          apuracao_id: number
+          created_at?: string
+          id?: never
+          nome: string
+          observacao?: string | null
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          apuracao_id?: number
+          created_at?: string
+          id?: never
+          nome?: string
+          observacao?: string | null
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "royalties_outras_receitas_itens_apuracao_id_fkey"
+            columns: ["apuracao_id"]
+            isOneToOne: false
+            referencedRelation: "royalties_apuracao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       socios: {
         Row: {
           area: string | null

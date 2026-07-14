@@ -85,6 +85,14 @@ export interface ApuracaoItem {
   motivo_exclusao: string | null;
 }
 
+export interface OutraReceitaItem {
+  id: number;
+  apuracao_id: number;
+  nome: string;
+  valor: number;
+  observacao: string | null;
+}
+
 // ============ listRoyaltiesUnidades ============
 export const listRoyaltiesUnidades = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -160,6 +168,37 @@ export const getOrCreateApuracao = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (iErr) throw new Error(iErr.message);
+
+    // "Outras receitas" (softwares recorrentes: Qulture.rocks, Pipedrive, etc.)
+    // é praticamente igual todo mês — copia os itens da apuração anterior mais
+    // recente da mesma unidade em vez de nascer em branco, pra não precisar
+    // redigitar a lista toda vez. O valor pode ser ajustado depois normalmente.
+    const { data: anterior } = await supabase
+      .from("royalties_apuracao")
+      .select("id")
+      .eq("unidade_id", data.unidade_id)
+      .lt("mes_referencia", firstDay)
+      .order("mes_referencia", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (anterior) {
+      const { data: itensAnteriores } = await supabase
+        .from("royalties_outras_receitas_itens")
+        .select("nome,valor,observacao")
+        .eq("apuracao_id", anterior.id);
+      if (itensAnteriores && itensAnteriores.length > 0) {
+        await supabase.from("royalties_outras_receitas_itens").insert(
+          itensAnteriores.map((it: any) => ({
+            apuracao_id: inserted.id,
+            nome: it.nome,
+            valor: it.valor,
+            observacao: it.observacao,
+          })),
+        );
+        await recomputeOutrasReceitas(supabase, inserted.id);
+      }
+    }
+
     return { apuracao_id: inserted.id, created: true };
   });
 
@@ -710,7 +749,14 @@ export const getApuracao = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { apuracao_id: number }) => d)
   .handler(
-    async ({ data, context }): Promise<{ apuracao: ApuracaoFull; itens: ApuracaoItem[] }> => {
+    async ({
+      data,
+      context,
+    }): Promise<{
+      apuracao: ApuracaoFull;
+      itens: ApuracaoItem[];
+      outrasReceitasItens: OutraReceitaItem[];
+    }> => {
       const { supabase, userId } = context;
       await assertAdmin(supabase, userId);
 
@@ -756,12 +802,20 @@ export const getApuracao = createServerFn({ method: "GET" })
         filiais_count: i.contrato_id ? (countByContrato.get(i.contrato_id) ?? 0) : 0,
       }));
 
+      const { data: outrasReceitasItens, error: orErr } = await supabase
+        .from("royalties_outras_receitas_itens")
+        .select("id,apuracao_id,nome,valor,observacao")
+        .eq("apuracao_id", data.apuracao_id)
+        .order("id");
+      if (orErr) throw new Error(orErr.message);
+
       return {
         apuracao: {
           ...(ap as any),
           unidade: { ...(ap as any).unidade, tem_omie: (omieCount ?? 0) > 0 },
         },
         itens: itensComFiliais as ApuracaoItem[],
+        outrasReceitasItens: (outrasReceitasItens ?? []) as OutraReceitaItem[],
       };
     },
   );
@@ -1022,6 +1076,108 @@ export const updateApuracao = createServerFn({ method: "POST" })
     if ("status" in data) patch.status = data.status;
     const { error } = await supabase.from("royalties_apuracao").update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ============ royalties_outras_receitas_itens ============
+// "Outras receitas" era um valor único digitado à mão; agora é a soma de itens
+// nomeados por software/serviço (ex: Qulture.rocks, Pipedrive, Panda Pé — cada
+// unidade usa um conjunto diferente). royalties_apuracao.outras_receitas
+// continua sendo o total denormalizado — recalculado aqui a cada mutação —
+// pra não precisar mudar confirmarApuracao, o PDF nem o resumo já existentes.
+async function recomputeOutrasReceitas(supabase: any, apuracao_id: number) {
+  const { data: itens, error } = await supabase
+    .from("royalties_outras_receitas_itens")
+    .select("valor")
+    .eq("apuracao_id", apuracao_id);
+  if (error) throw new Error(error.message);
+  const total = (itens ?? []).reduce((soma: number, it: any) => soma + Number(it.valor ?? 0), 0);
+  const { error: uErr } = await supabase
+    .from("royalties_apuracao")
+    .update({ outras_receitas: total })
+    .eq("id", apuracao_id);
+  if (uErr) throw new Error(uErr.message);
+  return total;
+}
+
+async function assertApuracaoAberta(supabase: any, apuracao_id: number) {
+  const { data: ap, error } = await supabase
+    .from("royalties_apuracao")
+    .select("status")
+    .eq("id", apuracao_id)
+    .single();
+  if (error) throw new Error(error.message);
+  if (ap.status === "confirmado" || ap.status === "faturado") {
+    throw new Error("Apuração fechada — reabra antes de editar outras receitas.");
+  }
+}
+
+export const addOutraReceitaItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { apuracao_id: number; nome: string; valor: number; observacao?: string | null }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+    await assertApuracaoAberta(supabase, data.apuracao_id);
+    if (!data.nome.trim()) throw new Error("Nome do item é obrigatório.");
+    const { error } = await supabase.from("royalties_outras_receitas_itens").insert({
+      apuracao_id: data.apuracao_id,
+      nome: data.nome.trim(),
+      valor: data.valor,
+      observacao: data.observacao ?? null,
+    });
+    if (error) throw new Error(error.message);
+    await recomputeOutrasReceitas(supabase, data.apuracao_id);
+    return { ok: true };
+  });
+
+export const updateOutraReceitaItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (d: { id: number; nome?: string; valor?: number; observacao?: string | null }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+    const { data: item, error: e1 } = await supabase
+      .from("royalties_outras_receitas_itens")
+      .select("apuracao_id")
+      .eq("id", data.id)
+      .single();
+    if (e1) throw new Error(e1.message);
+    await assertApuracaoAberta(supabase, item.apuracao_id);
+    const patch: any = {};
+    if ("nome" in data) patch.nome = data.nome?.trim();
+    if ("valor" in data) patch.valor = data.valor;
+    if ("observacao" in data) patch.observacao = data.observacao;
+    const { error } = await supabase
+      .from("royalties_outras_receitas_itens")
+      .update(patch)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    await recomputeOutrasReceitas(supabase, item.apuracao_id);
+    return { ok: true };
+  });
+
+export const deleteOutraReceitaItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: number }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+    const { data: item, error: e1 } = await supabase
+      .from("royalties_outras_receitas_itens")
+      .select("apuracao_id")
+      .eq("id", data.id)
+      .single();
+    if (e1) throw new Error(e1.message);
+    await assertApuracaoAberta(supabase, item.apuracao_id);
+    const { error } = await supabase
+      .from("royalties_outras_receitas_itens")
+      .delete()
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    await recomputeOutrasReceitas(supabase, item.apuracao_id);
     return { ok: true };
   });
 
