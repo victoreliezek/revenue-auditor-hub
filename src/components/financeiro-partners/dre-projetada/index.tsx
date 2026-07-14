@@ -9,7 +9,7 @@ import {
   listCategorias, listDepartamentos, listTiposRateio,
   listItens, listValoresAnoParaItens, listRateioPartners, listAvulsosAno,
 } from "./data";
-import { Cadastro, CategoriaRow, Cenario, CenarioSel, Granularidade, Item, Valor } from "./types";
+import { Cadastro, CategoriaRow, Cenario, CenarioSel, Granularidade, Item, MESES_LABEL, Valor } from "./types";
 import { ItensView } from "./itens-view";
 import { ResumoView } from "./resumo-view";
 import { CadastrosDialog } from "./cadastros-dialog";
@@ -35,6 +35,9 @@ export function DreProjetadaView() {
   const [loadingItens, setLoadingItens] = useState(false);
   const [openCadastros, setOpenCadastros] = useState(false);
   const [granularidade, setGranularidade] = useState<Granularidade>("mensal");
+  // 0 = todos os meses; 1..12 = mostra apenas a coluna daquele mês
+  const [mesSel, setMesSel] = useState<number>(0);
+  const mesFiltro = mesSel === 0 ? null : mesSel;
 
   // Derivado: cenário real (UUID) ou null para os dois "Base".
   const isBuiltin = cenarioSel === "base-total" || cenarioSel === "base-partners";
@@ -149,7 +152,23 @@ export function DreProjetadaView() {
           {cenarioId && <Button size="icon" variant="ghost" onClick={handleExcluir}><Trash2 className="h-4 w-4" /></Button>}
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <div className="inline-flex rounded-md border bg-background overflow-hidden">
+          <Select
+            value={String(mesSel)}
+            onValueChange={(v) => {
+              const m = Number(v);
+              setMesSel(m);
+              if (m !== 0) setGranularidade("mensal");
+            }}
+          >
+            <SelectTrigger className="w-[130px] h-8"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">Todos os meses</SelectItem>
+              {MESES_LABEL.map((label, i) => (
+                <SelectItem key={i} value={String(i + 1)}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className={"inline-flex rounded-md border bg-background overflow-hidden " + (mesSel !== 0 ? "opacity-50 pointer-events-none" : "")}>
             {(["mensal", "trimestral", "semestral"] as Granularidade[]).map((g) => (
               <button
                 key={g}
@@ -196,17 +215,17 @@ export function DreProjetadaView() {
             </TabsList>
             <TabsContent value="resumo" className="mt-3">
               <ResumoView itens={itens} valores={valores} categorias={[...catReceita, ...catDespesa]} departamentos={deps}
-                modoPartners={modoPartners} rateio={rateio} granularidade={granularidade} royaltiesMap={royaltiesMap} />
+                modoPartners={modoPartners} rateio={rateio} granularidade={granularidade} mesFiltro={mesFiltro} royaltiesMap={royaltiesMap} />
             </TabsContent>
             <TabsContent value="despesas" className="mt-3">
               <ItensView natureza="despesa" cenarioId={cenarioId} ano={ano} itens={despesas} valores={valores}
                 categorias={catDespesa} departamentos={deps} tiposRateio={tipos} onChanged={reloadItens}
-                modoPartners={modoPartners} rateio={rateio} granularidade={granularidade} />
+                modoPartners={modoPartners} rateio={rateio} granularidade={granularidade} mesFiltro={mesFiltro} />
             </TabsContent>
             <TabsContent value="receitas" className="mt-3">
               <ItensView natureza="receita" cenarioId={cenarioId} ano={ano} itens={receitas} valores={valores}
                 categorias={catReceita} departamentos={deps} tiposRateio={tipos} onChanged={reloadItens}
-                modoPartners={false} rateio={rateio} granularidade={granularidade} royaltiesMap={royaltiesMap} />
+                modoPartners={false} rateio={rateio} granularidade={granularidade} mesFiltro={mesFiltro} royaltiesMap={royaltiesMap} />
             </TabsContent>
           </Tabs>
         </>

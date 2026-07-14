@@ -16,6 +16,8 @@ interface Props {
   modoPartners?: boolean;
   rateio?: RateioPartners;
   granularidade?: Granularidade;
+  /** Mês (1..12) para filtrar a exibição a uma única coluna. `undefined`/`null` = todos os meses. */
+  mesFiltro?: number | null;
   /** Royalties/CSC/CAC/Verba de mídia/Outras vêm daqui em vez de valor_base/overrides — só preenchido nas visões Base. */
   royaltiesMap?: Map<string, RoyaltiesPorUnidadeInfo>;
 }
@@ -61,7 +63,8 @@ const BLOCO_LABEL: Record<BlocoKey, string> = {
   nao_classificado: "Não classificado",
 };
 
-export function ResumoView({ itens, valores, categorias, modoPartners, rateio, granularidade = "mensal", royaltiesMap }: Props) {
+export function ResumoView({ itens, valores, categorias, modoPartners, rateio, granularidade = "mensal", mesFiltro, royaltiesMap }: Props) {
+  const agrupar = (vals: number[]) => agruparMeses(vals, granularidade, mesFiltro);
   const isDaApuracao = (i: Item) =>
     i.cenario_id === null && !!royaltiesMap && categoriaVemDaApuracao(i.categoria);
   const [expanded, setExpanded] = useState<Set<string>>(new Set([
@@ -185,7 +188,7 @@ export function ResumoView({ itens, valores, categorias, modoPartners, rateio, g
   const aportes = bloco("aporte");
   const naoClassif = blocos.get("nao_classificado");
 
-  const colHeaders = agruparMeses(zero12(), granularidade).map((b) => b.label);
+  const colHeaders = agrupar(zero12()).map((b) => b.label);
 
   function colorFor(accent: "receita" | "despesa" | "resultado" | "neutro", total: number) {
     if (accent === "receita") return "text-emerald-600 dark:text-emerald-400";
@@ -200,7 +203,7 @@ export function ResumoView({ itens, valores, categorias, modoPartners, rateio, g
       // ainda mostra a linha do bloco (zeros) para deixar a estrutura visível
     }
     const vals = data?.total ?? zero12();
-    const buckets = agruparMeses(vals, granularidade);
+    const buckets = agrupar(vals);
     const total = sum(vals);
     const accent = BLOCO_ACCENT[k];
     const expKey = `bloco:${k}`;
@@ -228,8 +231,8 @@ export function ResumoView({ itens, valores, categorias, modoPartners, rateio, g
   }
 
   function SubtotalRow({ label, vals, base }: { label: string; vals: number[]; base?: number[] }) {
-    const buckets = agruparMeses(vals, granularidade);
-    const baseBuckets = base ? agruparMeses(base, granularidade) : null;
+    const buckets = agrupar(vals);
+    const baseBuckets = base ? agrupar(base) : null;
     const total = sum(vals);
     const baseTotal = base ? sum(base) : 0;
     const cls = colorFor("resultado", total);
@@ -267,7 +270,7 @@ export function ResumoView({ itens, valores, categorias, modoPartners, rateio, g
     return Array.from(data.porDep.entries()).map(([depKey, dep]) => {
       const depExpKey = `${k}:${depKey}`;
       const depOpen = expanded.has(depExpKey);
-      const depBuckets = agruparMeses(dep.total, granularidade);
+      const depBuckets = agrupar(dep.total);
       return (
         <FragmentRows key={depExpKey}>
           <tr className="border-t cursor-pointer hover:bg-muted/30" onClick={() => toggle(depExpKey)}>
@@ -287,7 +290,7 @@ export function ResumoView({ itens, valores, categorias, modoPartners, rateio, g
           {depOpen && Array.from(dep.porCat.entries()).map(([catKey, cat]) => {
             const catExpKey = `${k}:${depKey}:${catKey}`;
             const catOpen = expanded.has(catExpKey);
-            const catBuckets = agruparMeses(cat.total, granularidade);
+            const catBuckets = agrupar(cat.total);
             return (
               <FragmentRows key={catExpKey}>
                 <tr className="border-t cursor-pointer hover:bg-muted/30" onClick={() => toggle(catExpKey)}>
@@ -306,7 +309,7 @@ export function ResumoView({ itens, valores, categorias, modoPartners, rateio, g
                 </tr>
                 {catOpen && cat.itens.map((it) => {
                   const vals = valPorItem.get(it.id) ?? zero12();
-                  const itBuckets = agruparMeses(vals, granularidade);
+                  const itBuckets = agrupar(vals);
                   return (
                     <tr key={it.id} className="border-t">
                       <td className="p-2 sticky left-0 bg-background z-10" style={{ paddingLeft: 8 + 3 * 16 }}>

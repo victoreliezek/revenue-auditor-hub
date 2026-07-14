@@ -112,29 +112,38 @@ export type Granularidade = "mensal" | "trimestral" | "semestral";
  * - mensal: 12 buckets (Jan..Dez)
  * - trimestral: 4 buckets (T1..T4)
  * - semestral: 2 buckets (S1, S2)
+ *
+ * Se `mesFiltro` (1..12) for informado, retorna apenas o(s) bucket(s) que contêm esse mês
+ * (ex.: mensal → só a coluna do mês; trimestral → só o trimestre que o contém).
  */
 export function agruparMeses(
   vals12: number[],
   g: Granularidade,
+  mesFiltro?: number | null,
 ): { label: string; valor: number; meses: number[] }[] {
   const safe = (i: number) => Number(vals12[i] ?? 0) || 0;
+  let buckets: { label: string; valor: number; meses: number[] }[];
   if (g === "mensal") {
-    return MESES_LABEL.map((label, i) => ({ label, valor: safe(i), meses: [i + 1] }));
-  }
-  if (g === "trimestral") {
-    return [0, 1, 2, 3].map((q) => {
+    buckets = MESES_LABEL.map((label, i) => ({ label, valor: safe(i), meses: [i + 1] }));
+  } else if (g === "trimestral") {
+    buckets = [0, 1, 2, 3].map((q) => {
       const meses = [q * 3 + 1, q * 3 + 2, q * 3 + 3];
       const valor = safe(q * 3) + safe(q * 3 + 1) + safe(q * 3 + 2);
       return { label: `T${q + 1}`, valor, meses };
     });
+  } else {
+    // semestral
+    buckets = [0, 1].map((s) => {
+      const meses = Array.from({ length: 6 }, (_, k) => s * 6 + k + 1);
+      let valor = 0;
+      for (let k = 0; k < 6; k++) valor += safe(s * 6 + k);
+      return { label: `S${s + 1}`, valor, meses };
+    });
   }
-  // semestral
-  return [0, 1].map((s) => {
-    const meses = Array.from({ length: 6 }, (_, k) => s * 6 + k + 1);
-    let valor = 0;
-    for (let k = 0; k < 6; k++) valor += safe(s * 6 + k);
-    return { label: `S${s + 1}`, valor, meses };
-  });
+  if (mesFiltro) {
+    buckets = buckets.filter((b) => b.meses.includes(mesFiltro));
+  }
+  return buckets;
 }
 
 export const BRL = (n: number | null | undefined) =>

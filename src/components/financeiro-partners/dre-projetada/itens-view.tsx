@@ -27,6 +27,8 @@ interface Props {
   modoPartners?: boolean;
   rateio?: RateioPartners;
   granularidade?: Granularidade;
+  /** Mês (1..12) para filtrar a exibição a uma única coluna. `undefined`/`null` = todos os meses. */
+  mesFiltro?: number | null;
   /** Royalties/CSC/CAC/Verba de mídia/Outras vêm daqui em vez de valor_base/overrides — só preenchido nas visões Base. */
   royaltiesMap?: Map<string, RoyaltiesPorUnidadeInfo>;
 }
@@ -40,8 +42,9 @@ const TIPO_LABEL: Record<string, string> = {
 
 export function ItensView({
   natureza, cenarioId, ano, itens, valores, categorias, departamentos, tiposRateio, onChanged,
-  modoPartners = false, rateio, granularidade = "mensal", royaltiesMap,
+  modoPartners = false, rateio, granularidade = "mensal", mesFiltro, royaltiesMap,
 }: Props) {
+  const agrupar = (vals: number[]) => agruparMeses(vals, granularidade, mesFiltro);
   const readonly = modoPartners && natureza === "despesa";
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Item | null>(null);
@@ -167,7 +170,7 @@ export function ItensView({
               <th className="text-left p-2">Departamento</th>
               <th className="text-left p-2">Rateio</th>
               <th className="text-left p-2">Tipo</th>
-              {agruparMeses(Array(12).fill(0), granularidade).map((b) => (
+              {agrupar(Array(12).fill(0)).map((b) => (
                 <th key={b.label} className="text-right p-2 min-w-[80px]">{b.label}</th>
               ))}
               <th className="text-right p-2 min-w-[100px]">Total</th>
@@ -182,7 +185,7 @@ export function ItensView({
               const vals = valoresPorItem.get(item.id) ?? Array(12).fill(0);
               const total = vals.reduce((a, b) => a + b, 0);
               const isSintetico = item.id.startsWith("av:");
-              const buckets = agruparMeses(vals, granularidade);
+              const buckets = agrupar(vals);
               const badge = pctLabel(item);
               return (
                 <tr key={item.id} className="border-t hover:bg-muted/30 group">
