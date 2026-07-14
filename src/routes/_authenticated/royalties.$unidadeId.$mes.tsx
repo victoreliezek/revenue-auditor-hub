@@ -434,6 +434,7 @@ function ApuracaoLoaded({
       cscValor: cscEfetivo,
       trafegoPago: apuracao.csc_trafego_pago,
       outrasReceitas: outras,
+      outrasReceitasItens: outrasReceitasItens.map((it) => ({ nome: it.nome, valor: Number(it.valor) })),
       totalFatura,
       itens,
       excluidos: excluidos.map((i) => ({

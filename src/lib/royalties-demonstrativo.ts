@@ -50,6 +50,11 @@ export interface DemonstrativoItem {
   categoria: "royalties" | "csc_base_antiga";
 }
 
+export interface DemonstrativoOutraReceita {
+  nome: string;
+  valor: number;
+}
+
 export interface DemonstrativoExcluido {
   razao_social: string;
   cnpj: string | null;
@@ -70,6 +75,7 @@ export interface DemonstrativoData {
   cscValor: number;
   trafegoPago: number | null;
   outrasReceitas: number;
+  outrasReceitasItens: DemonstrativoOutraReceita[];
   totalFatura: number;
   itens: DemonstrativoItem[];
   excluidos: DemonstrativoExcluido[];
@@ -188,6 +194,29 @@ export async function gerarDemonstrativoRoyaltiesPdf(data: DemonstrativoData) {
     });
     cursorY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 24;
   };
+
+  if (data.outrasReceitasItens.length > 0) {
+    if (cursorY > 680) {
+      doc.addPage();
+      cursorY = 50;
+    }
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Outras receitas — detalhamento", 40, cursorY);
+    autoTable(doc, {
+      startY: cursorY + 8,
+      head: [["Item", "Valor"]],
+      body: data.outrasReceitasItens.map((it) => [it.nome, BRL(it.valor)]),
+      styles: { fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: BRAND_GREEN, textColor: 255 },
+      columnStyles: {
+        1: { halign: "right" },
+      },
+      margin: { left: 40, right: 40 },
+      tableWidth: 260,
+    });
+    cursorY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 24;
+  }
 
   itemTable("Clientes — royalties", royalties);
   itemTable("Clientes — CAC", cac);
