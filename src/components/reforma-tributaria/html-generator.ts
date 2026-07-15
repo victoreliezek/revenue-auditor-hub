@@ -277,9 +277,7 @@ body.edit-mode .edit-toggle-btn{background:rgba(95,183,127,.08);border-color:rgb
     vai pagar <span style="color:var(--r)">+R$ ${Math.round(deltaR / 1000)}k</span><br>
     de imposto por ano.
   </h1>
-  <p class="hero-sub reveal d2" data-e>
-    A Reforma Tributária (LC 214) eleva sua carga de <strong>${fmtPct(first.carga)}</strong> para <strong>${fmtPct(last.carga)}</strong> até ${last.ano}. A carga hoje incide sobre <strong>${tributosAtuais}</strong>. Este mapa mostra como esse aumento acontece — ano a ano, imposto a imposto — para que você planeje antes que a conta chegue.
-  </p>
+  <p class="hero-sub reveal d2" data-e>${d.textoPrincipal || `A Reforma Tributária (LC 214) eleva sua carga de ${fmtPct(first.carga)} para ${fmtPct(last.carga)} até ${last.ano}. A carga hoje incide sobre ${tributosAtuais}. Este mapa mostra como esse aumento acontece — ano a ano, imposto a imposto — para que você planeje antes que a conta chegue.`}</p>
   <div class="hero-meta reveal d3">
     <div class="hm"><div class="hml">Empresa</div><div class="hmv">${d.empresa} · ${d.estado}</div></div>
     <div class="hm"><div class="hml">Atividade</div><div class="hmv">${d.atividade || '—'}</div></div>
@@ -493,7 +491,7 @@ ${d.observacoes ? `
   <div class="reveal">
     <div class="eyebrow" style="justify-content:center;display:flex;">O que fazer com este mapa</div>
     <h2 class="cta-hl" data-e>Você tem <span style="color:var(--g)">sete anos</span> para se preparar.<br>O custo de esperar é <span style="color:var(--g)">R$ ${Math.round(deltaR/1000)}k/ano.</span></h2>
-    <p class="cta-sub" data-e>A Reforma é gradual e previsível: a carga da ${d.empresa} sobe de ${fmtPct(first.carga)} para ${fmtPct(last.carga)} até ${last.ano}, com o salto maior no último ano. Conhecer essa curva agora permite planejar preço, margem, créditos e fluxo de caixa antes que o aumento chegue. A Planning acompanha cada etapa da transição com você.</p>
+    <p class="cta-sub" data-e>${d.textoFechamento || `A Reforma é gradual e previsível: a carga da ${d.empresa} sobe de ${fmtPct(first.carga)} para ${fmtPct(last.carga)} até ${last.ano}, com o salto maior no último ano. Conhecer essa curva agora permite planejar preço, margem, créditos e fluxo de caixa antes que o aumento chegue. A Planning acompanha cada etapa da transição com você.`}</p>
   </div>
   <div class="footer-line"></div>
   <div class="footer-txt"><strong style="color:#fff;">Mapa da Reforma Tributária · ${d.empresa}</strong><br>Elaboração: Planning · ${d.referencia} · Confidencial · Base: LC 214</div>

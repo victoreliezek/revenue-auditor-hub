@@ -41,6 +41,21 @@ function pct(v: number) {
   return (v * 100).toFixed(2);
 }
 
+function fmtPct(n: number) {
+  return (n * 100).toFixed(2) + '%';
+}
+
+function computeDefaultTextos(d: ReformaTributariaData): Pick<ReformaTributariaData, 'textoPrincipal' | 'textoFechamento'> {
+  const first = d.years[0];
+  const last = d.years[d.years.length - 1];
+  const isServico = d.aliquotas.iss > 0;
+  const tributosAtuais = isServico ? 'ISS e PIS/COFINS' : 'ICMS, PIS e COFINS';
+  return {
+    textoPrincipal: `A Reforma Tributária (LC 214) eleva sua carga de ${fmtPct(first.carga)} para ${fmtPct(last.carga)} até ${last.ano}. A carga hoje incide sobre ${tributosAtuais}. Este mapa mostra como esse aumento acontece — ano a ano, imposto a imposto — para que você planeje antes que a conta chegue.`,
+    textoFechamento: `A Reforma é gradual e previsível: a carga da ${d.empresa || 'empresa'} sobe de ${fmtPct(first.carga)} para ${fmtPct(last.carga)} até ${last.ano}, com o salto maior no último ano. Conhecer essa curva agora permite planejar preço, margem, créditos e fluxo de caixa antes que o aumento chegue. A Planning acompanha cada etapa da transição com você.`,
+  };
+}
+
 function ReformaTributariaPage() {
   const [data, setData] = useState<ReformaTributariaData>({ ...DEFAULT_DATA });
   const [fileName, setFileName] = useState('');
@@ -104,7 +119,8 @@ function ReformaTributariaPage() {
       // Exit edit mode and reset state on new file — prevents stale editMode blocking preview
       setEditMode(false);
       iframeRef.current?.contentWindow?.postMessage({ type: 'reforma-exit-edit' }, '*');
-      setData({ ...DEFAULT_DATA, ...parsed });
+      const baseData = { ...DEFAULT_DATA, ...parsed };
+      setData({ ...baseData, ...computeDefaultTextos(baseData) });
       toast.success('Arquivo carregado. Confirme a Razão Social e preencha a Atividade.');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao processar o arquivo.');
@@ -421,6 +437,37 @@ function ReformaTributariaPage() {
               rows={4}
             />
             <p className="text-[11px] text-muted-foreground mt-1">Aparece como "Nota da Auditora" na apresentação</p>
+          </section>
+
+          {/* ── TEXTOS ── */}
+          <section>
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">
+              7 · Textos da apresentação
+            </Label>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs mb-1 block">Parágrafo de abertura</Label>
+                <Textarea
+                  placeholder="Carregue o arquivo para gerar o texto automaticamente..."
+                  value={data.textoPrincipal}
+                  onChange={(e) => setField('textoPrincipal', e.target.value)}
+                  className="text-sm resize-none"
+                  rows={4}
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">Aparece abaixo do título principal</p>
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Parágrafo de fechamento</Label>
+                <Textarea
+                  placeholder="Carregue o arquivo para gerar o texto automaticamente..."
+                  value={data.textoFechamento}
+                  onChange={(e) => setField('textoFechamento', e.target.value)}
+                  className="text-sm resize-none"
+                  rows={4}
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">Aparece no bloco final antes do rodapé</p>
+              </div>
+            </div>
           </section>
         </div>
 

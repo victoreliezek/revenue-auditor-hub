@@ -27,6 +27,8 @@ export interface ReformaTributariaData {
   observacoes: string;
   resultadoAtual: number;
   resultadoPosReforma: number;
+  textoPrincipal: string; // hero sub — editable, auto-computed on file load
+  textoFechamento: string; // CTA sub — editable, auto-computed on file load
 }
 
 export const DEFAULT_DATA: ReformaTributariaData = {
@@ -50,6 +52,8 @@ export const DEFAULT_DATA: ReformaTributariaData = {
   observacoes: '',
   resultadoAtual: 0,
   resultadoPosReforma: 0,
+  textoPrincipal: '',
+  textoFechamento: '',
 };
 
 // Mapa de colunas por ano (Sheet2)
