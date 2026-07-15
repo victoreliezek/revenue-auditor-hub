@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { ChevronRight, ChevronDown } from "lucide-react";
-import { BRL, Cadastro, CategoriaRow, Granularidade, GrupoDRE, GRUPO_DRE_LABEL, Item, RateioPartners, Valor, agruparMeses, pctPartnersFor } from "./types";
+import { BRL, Cadastro, CategoriaRow, Granularidade, GrupoDRE, GRUPO_DRE_LABEL, Item, RateioPartners, Valor, agruparMeses, normNome, pctPartnersFor } from "./types";
 import { cn } from "@/lib/utils";
 import {
   categoriaVemDaApuracao,
@@ -67,9 +67,12 @@ export function ResumoView({ itens, valores, categorias, modoPartners, rateio, g
   const agrupar = (vals: number[]) => agruparMeses(vals, granularidade, mesFiltro);
   const isDaApuracao = (i: Item) =>
     i.cenario_id === null && !!royaltiesMap && categoriaVemDaApuracao(i.categoria);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set([
-    "bloco:entrada", "bloco:imposto_direto", "bloco:custo_variavel", "bloco:custo_fixo", "bloco:aporte",
-  ]));
+  // Blocos começam fechados: a leitura inicial da DRE deve mostrar só as
+  // linhas em cascata (Receitas → Receita Líquida → Custos Variáveis →
+  // Margem de Contribuição → ...), sem misturar Departamento/Categoria/
+  // Fornecedor logo abaixo de um subtotal — isso é o que gerava a leitura
+  // errada de "Custos Variáveis está dentro de Receita Líquida".
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   function toggle(key: string) {
     setExpanded((prev) => {
@@ -79,15 +82,18 @@ export function ResumoView({ itens, valores, categorias, modoPartners, rateio, g
     });
   }
 
+  // Chave normalizada (trim + lowercase) — categorias digitadas com capitalização
+  // diferente da cadastrada em Cadastros (ex.: "Ajuda de custo" vs "Ajuda de Custo")
+  // não devem cair silenciosamente em "Não classificado".
   const catGrupoMap = useMemo(() => {
     const m = new Map<string, GrupoDRE>();
-    categorias.forEach((c) => { if (c.grupo_dre) m.set(c.nome, c.grupo_dre); });
+    categorias.forEach((c) => { if (c.grupo_dre) m.set(normNome(c.nome), c.grupo_dre); });
     return m;
   }, [categorias]);
 
   function grupoDoItem(it: Item): BlocoKey {
     if (it.categoria) {
-      const g = catGrupoMap.get(it.categoria);
+      const g = catGrupoMap.get(normNome(it.categoria));
       if (g) return g;
     }
     // fallback por natureza
