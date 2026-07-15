@@ -101,7 +101,9 @@ function ReformaTributariaPage() {
     setFileName(file.name);
     try {
       const parsed = await parseReformaTributariaXlsx(file);
-      // Always reset to DEFAULT_DATA on new file — never carry state from previous client
+      // Exit edit mode and reset state on new file — prevents stale editMode blocking preview
+      setEditMode(false);
+      iframeRef.current?.contentWindow?.postMessage({ type: 'reforma-exit-edit' }, '*');
       setData({ ...DEFAULT_DATA, ...parsed });
       toast.success('Arquivo carregado. Confirme a Razão Social e preencha a Atividade.');
     } catch (err) {
@@ -171,6 +173,8 @@ function ReformaTributariaPage() {
 
   const clearFile = () => {
     setFileName('');
+    setEditMode(false);
+    iframeRef.current?.contentWindow?.postMessage({ type: 'reforma-exit-edit' }, '*');
     setData({ ...DEFAULT_DATA });
   };
 
