@@ -40,6 +40,7 @@ type Cliente = {
   razao_social: string | null;
   titulo: string | null;
   cnpj: string | null;
+  uf: string | null;
   unidade: string | null;
   pipedrive_id: string | null;
   fonte_cadastro: string | null;
@@ -138,6 +139,7 @@ function ClientesPage() {
     | "unidade"
     | "mrr"
     | "cnpj"
+    | "uf"
     | "status_financeiro"
     | "pipedrive_id"
     | "fonte_cadastro"
@@ -160,7 +162,7 @@ function ClientesPage() {
         supabase
           .from("empresas")
           .select(
-            "id,razao_social,titulo,cnpj,unidade,pipedrive_id,fonte_cadastro,status_financeiro,erp,segmento",
+            "id,razao_social,titulo,cnpj,uf,unidade,pipedrive_id,fonte_cadastro,status_financeiro,erp,segmento",
           )
           .eq("tipo_unidade", "franquia")
           .order("razao_social", { ascending: true })
@@ -306,6 +308,9 @@ function ClientesPage() {
           break;
         case "cnpj":
           c = cmpStr(a.cnpj, b.cnpj);
+          break;
+        case "uf":
+          c = cmpStr(a.uf, b.uf);
           break;
         case "status_financeiro": {
           const ra = rank.get(a.status_financeiro ?? "") ?? 99;
@@ -506,6 +511,7 @@ function ClientesPage() {
                   Unidade: r.unidade || "",
                   MRR: mrrByPipedriveId.get(r.pipedrive_id ?? "") ?? 0,
                   CNPJ: r.cnpj || "",
+                  Estado: r.uf || "",
                   "Status Financeiro": r.status_financeiro
                     ? STATUS_META[r.status_financeiro].label
                     : "",
@@ -515,7 +521,7 @@ function ClientesPage() {
                   Segmento: r.segmento || "",
                 }));
                 exportRowsToXlsx(data, "clientes-planning", "Planning", [
-                  40, 18, 14, 20, 18, 14, 18, 18, 20,
+                  40, 18, 14, 20, 10, 18, 14, 18, 18, 20,
                 ]);
               }}
             >
@@ -543,6 +549,7 @@ function ClientesPage() {
                       { key: "unidade", label: "Unidade", align: "left" },
                       { key: "mrr", label: "MRR", align: "right" },
                       { key: "cnpj", label: "CNPJ", align: "left" },
+                      { key: "uf", label: "Estado", align: "left" },
                       { key: "status_financeiro", label: "Status Financeiro", align: "left" },
                       { key: "pipedrive_id", label: "Pipedrive ID", align: "left" },
                       { key: "fonte_cadastro", label: "Fonte Cadastro", align: "left" },
@@ -609,6 +616,7 @@ function ClientesPage() {
                           })()}
                         </TableCell>
                         <TableCell className="font-mono text-xs">{r.cnpj || "—"}</TableCell>
+                        <TableCell>{r.uf || "—"}</TableCell>
 
                         <TableCell>
                           {meta ? (
@@ -641,7 +649,7 @@ function ClientesPage() {
                   {!loading && filtered.length === 0 && (
                     <TableRow>
                       <TableCell
-                        colSpan={9}
+                        colSpan={10}
                         className="py-10 text-center text-sm text-muted-foreground"
                       >
                         Nenhum cliente encontrado.
