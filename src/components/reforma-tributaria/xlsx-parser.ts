@@ -144,15 +144,24 @@ export async function parseReformaTributariaXlsx(
         const faturamento = numCell(sheet2, 'B12');
         const aquisicoes = numCell(sheet2, 'C16');
 
-        // Alíquotas
-        // B9=ISS, B10=PIS/COFINS cumulativo, B11=PIS/COFINS não-cumulativo (maior = regime normal)
+        // Alíquotas — rates are stored as decimals (0.0925 = 9.25%), never > 1.
+        // Guard: if a cell returns a monetary amount (e.g. faturamento in wrong row),
+        // clamp it to 0 so we don't display 2,100,000,000%.
+        const rate = (v: number): number => (Number.isFinite(v) && v > 0 && v <= 1) ? v : 0;
+
+        // B5=CBS, B6=IBS Estadual, B7=IBS Municipal, B8=IPI
+        // B9=ISS (serviços) or 0 for comércio
+        // B10=PIS/COFINS cumulativo, B11=PIS/COFINS não-cumulativo — pick the valid one
+        const pisCandidates = [numCell(sheet2, 'B10'), numCell(sheet2, 'B11'), numCell(sheet2, 'B13'), numCell(sheet2, 'B14')];
+        const pisCofinsRate = pisCandidates.find(v => v > 0.001 && v <= 1) ?? 0;
+
         const aliquotas: AliquotasData = {
-          cbs: numCell(sheet2, 'B5'),
-          ibsEstadual: numCell(sheet2, 'B6'),
-          ibsMunicipal: numCell(sheet2, 'B7'),
-          ipi: numCell(sheet2, 'B8'),
-          iss: numCell(sheet2, 'B9'),
-          pisCofins: Math.max(numCell(sheet2, 'B10'), numCell(sheet2, 'B11')),
+          cbs: rate(numCell(sheet2, 'B5')),
+          ibsEstadual: rate(numCell(sheet2, 'B6')),
+          ibsMunicipal: rate(numCell(sheet2, 'B7')),
+          ipi: rate(numCell(sheet2, 'B8')),
+          iss: rate(numCell(sheet2, 'B9')),
+          pisCofins: pisCofinsRate,
         };
 
         // Resultado operacional: Sheet4 E37 (atual) e H37 (pós reforma)
