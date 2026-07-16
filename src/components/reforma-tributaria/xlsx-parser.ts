@@ -160,11 +160,17 @@ export async function parseReformaTributariaXlsx(
         const resultadoPosReforma = sheet4 ? numCell(sheet4, 'H37') : 0;
 
         // Anos 2026–2032 (Sheet2)
-        // Row 31 = Total impostos a pagar (R$), Row 32 = Carga efetiva (decimal)
+        // Auto-detect row offset: templates may store data at rows 30/31 or 31/32.
+        // Desembolso (R$) is a monetary amount >> 100; rates are small decimals.
+        // Probe column C (2026) to determine which row has the R$ value.
+        const probeRow30 = numCell(sheet2, 'C30');
+        const desRow = probeRow30 > 100 ? 30 : 31;
+        const cargaRow = desRow + 1;
+
         const years: YearData[] = Object.entries(YEAR_COLS).map(([ano, col]) => ({
           ano: parseInt(ano),
-          desembolso: numCell(sheet2, `${col}31`),
-          carga: numCell(sheet2, `${col}32`),
+          desembolso: numCell(sheet2, `${col}${desRow}`),
+          carga: numCell(sheet2, `${col}${cargaRow}`),
         }));
 
         // 2033: column block AC-AE in Sheet2 (offset: Total at row 30, Carga at row 31)
