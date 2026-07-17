@@ -152,8 +152,12 @@ export async function parseReformaTributariaXlsx(
         // B5=CBS, B6=IBS Estadual, B7=IBS Municipal, B8=IPI
         // B9=ISS (serviços) or 0 for comércio
         // B10=PIS/COFINS cumulativo, B11=PIS/COFINS não-cumulativo — pick the valid one
-        const pisCandidates = [numCell(sheet2, 'B10'), numCell(sheet2, 'B11'), numCell(sheet2, 'B13'), numCell(sheet2, 'B14')];
-        const pisCofinsRate = pisCandidates.find(v => v > 0.001 && v <= 1) ?? 0;
+        // Pick the highest valid PIS/COFINS rate across known candidate cells.
+        // B10=cumulativo (3.65%), B11=não-cumulativo (9.25%) — want the max (lucro real/presumido).
+        // If neither B10/B11 is a valid rate (e.g. cell holds faturamento amount), try B13/B14.
+        const pisCandidates = [numCell(sheet2, 'B10'), numCell(sheet2, 'B11'), numCell(sheet2, 'B13'), numCell(sheet2, 'B14')]
+          .filter(v => v > 0.001 && v <= 1);
+        const pisCofinsRate = pisCandidates.length > 0 ? Math.max(...pisCandidates) : 0;
 
         const aliquotas: AliquotasData = {
           cbs: rate(numCell(sheet2, 'B5')),

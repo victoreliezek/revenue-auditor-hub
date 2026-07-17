@@ -30,6 +30,9 @@ export function generatePresentationHTML(d: ReformaTributariaData): string {
   // Detect tax regime: ISS = services company; ICMS = commerce/industry
   const isServico = d.aliquotas.iss > 0;
   const tributosAtuais = isServico ? 'ISS e PIS/COFINS' : 'ICMS, PIS e COFINS';
+  const transicaoFinal = isServico
+    ? 'quando o ISS é substituído integralmente pelo IBS na alíquota cheia.'
+    : '${transicaoFinal}';
 
   // Resultado operacional: use parsed values if available, else fallback
   const resAtual = d.resultadoAtual > 0 ? d.resultadoAtual : (d.faturamento - first.desembolso);
@@ -372,7 +375,7 @@ body.edit-mode .edit-toggle-btn{background:rgba(95,183,127,.08);border-color:rgb
 <div class="container">
   <div class="reveal"><div class="eyebrow">03 · A transição não é de uma vez</div>
   <h2 class="section-title ruled">Oito anos de <span style="color:var(--g)">subida gradual</span> até o regime final</h2>
-  <p class="section-sub" data-e>A carga sobe de forma quase imperceptível até 2032 — e dá o salto maior em 2033, quando o ICMS zera e o IBS assume a alíquota cheia.</p></div>
+  <p class="section-sub" data-e>A carga sobe de forma quase imperceptível até 2032 — e dá o salto maior em 2033, ${transicaoFinal}</p></div>
   <div class="tl reveal">${d.years.map((y,i)=>`<div class="ti${i===d.years.length-1?' ti-last':''}"><div class="ti-year">${y.ano}</div><div class="ti-pct">${fmtPct(y.carga)}</div><div class="ti-val">R$ ${(y.desembolso/1e6).toFixed(2)}mi</div><div class="ti-ph">${getPhase(i)}</div></div>`).join('')}</div>
   <div class="reveal" style="margin-top:40px;">
     <div class="tabs-header">
@@ -397,7 +400,7 @@ body.edit-mode .edit-toggle-btn{background:rgba(95,183,127,.08);border-color:rgb
 <div class="container">
   <div class="reveal"><div class="eyebrow">04 · Progressão anual</div>
   <h2 class="section-title ruled">Desembolso total <span style="color:var(--g)">ano a ano</span></h2>
-  <p class="section-sub" data-e>O imposto a pagar cresce gradualmente com a transição e dá o salto maior em 2033, quando o ICMS zera e o IBS assume a alíquota cheia.</p></div>
+  <p class="section-sub" data-e>O imposto a pagar cresce gradualmente com a transição e dá o salto maior em 2033, ${transicaoFinal}</p></div>
   <div class="reveal" style="margin-top:32px;">
     <div class="tabs-header">
       <button class="tab-btn active" onclick="tab('comp','grafico',this)">Gráfico</button>
