@@ -8,6 +8,7 @@ import {
   setOmieCredentialAtivo,
   upsertOmieCredential,
 } from "@/lib/omie-credentials.functions";
+import { listIntegracoesStatus, type IntegracaoStatus } from "@/lib/integracoes-status.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
 import { AppShell } from "@/components/app-shell";
@@ -39,6 +40,7 @@ function IntegracoesPage() {
   const upsertFn = useServerFn(upsertOmieCredential);
   const toggleFn = useServerFn(setOmieCredentialAtivo);
   const deleteFn = useServerFn(deleteOmieCredential);
+  const statusFn = useServerFn(listIntegracoesStatus);
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) navigate({ to: "/" });
@@ -48,6 +50,13 @@ function IntegracoesPage() {
     queryKey: ["omie-credentials"],
     queryFn: () => listFn(),
     enabled: isAdmin,
+  });
+
+  const statusQuery = useQuery({
+    queryKey: ["integracoes-status"],
+    queryFn: () => statusFn(),
+    enabled: isAdmin,
+    refetchInterval: 60_000,
   });
 
   const [showForm, setShowForm] = useState(false);
@@ -86,6 +95,23 @@ function IntegracoesPage() {
   if (roleLoading) return <div className="p-8 text-muted-foreground">Carregando...</div>;
   if (!isAdmin) return null;
 
+  function statusIntegracao(i: IntegracaoStatus): { label: string; cls: string } {
+    if (i.ultimo_status === "erro") return { label: "Erro", cls: "bg-destructive/10 text-destructive" };
+    if (i.tipo === "cron" && i.atrasada) return { label: "Atrasada", cls: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200" };
+    if (!i.ultima_execucao) return { label: "Sem execução ainda", cls: "bg-muted text-muted-foreground" };
+    return { label: "OK", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200" };
+  }
+
+  function formatUltimaExecucao(i: IntegracaoStatus): string {
+    if (!i.ultima_execucao) return "nunca rodou";
+    const data = new Date(i.ultima_execucao).toLocaleString("pt-BR");
+    const min = i.minutos_desde_ultima_execucao;
+    if (min == null) return data;
+    if (min < 60) return `${data} (há ${Math.round(min)}min)`;
+    if (min < 60 * 24) return `${data} (há ${Math.round(min / 60)}h)`;
+    return `${data} (há ${Math.round(min / 60 / 24)}d)`;
+  }
+
   return (
     <AppShell title="Integrações" subtitle="Credenciais de APIs externas por unidade (ex: Omie)">
       <div className="mx-auto max-w-7xl px-4 py-6 space-y-6">
@@ -100,6 +126,64 @@ function IntegracoesPage() {
             {error}
           </div>
         )}
+
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold text-foreground">
+            Status dos syncs ({statusQuery.data?.length ?? 0})
+          </h2>
+          <div className="overflow-x-auto rounded-xl border bg-card">
+            <table className="min-w-full text-sm">
+              <thead className="bg-accent/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-2">Integração</th>
+                  <th className="px-4 py-2">Tipo</th>
+                  <th className="px-4 py-2">Status</th>
+                  <th className="px-4 py-2">Última execução</th>
+                  <th className="px-4 py-2">Detalhes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {statusQuery.isLoading && (
+                  <tr><td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">Carregando...</td></tr>
+                )}
+                {statusQuery.data?.map((i) => {
+                  const st = statusIntegracao(i);
+                  return (
+                    <tr key={i.fonte} className="border-t align-top">
+                      <td className="px-4 py-2 font-medium text-foreground">
+                        {i.nome_exibicao}
+                        {i.observacao && (
+                          <div className="mt-0.5 text-xs font-normal text-muted-foreground">{i.observacao}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-xs text-muted-foreground">
+                        {i.tipo === "cron" ? `cron (${i.intervalo_esperado_minutos}min)` : "webhook"}
+                      </td>
+                      <td className="px-4 py-2">
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${st.cls}`}>
+                          {st.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                        {formatUltimaExecucao(i)}
+                      </td>
+                      <td className="px-4 py-2 text-xs text-muted-foreground max-w-md">
+                        {i.ultimo_status === "erro" && i.ultimo_detalhes
+                          ? <span className="text-destructive">{JSON.stringify(i.ultimo_detalhes).slice(0, 200)}</span>
+                          : i.ultimo_total_registros != null
+                            ? `${i.ultimo_total_registros} registros`
+                            : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {statusQuery.data && statusQuery.data.length === 0 && (
+                  <tr><td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">Nenhuma integração configurada.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground">Credenciais Omie ({credsQuery.data?.length ?? 0})</h2>
