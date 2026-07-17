@@ -1349,12 +1349,16 @@ export type Database = {
           numero_documento?: string | null
           numero_documento_fiscal?: string | null
           numero_parcela?: string | null
+          observacao_validacao?: string | null
           raw?: Json | null
           razao_social?: string | null
           status_titulo?: string | null
+          status_validado?: string
           synced_at?: string | null
           tipo?: string
           unidade?: string | null
+          validado_em?: string | null
+          validado_por?: string | null
           valor_documento?: number | null
         }
         Relationships: []

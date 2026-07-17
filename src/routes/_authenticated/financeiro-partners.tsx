@@ -4,8 +4,9 @@ import { DREPartnersPage } from "@/routes/_authenticated/dre-partners";
 import { DreProjetadaView } from "@/components/financeiro-partners/dre-projetada";
 import { FxcView } from "@/components/financeiro-partners/fxc-view";
 import { ContasReceberView } from "@/components/financeiro-partners/contas-receber-view";
+import { PagamentosView } from "@/components/financeiro-partners/pagamentos-view";
 
-type TabId = "dre" | "dfc" | "fcx" | "contas-receber";
+type TabId = "dre" | "dfc" | "fcx" | "contas-receber" | "pagamentos";
 
 export const Route = createFileRoute("/_authenticated/financeiro-partners")({
   head: () => ({
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/financeiro-partners")({
   }),
   validateSearch: (search: Record<string, unknown>): { tab: TabId } => {
     const t = search.tab;
-    const valid: TabId[] = ["dre", "dfc", "fcx", "contas-receber"];
+    const valid: TabId[] = ["dre", "dfc", "fcx", "contas-receber", "pagamentos"];
     return { tab: (valid.includes(t as TabId) ? (t as TabId) : "dre") };
   },
   component: FinanceiroPartnersPage,
@@ -31,6 +32,7 @@ const TABS = [
   { id: "dfc", label: "DFC" },
   { id: "fcx", label: "FCx" },
   { id: "contas-receber", label: "Contas a Receber" },
+  { id: "pagamentos", label: "Pagamentos" },
 ] as const;
 
 function FinanceiroPartnersPage() {
@@ -66,6 +68,7 @@ function FinanceiroPartnersPage() {
         {tab === "dre" && <DreProjetadaView />}
         {tab === "fcx" && <FxcView />}
         {tab === "contas-receber" && <ContasReceberView />}
+        {tab === "pagamentos" && <PagamentosView />}
       </div>
     </div>
   );
