@@ -1328,16 +1328,12 @@ export type Database = {
           numero_documento: string | null
           numero_documento_fiscal: string | null
           numero_parcela: string | null
-          observacao_validacao: string | null
           raw: Json | null
           razao_social: string | null
           status_titulo: string | null
-          status_validado: string
           synced_at: string | null
           tipo: string
           unidade: string | null
-          validado_em: string | null
-          validado_por: string | null
           valor_documento: number | null
         }
         Insert: {
@@ -1362,16 +1358,12 @@ export type Database = {
           numero_documento?: string | null
           numero_documento_fiscal?: string | null
           numero_parcela?: string | null
-          observacao_validacao?: string | null
           raw?: Json | null
           razao_social?: string | null
           status_titulo?: string | null
-          status_validado?: string
           synced_at?: string | null
           tipo: string
           unidade?: string | null
-          validado_em?: string | null
-          validado_por?: string | null
           valor_documento?: number | null
         }
         Update: {
@@ -1396,16 +1388,12 @@ export type Database = {
           numero_documento?: string | null
           numero_documento_fiscal?: string | null
           numero_parcela?: string | null
-          observacao_validacao?: string | null
           raw?: Json | null
           razao_social?: string | null
           status_titulo?: string | null
-          status_validado?: string
           synced_at?: string | null
           tipo?: string
           unidade?: string | null
-          validado_em?: string | null
-          validado_por?: string | null
           valor_documento?: number | null
         }
         Relationships: []
@@ -2026,6 +2014,44 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      royalties_apuracao_pagamentos: {
+        Row: {
+          apuracao_id: number
+          categoria: string
+          id: number
+          observacao_validacao: string | null
+          status_validado: string
+          validado_em: string | null
+          validado_por: string | null
+        }
+        Insert: {
+          apuracao_id: number
+          categoria: string
+          id?: number
+          observacao_validacao?: string | null
+          status_validado?: string
+          validado_em?: string | null
+          validado_por?: string | null
+        }
+        Update: {
+          apuracao_id?: number
+          categoria?: string
+          id?: number
+          observacao_validacao?: string | null
+          status_validado?: string
+          validado_em?: string | null
+          validado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "royalties_apuracao_pagamentos_apuracao_id_fkey"
+            columns: ["apuracao_id"]
+            isOneToOne: false
+            referencedRelation: "royalties_apuracao"
             referencedColumns: ["id"]
           },
         ]
