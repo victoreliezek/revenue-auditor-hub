@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Wallet, Search, X } from "lucide-react";
+import { Wallet, Search, X, CalendarIcon } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -54,11 +59,23 @@ function diasAtraso(venc: string | null): number | null {
   return diff > 0 ? diff : null;
 }
 
+function parseDate(d: string | null): Date | null {
+  if (!d) return null;
+  try {
+    const dt = parseISO(d);
+    return Number.isNaN(dt.getTime()) ? null : dt;
+  } catch {
+    return null;
+  }
+}
+
 export function ContasReceberView() {
   const [rows, setRows] = useState<ContaReceber[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState(ALL);
+  const [dataIni, setDataIni] = useState<Date | undefined>(undefined);
+  const [dataFim, setDataFim] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     let mounted = true;
@@ -95,10 +112,19 @@ export function ContasReceberView() {
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
+    const ini = dataIni ? new Date(dataIni.getFullYear(), dataIni.getMonth(), dataIni.getDate()).getTime() : null;
+    const fim = dataFim ? new Date(dataFim.getFullYear(), dataFim.getMonth(), dataFim.getDate(), 23, 59, 59, 999).getTime() : null;
     return rows.filter((r) => {
       if (status === "NAO_RECEBIDO") {
         if (r.status_pagamento === "RECEBIDO" || r.status_pagamento === "CANCELADO") return false;
       } else if (status !== ALL && r.status_pagamento !== status) return false;
+      if (ini !== null || fim !== null) {
+        const d = parseDate(r.data_competencia) ?? parseDate(r.data_vencimento);
+        const t = d ? d.getTime() : null;
+        if (t === null) return false;
+        if (ini !== null && t < ini) return false;
+        if (fim !== null && t > fim) return false;
+      }
       if (term) {
         const hay = [r.cliente, r.cpf_cnpj, r.num_documento]
           .filter(Boolean)
@@ -108,7 +134,7 @@ export function ContasReceberView() {
       }
       return true;
     });
-  }, [rows, q, status]);
+  }, [rows, q, status, dataIni, dataFim]);
 
   const kpis = useMemo(() => {
     let aVencer = 0;
@@ -129,10 +155,12 @@ export function ContasReceberView() {
     return { aVencer, atrasado, atrasadoQtd, recebido, ticket };
   }, [filtered]);
 
-  const hasFilters = q !== "" || status !== ALL;
+  const hasFilters = q !== "" || status !== ALL || dataIni !== undefined || dataFim !== undefined;
   const clearFilters = () => {
     setQ("");
     setStatus(ALL);
+    setDataIni(undefined);
+    setDataFim(undefined);
   };
 
   return (
@@ -179,6 +207,54 @@ export function ContasReceberView() {
             <SelectItem value="NAO_RECEBIDO">Não recebido (a vencer + atrasado)</SelectItem>
           </SelectContent>
         </Select>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-[160px] justify-start text-left font-normal",
+                !dataIni && "text-muted-foreground",
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dataIni ? format(dataIni, "dd/MM/yyyy") : "Data inicial"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={dataIni}
+              onSelect={setDataIni}
+              initialFocus
+              locale={ptBR}
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-[160px] justify-start text-left font-normal",
+                !dataFim && "text-muted-foreground",
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dataFim ? format(dataFim, "dd/MM/yyyy") : "Data final"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={dataFim}
+              onSelect={setDataFim}
+              initialFocus
+              locale={ptBR}
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
         {hasFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             <X className="h-4 w-4 mr-1" /> Limpar
