@@ -83,6 +83,21 @@ function numCell(sheet: XLSX.WorkSheet, ref: string): number {
   return 0;
 }
 
+// Scan column A for a row whose label contains `keyword` (accent/case-insensitive).
+// Returns the row number, or null if not found. Used to locate cells by their label
+// instead of hardcoded row numbers, which vary between template versions.
+function findLabelRow(sheet: XLSX.WorkSheet, keyword: string, startRow = 4, endRow = 25): number | null {
+  const norm = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  const kw = norm(keyword);
+  for (let r = startRow; r <= endRow; r++) {
+    const cell = sheet[`A${r}`];
+    if (!cell || typeof cell.v !== 'string') continue;
+    if (norm(cell.v).includes(kw)) return r;
+  }
+  return null;
+}
+
 // Find sheet by partial/fuzzy name match (handles accents, case, spacing variants)
 function findSheet(wb: XLSX.WorkBook, keywords: string[]): XLSX.WorkSheet | null {
   const names = wb.SheetNames;
@@ -138,25 +153,36 @@ export async function parseReformaTributariaXlsx(
           return;
         }
 
-        // Dados base
-        // A12: 'Faturamento:' → B12: value (e.g. 6000000)
-        // A16: 'Base dos Créditos:' → C16: value for 2026
-        const faturamento = numCell(sheet2, 'B12');
-        const aquisicoes = numCell(sheet2, 'C16');
+        // Dados base — detected by label in column A, not hardcoded row numbers.
+        // Template versions differ: some have faturamento at B11, others at B12.
+        const fatRow = findLabelRow(sheet2, 'faturamento') ?? 12;
+        const faturamento = numCell(sheet2, `B${fatRow}`);
+
+        // Aquisições: row labeled "Base dos Créditos" or "crédito", column C.
+        const aqRow = findLabelRow(sheet2, 'credito') ?? 16;
+        const aquisicoes = numCell(sheet2, `C${aqRow}`) || numCell(sheet2, 'C16');
 
         // Alíquotas — rates are stored as decimals (0.0925 = 9.25%), never > 1.
-        // Guard: if a cell returns a monetary amount (e.g. faturamento in wrong row),
-        // clamp it to 0 so we don't display 2,100,000,000%.
+        // Guard: if a cell returns a monetary amount, clamp to 0 to prevent absurd display.
         const rate = (v: number): number => (Number.isFinite(v) && v > 0 && v <= 1) ? v : 0;
 
-        // B5=CBS, B6=IBS Estadual, B7=IBS Municipal, B8=IPI
-        // B9=ISS (serviços) or 0 for comércio
-        // B10=PIS/COFINS cumulativo, B11=PIS/COFINS não-cumulativo — pick the valid one
-        // Pick the highest valid PIS/COFINS rate across known candidate cells.
-        // B10=cumulativo (3.65%), B11=não-cumulativo (9.25%) — want the max (lucro real/presumido).
-        // If neither B10/B11 is a valid rate (e.g. cell holds faturamento amount), try B13/B14.
-        const pisCandidates = [numCell(sheet2, 'B10'), numCell(sheet2, 'B11'), numCell(sheet2, 'B13'), numCell(sheet2, 'B14')]
-          .filter(v => v > 0.001 && v <= 1);
+        // CBS/IBS/IPI: B5-B8 are consistent across templates.
+        // ISS: only present in services templates (row labeled "ISS" in column A).
+        //   Commerce templates (ICMS-based) have no ISS row — B9 holds PIS/COFINS cumulativo.
+        const issRow = findLabelRow(sheet2, 'iss', 4, 14);
+        const iss = issRow !== null ? rate(numCell(sheet2, `B${issRow}`)) : 0;
+
+        // PIS/COFINS: pick the highest valid rate in the alíquotas block (rows 4-16).
+        // Cumulativo (~3.65%) < Não-cumulativo (~9.25%) — want the higher applicable one.
+        // Scan all B cells in the block and pick the max valid rate (0.001–1 range).
+        const pisCandidates: number[] = [];
+        for (let r = 4; r <= 16; r++) {
+          const label = sheet2[`A${r}`]?.v as string | undefined;
+          if (typeof label === 'string' && /pis|cofins/i.test(label)) {
+            const v = numCell(sheet2, `B${r}`);
+            if (v > 0.001 && v <= 1) pisCandidates.push(v);
+          }
+        }
         const pisCofinsRate = pisCandidates.length > 0 ? Math.max(...pisCandidates) : 0;
 
         const aliquotas: AliquotasData = {
@@ -164,7 +190,7 @@ export async function parseReformaTributariaXlsx(
           ibsEstadual: rate(numCell(sheet2, 'B6')),
           ibsMunicipal: rate(numCell(sheet2, 'B7')),
           ipi: rate(numCell(sheet2, 'B8')),
-          iss: rate(numCell(sheet2, 'B9')),
+          iss,
           pisCofins: pisCofinsRate,
         };
 

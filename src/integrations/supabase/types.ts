@@ -1096,6 +1096,53 @@ export type Database = {
         }
         Relationships: []
       }
+      notificacoes: {
+        Row: {
+          created_at: string
+          id: number
+          lida: boolean
+          lida_em: string | null
+          lida_por: string | null
+          mensagem: string
+          referencia_id: number | null
+          tipo: string
+          titulo: string
+          unidade_id: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          lida?: boolean
+          lida_em?: string | null
+          lida_por?: string | null
+          mensagem: string
+          referencia_id?: number | null
+          tipo: string
+          titulo: string
+          unidade_id?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          lida?: boolean
+          lida_em?: string | null
+          lida_por?: string | null
+          mensagem?: string
+          referencia_id?: number | null
+          tipo?: string
+          titulo?: string
+          unidade_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nps_pesquisas: {
         Row: {
           avaliacao_fiscal: string | null

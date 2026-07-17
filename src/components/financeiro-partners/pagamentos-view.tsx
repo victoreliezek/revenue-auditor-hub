@@ -86,6 +86,11 @@ function isOmiePago(s: string | null) {
   return (s ?? "").toUpperCase() === "RECEBIDO";
 }
 
+function resolveUnidade(r: Pick<PfRow, "unidade" | "razao_social">, unidadeMap: Map<string, string>) {
+  if (r.unidade && r.unidade !== "Partners") return r.unidade;
+  return unidadeMap.get(r.razao_social ?? "") ?? r.razao_social ?? r.unidade ?? "—";
+}
+
 function hasDivergencia(r: PfRow) {
   const omiePago = isOmiePago(r.status_titulo);
   if (r.status_validado === "confirmado_pago") return !omiePago;
@@ -103,10 +108,12 @@ const STATUS_LABEL: Record<StatusValidado, string> = {
 export function PagamentosView() {
   const [rows, setRows] = useState<PfRow[]>([]);
   const [categoriasMap, setCategoriasMap] = useState<Map<string, string>>(new Map());
+  const [unidadeMap, setUnidadeMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [unidadeFilter, setUnidadeFilter] = useState(ALL);
+  const [categoriaFilter, setCategoriaFilter] = useState(ALL);
   const [statusFilter, setStatusFilter] = useState<StatusValidado | typeof ALL>(ALL);
   const [savingId, setSavingId] = useState<number | null>(null);
 
@@ -116,10 +123,12 @@ export function PagamentosView() {
     Promise.all([
       fetchAll(),
       supabase.from("categorias_omie").select("codigo,descricao").then(({ data }) => data ?? []),
+      supabase.from("partners_financeiro_unidade_map").select("razao_social,unidade").then(({ data }) => data ?? []),
     ])
-      .then(([pfRows, cats]) => {
+      .then(([pfRows, cats, unidMap]) => {
         setRows(pfRows);
         setCategoriasMap(new Map((cats as any[]).map((c) => [c.codigo as string, c.descricao as string])));
+        setUnidadeMap(new Map((unidMap as any[]).map((m) => [m.razao_social as string, m.unidade as string])));
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -128,24 +137,31 @@ export function PagamentosView() {
   useEffect(load, []);
 
   const unidadeOpcoes = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.unidade ?? r.razao_social ?? "—"))).sort(),
-    [rows],
+    () => Array.from(new Set(rows.map((r) => resolveUnidade(r, unidadeMap)))).sort(),
+    [rows, unidadeMap],
+  );
+
+  const categoriaOpcoes = useMemo(
+    () =>
+      Array.from(new Set(rows.map((r) => categoriasMap.get(r.codigo_categoria ?? "") ?? r.codigo_categoria ?? "Sem categoria"))).sort(),
+    [rows, categoriasMap],
   );
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     return rows.filter((r) => {
-      const display = r.unidade ?? r.razao_social ?? "—";
+      const display = resolveUnidade(r, unidadeMap);
+      const cat = categoriasMap.get(r.codigo_categoria ?? "") ?? r.codigo_categoria ?? "Sem categoria";
       if (unidadeFilter !== ALL && display !== unidadeFilter) return false;
+      if (categoriaFilter !== ALL && cat !== categoriaFilter) return false;
       if (statusFilter !== ALL && r.status_validado !== statusFilter) return false;
       if (term) {
-        const cat = categoriasMap.get(r.codigo_categoria ?? "") ?? r.codigo_categoria ?? "";
         const hay = [r.razao_social, r.numero_documento, cat].filter(Boolean).map((v) => String(v).toLowerCase()).join(" ");
         if (!hay.includes(term)) return false;
       }
       return true;
     });
-  }, [rows, q, unidadeFilter, statusFilter, categoriasMap]);
+  }, [rows, q, unidadeFilter, categoriaFilter, statusFilter, categoriasMap, unidadeMap]);
 
   const kpis = useMemo(() => {
     let total = 0;
@@ -183,10 +199,11 @@ export function PagamentosView() {
     setSavingId(null);
   };
 
-  const hasFilters = q !== "" || unidadeFilter !== ALL || statusFilter !== ALL;
+  const hasFilters = q !== "" || unidadeFilter !== ALL || categoriaFilter !== ALL || statusFilter !== ALL;
   const clearFilters = () => {
     setQ("");
     setUnidadeFilter(ALL);
+    setCategoriaFilter(ALL);
     setStatusFilter(ALL);
   };
 
@@ -231,6 +248,15 @@ export function PagamentosView() {
             <SelectItem value={ALL}>Todas as unidades</SelectItem>
             {unidadeOpcoes.map((u) => (
               <SelectItem key={u} value={u}>{u}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
+          <SelectTrigger className="w-[220px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>Todas as categorias</SelectItem>
+            {categoriaOpcoes.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
             ))}
           </SelectContent>
         </Select>
