@@ -55,11 +55,26 @@ export const Route = createFileRoute("/_authenticated/contas-receber")({
     status: typeof search.status === "string" ? search.status : "",
     dataIni: typeof search.dataIni === "string" ? search.dataIni : "",
     dataFim: typeof search.dataFim === "string" ? search.dataFim : "",
+    dataTipo: typeof search.dataTipo === "string" ? search.dataTipo : "",
   }),
   component: ContasReceberPage,
 });
 
 type StatusKey = "RECEBIDO" | "ATRASADO" | "A VENCER";
+
+type DataTipo = "competencia" | "vencimento" | "pagamento";
+
+const DATA_TIPO_FIELD: Record<DataTipo, "data_competencia" | "data_vencimento" | "data_pagamento"> = {
+  competencia: "data_competencia",
+  vencimento: "data_vencimento",
+  pagamento: "data_pagamento",
+};
+
+const DATA_TIPO_LABEL: Record<DataTipo, string> = {
+  competencia: "Competência",
+  vencimento: "Vencimento",
+  pagamento: "Pagamento",
+};
 
 function statusBadge(s: string | null) {
   if (s === "RECEBIDO")
@@ -105,6 +120,9 @@ function ContasReceberPage() {
   const [status, setStatus] = useState(search.status || ALL);
   const [dataIni, setDataIni] = useState<Date | undefined>(parseSearchDate(search.dataIni));
   const [dataFim, setDataFim] = useState<Date | undefined>(parseSearchDate(search.dataFim));
+  const [dataTipo, setDataTipo] = useState<DataTipo>(
+    (search.dataTipo as DataTipo) || "competencia",
+  );
   const [defaultTab] = useState(search.unidade || search.status || search.dataIni ? "faturas" : "resumo");
   const sf = useSafraFato();
   const [usarSafraFato, setUsarSafraFato] = useState(false);
@@ -136,7 +154,7 @@ function ContasReceberPage() {
         if (sfIni !== null && t < sfIni) return false;
         if (sfFim !== null && t > sfFim) return false;
       } else if (ini !== null || fim !== null) {
-        const d = parseDate(r.data_competencia) ?? parseDate(r.data_vencimento);
+        const d = parseDate(r[DATA_TIPO_FIELD[dataTipo]]);
         const t = d ? d.getTime() : null;
         if (t === null) return false;
         if (ini !== null && t < ini) return false;
@@ -151,7 +169,7 @@ function ContasReceberPage() {
       }
       return true;
     });
-  }, [rows, q, unidade, status, dataIni, dataFim, usarSafraFato, sf.mode, sf.range]);
+  }, [rows, q, unidade, status, dataIni, dataFim, dataTipo, usarSafraFato, sf.mode, sf.range]);
 
   const kpis = useMemo(() => {
     let aVencer = 0;
@@ -243,6 +261,7 @@ function ContasReceberPage() {
     setStatus(ALL);
     setDataIni(undefined);
     setDataFim(undefined);
+    setDataTipo("competencia");
   };
 
   return (
@@ -316,6 +335,14 @@ function ContasReceberPage() {
             <SelectItem value="NAO_RECEBIDO">Não recebido (a vencer + atrasado)</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={dataTipo} onValueChange={(v) => setDataTipo(v as DataTipo)}>
+          <SelectTrigger className="w-[150px]"><SelectValue placeholder="Tipo de data" /></SelectTrigger>
+          <SelectContent>
+            {(Object.keys(DATA_TIPO_LABEL) as DataTipo[]).map((k) => (
+              <SelectItem key={k} value={k}>{DATA_TIPO_LABEL[k]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -326,7 +353,7 @@ function ContasReceberPage() {
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {dataIni ? format(dataIni, "dd/MM/yyyy") : "Data inicial"}
+              {dataIni ? format(dataIni, "dd/MM/yyyy") : `${DATA_TIPO_LABEL[dataTipo]} de`}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -350,7 +377,7 @@ function ContasReceberPage() {
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {dataFim ? format(dataFim, "dd/MM/yyyy") : "Data final"}
+              {dataFim ? format(dataFim, "dd/MM/yyyy") : `${DATA_TIPO_LABEL[dataTipo]} até`}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">

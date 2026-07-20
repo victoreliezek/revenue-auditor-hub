@@ -214,3 +214,29 @@ Formato de cada entrada:
 **Resultado:** rodado manualmente após as correções — 4863 clientes upserted nas 5 unidades (Rio 316, Belém 191, Curitiba 4247, Patos 30, Campo Novo 79), tabela `omie_clientes` restaurada com dado real pela primeira vez em não se sabe quanto tempo (o bug de coluna faltante pode ser bem mais antigo que os 3 dias de atraso que o monitor pegou — esse só detectou o segundo bug, o do crash).
 **Status:** implementado e validado. Arquivos: `~/sync_omie_clientes.py` (fora do repo git, script local), migrations no repo.
 **Próximos passos:** nenhuma tabela/feature do OpsBoard consome `omie_clientes` diretamente hoje (é auditoria, per docstring do script) além do enriquecimento de UF em `/clientes` (via `omie_clientes` + BrasilAPI, ver entrada de `project_empresas_uf_estado` na memória) — validar se esse fluxo também estava mudo por causa desses bugs. Considerar migrar esse script pra Edge Function também (mesma lógica do plano geral de migração), já que ele tem o padrão exato de bug (retry/log ausente) que motivou todo esse trabalho.
+
+## [2026-07-20] Investigação: por que Contas a Receber não bate com relatórios de recebimento das unidades (ex: ANA_RJ_COMPLETA)
+
+**Contexto:** usuário pediu pra investigar por que a planilha de recebimentos do Rio de Janeiro (`ANA_RJ_COMPLETA_2026.06.xlsx`, feita pela contadora) não batia com a tela Contas a Receber do Planning Ops. Gap aparente de ~22% pra junho/2026.
+
+**Achado:** não é bug de sync. Três causas reais, quantificadas:
+1. **Regime contábil diferente** — a planilha bucketiza por competência (mês de emissão, coluna `Data_Apuração`); Planning Ops usa caixa (`data_pagamento`). Sozinho explicava ~22% do gap.
+2. **Bruto vs. líquido** — `contas_receber.valor` é o `valor_documento` bruto do Omie; `ListarContasReceber` (usado no sync em lote) não traz os valores de retenção de imposto, só `ConsultarContaReceber` (1 chamada por título) traz. ~5,3% do gap.
+3. **Granularidade** — a planilha explode 1 lançamento em N linhas quando há rateio por Categoria; não afeta somas, só reconciliação por NF (não é chave única entre unidades/períodos).
+
+Resíduo real após controlar os 3 fatores: ~3%, majoritariamente ajustes manuais pontuais da contadora e lançamentos financeiros sem cliente vinculado (fora do escopo de `contas_receber`).
+
+**Decisão (usuário, via pergunta direta):**
+- Contas a Receber ganha uma 2ª régua de data (toggle "Competência/Vencimento/Pagamento"), não substitui o regime caixa como padrão.
+- Vale calcular valor líquido, mas só incremental (sem backfill histórico completo — custo de rate limit do Omie).
+- Investigar o resíduo antes de fechar — investigado, não é bug (ver achado acima).
+
+**Implementado:**
+- `src/routes/_authenticated/contas-receber.tsx`: toggle `dataTipo` (competencia/vencimento/pagamento) controlando o filtro de data e refletido na URL (search param `dataTipo`).
+- Migration `20260720150000_contas_receber_valor_liquido.sql`: coluna `contas_receber.valor_liquido numeric`, aplicada via Management API (sem CLI disponível no ambiente).
+- `~/sync_omie_supabase.py` (script real de produção, roda 06:00 via LaunchAgent — ver `project_home_scripts_hardcoded_secrets` na memória): novas funções `fetch_valor_liquido_existentes` e `fetch_valor_liquido_titulo`; em `sync_unidade`, títulos `RECEBIDO` sem líquido calculado e com `data_pagamento` dentro dos últimos 60 dias (`VALOR_LIQUIDO_JANELA_DIAS`) chamam `ConsultarContaReceber` e gravam `valor - retenções`; títulos já calculados usam cache do Supabase (não rechama a API); títulos fora da janela ficam `NULL` (limitação aceita, sem backfill).
+- Testado rodando `sync_unidade` isolado pra RJ: 1174 lançamentos, 165 valores líquidos novos calculados, bateu exato com o valor calculado manualmente na investigação (R$135.000 bruto → R$126.697,50 líquido pra um título de teste).
+
+**Status:** implementado e validado (RJ). Não rodado ainda pras outras unidades (roda automaticamente na próxima execução do LaunchAgent das 6h, ou pode ser disparado manualmente do mesmo jeito).
+
+**Próximos passos:** nenhum obrigatório. Se o resíduo de ~3% incomodar no futuro, os dois grupos identificados (ajustes manuais da contadora, lançamentos sem cliente) provavelmente exigem conversa com a unidade, não mais engenharia.
