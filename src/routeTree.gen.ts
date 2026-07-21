@@ -16,6 +16,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedUnidadesRouteImport } from './routes/_authenticated/unidades'
 import { Route as AuthenticatedTratativasRouteImport } from './routes/_authenticated/tratativas'
 import { Route as AuthenticatedSimuladorCaixaRouteImport } from './routes/_authenticated/simulador-caixa'
+import { Route as AuthenticatedSaudeCarteiraRouteImport } from './routes/_authenticated/saude-carteira'
 import { Route as AuthenticatedRoyaltiesRouteImport } from './routes/_authenticated/royalties'
 import { Route as AuthenticatedReformaTributariaRouteImport } from './routes/_authenticated/reforma-tributaria'
 import { Route as AuthenticatedRedeRealizadoRouteImport } from './routes/_authenticated/rede-realizado'
@@ -82,6 +83,12 @@ const AuthenticatedSimuladorCaixaRoute =
   AuthenticatedSimuladorCaixaRouteImport.update({
     id: '/simulador-caixa',
     path: '/simulador-caixa',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSaudeCarteiraRoute =
+  AuthenticatedSaudeCarteiraRouteImport.update({
+    id: '/saude-carteira',
+    path: '/saude-carteira',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedRoyaltiesRoute = AuthenticatedRoyaltiesRouteImport.update({
@@ -295,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/rede-realizado': typeof AuthenticatedRedeRealizadoRoute
   '/reforma-tributaria': typeof AuthenticatedReformaTributariaRoute
   '/royalties': typeof AuthenticatedRoyaltiesRouteWithChildren
+  '/saude-carteira': typeof AuthenticatedSaudeCarteiraRoute
   '/simulador-caixa': typeof AuthenticatedSimuladorCaixaRoute
   '/tratativas': typeof AuthenticatedTratativasRoute
   '/unidades': typeof AuthenticatedUnidadesRoute
@@ -334,6 +342,7 @@ export interface FileRoutesByTo {
   '/rede-realizado': typeof AuthenticatedRedeRealizadoRoute
   '/reforma-tributaria': typeof AuthenticatedReformaTributariaRoute
   '/royalties': typeof AuthenticatedRoyaltiesRouteWithChildren
+  '/saude-carteira': typeof AuthenticatedSaudeCarteiraRoute
   '/simulador-caixa': typeof AuthenticatedSimuladorCaixaRoute
   '/tratativas': typeof AuthenticatedTratativasRoute
   '/unidades': typeof AuthenticatedUnidadesRoute
@@ -376,6 +385,7 @@ export interface FileRoutesById {
   '/_authenticated/rede-realizado': typeof AuthenticatedRedeRealizadoRoute
   '/_authenticated/reforma-tributaria': typeof AuthenticatedReformaTributariaRoute
   '/_authenticated/royalties': typeof AuthenticatedRoyaltiesRouteWithChildren
+  '/_authenticated/saude-carteira': typeof AuthenticatedSaudeCarteiraRoute
   '/_authenticated/simulador-caixa': typeof AuthenticatedSimuladorCaixaRoute
   '/_authenticated/tratativas': typeof AuthenticatedTratativasRoute
   '/_authenticated/unidades': typeof AuthenticatedUnidadesRoute
@@ -419,6 +429,7 @@ export interface FileRouteTypes {
     | '/rede-realizado'
     | '/reforma-tributaria'
     | '/royalties'
+    | '/saude-carteira'
     | '/simulador-caixa'
     | '/tratativas'
     | '/unidades'
@@ -458,6 +469,7 @@ export interface FileRouteTypes {
     | '/rede-realizado'
     | '/reforma-tributaria'
     | '/royalties'
+    | '/saude-carteira'
     | '/simulador-caixa'
     | '/tratativas'
     | '/unidades'
@@ -499,6 +511,7 @@ export interface FileRouteTypes {
     | '/_authenticated/rede-realizado'
     | '/_authenticated/reforma-tributaria'
     | '/_authenticated/royalties'
+    | '/_authenticated/saude-carteira'
     | '/_authenticated/simulador-caixa'
     | '/_authenticated/tratativas'
     | '/_authenticated/unidades'
@@ -567,6 +580,13 @@ declare module '@tanstack/react-router' {
       path: '/simulador-caixa'
       fullPath: '/simulador-caixa'
       preLoaderRoute: typeof AuthenticatedSimuladorCaixaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/saude-carteira': {
+      id: '/_authenticated/saude-carteira'
+      path: '/saude-carteira'
+      fullPath: '/saude-carteira'
+      preLoaderRoute: typeof AuthenticatedSaudeCarteiraRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/royalties': {
@@ -848,6 +868,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRedeRealizadoRoute: typeof AuthenticatedRedeRealizadoRoute
   AuthenticatedReformaTributariaRoute: typeof AuthenticatedReformaTributariaRoute
   AuthenticatedRoyaltiesRoute: typeof AuthenticatedRoyaltiesRouteWithChildren
+  AuthenticatedSaudeCarteiraRoute: typeof AuthenticatedSaudeCarteiraRoute
   AuthenticatedSimuladorCaixaRoute: typeof AuthenticatedSimuladorCaixaRoute
   AuthenticatedTratativasRoute: typeof AuthenticatedTratativasRoute
   AuthenticatedUnidadesRoute: typeof AuthenticatedUnidadesRoute
@@ -886,6 +907,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRedeRealizadoRoute: AuthenticatedRedeRealizadoRoute,
   AuthenticatedReformaTributariaRoute: AuthenticatedReformaTributariaRoute,
   AuthenticatedRoyaltiesRoute: AuthenticatedRoyaltiesRouteWithChildren,
+  AuthenticatedSaudeCarteiraRoute: AuthenticatedSaudeCarteiraRoute,
   AuthenticatedSimuladorCaixaRoute: AuthenticatedSimuladorCaixaRoute,
   AuthenticatedTratativasRoute: AuthenticatedTratativasRoute,
   AuthenticatedUnidadesRoute: AuthenticatedUnidadesRoute,

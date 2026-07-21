@@ -11,6 +11,7 @@ export const KNOWN_PERMISSIONS: { key: string; label: string; description: strin
   { key: "view.clientes", label: "Acessar Rede (Clientes/Operação)", description: "Módulos de Clientes e Operação.", group: "Acesso" },
   { key: "view.nps", label: "Acessar NPS", description: "Página de NPS.", group: "Acesso" },
   { key: "view.tratativas", label: "Acessar Tratativas", description: "Central de tratativas.", group: "Acesso" },
+  { key: "view.saude_carteira", label: "Acessar Saúde da Carteira", description: "Pilar financeiro do Customer Health Score (inadimplência, tratativas, MRR em risco).", group: "Acesso" },
   { key: "view.auditoria", label: "Acessar Auditoria", description: "Módulo de auditoria de recebimentos.", group: "Acesso" },
   { key: "view.funil_receita", label: "Acessar Funil de Receita", description: "Visão MRR→Faturado→Recebido.", group: "Acesso" },
   { key: "view.contas_receber", label: "Acessar Contas a Receber", description: "Faturas emitidas pelas unidades (origem Omie).", group: "Acesso" },
