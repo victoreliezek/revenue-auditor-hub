@@ -28,6 +28,7 @@ export const KNOWN_PERMISSIONS: { key: string; label: string; description: strin
   { key: "view.reconciliacao", label: "Reconciliação", description: "Página de reconciliação de royalties.", group: "Acesso" },
   { key: "view.unidades_rede", label: "Unidades (Receita da Rede)", description: "Página de unidades no grupo Receita da Rede.", group: "Acesso" },
   { key: "view.reforma_tributaria", label: "Acessar Reforma Tributária", description: "Gerador de mapa da reforma tributária para clientes.", group: "Ferramentas" },
+  { key: "view.auditoria_interna", label: "Acessar Auditoria Interna", description: "Tela executiva do pipe Pipefy 'Auditoria Interna' — auditorias fiscais (ICMS/PIS/COFINS) por cliente.", group: "Acesso" },
   { key: "view.network.benchmarks", label: "Benchmarks da rede", description: "Permite ver médias e comparativos agregados da rede.", group: "Dados" },
   { key: "view.admin.users", label: "Gerenciar usuários", description: "Cadastrar, editar e excluir usuários.", group: "Administração" },
   { key: "view.admin.profiles", label: "Gerenciar perfis", description: "Criar, editar e excluir perfis de usuário customizados.", group: "Administração" },

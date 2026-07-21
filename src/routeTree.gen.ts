@@ -40,6 +40,7 @@ import { Route as AuthenticatedComissoesRouteImport } from './routes/_authentica
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedCacRouteImport } from './routes/_authenticated/cac'
 import { Route as AuthenticatedBiVendasRouteImport } from './routes/_authenticated/bi-vendas'
+import { Route as AuthenticatedAuditoriaInternaRouteImport } from './routes/_authenticated/auditoria-interna'
 import { Route as AuthenticatedAuditoriaFaturamentoRouteImport } from './routes/_authenticated/auditoria-faturamento'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
 import { Route as AuthenticatedCacUnidadeIdRouteImport } from './routes/_authenticated/cac.$unidadeId'
@@ -219,6 +220,12 @@ const AuthenticatedBiVendasRoute = AuthenticatedBiVendasRouteImport.update({
   path: '/bi-vendas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAuditoriaInternaRoute =
+  AuthenticatedAuditoriaInternaRouteImport.update({
+    id: '/auditoria-interna',
+    path: '/auditoria-interna',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAuditoriaFaturamentoRoute =
   AuthenticatedAuditoriaFaturamentoRouteImport.update({
     id: '/auditoria-faturamento',
@@ -279,6 +286,7 @@ export interface FileRoutesByFullPath {
   '/trust': typeof TrustRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/auditoria-faturamento': typeof AuthenticatedAuditoriaFaturamentoRoute
+  '/auditoria-interna': typeof AuthenticatedAuditoriaInternaRoute
   '/bi-vendas': typeof AuthenticatedBiVendasRoute
   '/cac': typeof AuthenticatedCacRouteWithChildren
   '/clientes': typeof AuthenticatedClientesRoute
@@ -319,6 +327,7 @@ export interface FileRoutesByTo {
   '/trust': typeof TrustRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/auditoria-faturamento': typeof AuthenticatedAuditoriaFaturamentoRoute
+  '/auditoria-interna': typeof AuthenticatedAuditoriaInternaRoute
   '/bi-vendas': typeof AuthenticatedBiVendasRoute
   '/cac': typeof AuthenticatedCacRouteWithChildren
   '/clientes': typeof AuthenticatedClientesRoute
@@ -362,6 +371,7 @@ export interface FileRoutesById {
   '/trust': typeof TrustRoute
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
   '/_authenticated/auditoria-faturamento': typeof AuthenticatedAuditoriaFaturamentoRoute
+  '/_authenticated/auditoria-interna': typeof AuthenticatedAuditoriaInternaRoute
   '/_authenticated/bi-vendas': typeof AuthenticatedBiVendasRoute
   '/_authenticated/cac': typeof AuthenticatedCacRouteWithChildren
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
@@ -406,6 +416,7 @@ export interface FileRouteTypes {
     | '/trust'
     | '/auditoria'
     | '/auditoria-faturamento'
+    | '/auditoria-interna'
     | '/bi-vendas'
     | '/cac'
     | '/clientes'
@@ -446,6 +457,7 @@ export interface FileRouteTypes {
     | '/trust'
     | '/auditoria'
     | '/auditoria-faturamento'
+    | '/auditoria-interna'
     | '/bi-vendas'
     | '/cac'
     | '/clientes'
@@ -488,6 +500,7 @@ export interface FileRouteTypes {
     | '/trust'
     | '/_authenticated/auditoria'
     | '/_authenticated/auditoria-faturamento'
+    | '/_authenticated/auditoria-interna'
     | '/_authenticated/bi-vendas'
     | '/_authenticated/cac'
     | '/_authenticated/clientes'
@@ -750,6 +763,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBiVendasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/auditoria-interna': {
+      id: '/_authenticated/auditoria-interna'
+      path: '/auditoria-interna'
+      fullPath: '/auditoria-interna'
+      preLoaderRoute: typeof AuthenticatedAuditoriaInternaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/auditoria-faturamento': {
       id: '/_authenticated/auditoria-faturamento'
       path: '/auditoria-faturamento'
@@ -845,6 +865,7 @@ const AuthenticatedRoyaltiesRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
   AuthenticatedAuditoriaFaturamentoRoute: typeof AuthenticatedAuditoriaFaturamentoRoute
+  AuthenticatedAuditoriaInternaRoute: typeof AuthenticatedAuditoriaInternaRoute
   AuthenticatedBiVendasRoute: typeof AuthenticatedBiVendasRoute
   AuthenticatedCacRoute: typeof AuthenticatedCacRouteWithChildren
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
@@ -884,6 +905,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
   AuthenticatedAuditoriaFaturamentoRoute:
     AuthenticatedAuditoriaFaturamentoRoute,
+  AuthenticatedAuditoriaInternaRoute: AuthenticatedAuditoriaInternaRoute,
   AuthenticatedBiVendasRoute: AuthenticatedBiVendasRoute,
   AuthenticatedCacRoute: AuthenticatedCacRouteWithChildren,
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,

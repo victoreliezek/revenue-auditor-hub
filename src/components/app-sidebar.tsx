@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { TrendingUp, TrendingDown, Users, UserCog, ShieldCheck, Building2, Coins, BadgeCheck, Wallet, Smile, MessageSquareWarning, Filter, Gauge, LineChart, Receipt, Activity, BarChart3, GitMerge, FileBarChart2, KeyRound, Percent, Megaphone, HeartPulse } from "lucide-react";
+import { TrendingUp, TrendingDown, Users, UserCog, ShieldCheck, Building2, Coins, BadgeCheck, Wallet, Smile, MessageSquareWarning, Filter, Gauge, LineChart, Receipt, Activity, BarChart3, GitMerge, FileBarChart2, KeyRound, Percent, Megaphone, HeartPulse, ClipboardCheck } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -72,6 +72,12 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
     label: "Ferramentas",
     items: [
       { title: "Reforma Tributária", url: "/reforma-tributaria", icon: FileBarChart2, permission: "view.reforma_tributaria" },
+    ],
+  },
+  {
+    label: "Auditoria Interna",
+    items: [
+      { title: "Auditoria Interna", url: "/auditoria-interna", icon: ClipboardCheck, permission: "view.auditoria_interna" },
     ],
   },
   {

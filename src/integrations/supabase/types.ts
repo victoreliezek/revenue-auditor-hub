@@ -294,6 +294,75 @@ export type Database = {
         }
         Relationships: []
       }
+      auditorias_internas: {
+        Row: {
+          auditoria_finalizada: boolean | null
+          classificacao_apontamentos: string | null
+          complexidade_fiscal: string | null
+          contingencias_texto: string | null
+          contingencias_valor: number | null
+          data_conclusao: string | null
+          data_inicio_contrato: string | null
+          empresa_auditada: string | null
+          equipe_designada: string | null
+          fase_atual: string | null
+          oportunidades_texto: string | null
+          oportunidades_valor: number | null
+          pipefy_card_id: string
+          prazo_atual: string | null
+          setor_atuacao: string | null
+          status_solicitacao: string | null
+          synced_at: string
+          tipo_empresa: string | null
+          unidade: string | null
+          update_time: string | null
+        }
+        Insert: {
+          auditoria_finalizada?: boolean | null
+          classificacao_apontamentos?: string | null
+          complexidade_fiscal?: string | null
+          contingencias_texto?: string | null
+          contingencias_valor?: number | null
+          data_conclusao?: string | null
+          data_inicio_contrato?: string | null
+          empresa_auditada?: string | null
+          equipe_designada?: string | null
+          fase_atual?: string | null
+          oportunidades_texto?: string | null
+          oportunidades_valor?: number | null
+          pipefy_card_id: string
+          prazo_atual?: string | null
+          setor_atuacao?: string | null
+          status_solicitacao?: string | null
+          synced_at?: string
+          tipo_empresa?: string | null
+          unidade?: string | null
+          update_time?: string | null
+        }
+        Update: {
+          auditoria_finalizada?: boolean | null
+          classificacao_apontamentos?: string | null
+          complexidade_fiscal?: string | null
+          contingencias_texto?: string | null
+          contingencias_valor?: number | null
+          data_conclusao?: string | null
+          data_inicio_contrato?: string | null
+          empresa_auditada?: string | null
+          equipe_designada?: string | null
+          fase_atual?: string | null
+          oportunidades_texto?: string | null
+          oportunidades_valor?: number | null
+          pipefy_card_id?: string
+          prazo_atual?: string | null
+          setor_atuacao?: string | null
+          status_solicitacao?: string | null
+          synced_at?: string
+          tipo_empresa?: string | null
+          unidade?: string | null
+          update_time?: string | null
+        }
+        Relationships: []
+      }
       contas_receber: {
         Row: {
           cliente: string | null
