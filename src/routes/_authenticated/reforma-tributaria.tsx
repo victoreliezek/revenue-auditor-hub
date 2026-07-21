@@ -42,7 +42,16 @@ function pct(v: number) {
 }
 
 function fmtPct(n: number) {
-  return (n * 100).toFixed(2) + '%';
+  return (n * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+}
+
+function maskCnpj(v: string): string {
+  const d = v.replace(/\D/g, '').slice(0, 14);
+  if (d.length <= 2) return d;
+  if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
+  if (d.length <= 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`;
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
 }
 
 function computeDefaultTextos(d: ReformaTributariaData): Pick<ReformaTributariaData, 'textoPrincipal' | 'textoFechamento'> {
@@ -64,6 +73,8 @@ function ReformaTributariaPage() {
   const [previewUpdating, setPreviewUpdating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [cnpj, setCnpj] = useState('');
+  const [lookingUpCnpj, setLookingUpCnpj] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -190,8 +201,39 @@ function ReformaTributariaPage() {
   const clearFile = () => {
     setFileName('');
     setEditMode(false);
+    setCnpj('');
     iframeRef.current?.contentWindow?.postMessage({ type: 'reforma-exit-edit' }, '*');
     setData({ ...DEFAULT_DATA });
+  };
+
+  const lookupCnpj = async (raw: string) => {
+    const digits = raw.replace(/\D/g, '');
+    if (digits.length !== 14) return;
+    setLookingUpCnpj(true);
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
+      if (!res.ok) throw new Error('não encontrado');
+      const info = await res.json() as {
+        razao_social?: string;
+        cnae_fiscal_descricao?: string;
+        uf?: string;
+        municipio?: string;
+      };
+      const atividade = info.cnae_fiscal_descricao ?? '';
+      const uf = info.uf ?? '';
+      const estadoMatch = ESTADOS.find((e) => e.endsWith(`(${uf})`)) ?? '';
+      setData((prev) => ({
+        ...prev,
+        ...(atividade ? { atividade } : {}),
+        ...(estadoMatch ? { estado: estadoMatch } : {}),
+        ...(info.razao_social && !prev.empresa ? { empresa: info.razao_social } : {}),
+      }));
+      toast.success(`CNPJ consultado · ${atividade || uf}`);
+    } catch {
+      toast.error('CNPJ não encontrado. Verifique o número.');
+    } finally {
+      setLookingUpCnpj(false);
+    }
   };
 
   return (
@@ -258,6 +300,32 @@ function ReformaTributariaPage() {
               2 · Dados da empresa
             </Label>
             <div className="space-y-3">
+              <div>
+                <Label className="text-xs mb-1 block">CNPJ</Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="00.000.000/0000-00"
+                    value={cnpj}
+                    onChange={(e) => {
+                      const masked = maskCnpj(e.target.value);
+                      setCnpj(masked);
+                      if (masked.replace(/\D/g, '').length === 14) lookupCnpj(masked);
+                    }}
+                    className="text-sm h-8 font-mono flex-1"
+                    maxLength={18}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 shrink-0 text-xs"
+                    onClick={() => lookupCnpj(cnpj)}
+                    disabled={lookingUpCnpj || cnpj.replace(/\D/g, '').length !== 14}
+                  >
+                    {lookingUpCnpj ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : 'Buscar'}
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">Preenche atividade e estado via Receita Federal</p>
+              </div>
               <div>
                 <Label className="text-xs mb-1 block">Razão Social</Label>
                 <Input

@@ -35,7 +35,7 @@ export const DEFAULT_DATA: ReformaTributariaData = {
   empresa: '',
   estado: 'São Paulo (SP)',
   atividade: '',
-  referencia: 'Junho de 2026',
+  referencia: new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
   faturamento: 0,
   aquisicoes: 0,
   aliquotas: { cbs: 0.0943, ibsEstadual: 0.17, ibsMunicipal: 0.02, ipi: 0.065, iss: 0, pisCofins: 0.0925 },
@@ -228,7 +228,8 @@ export async function parseReformaTributariaXlsx(
           empresa = base.slice(idx + 1).replace(/\s+\d+$/, '').trim();
         }
 
-        resolve({ empresa, faturamento, aquisicoes, aliquotas, years, resultadoAtual, resultadoPosReforma });
+        const referencia = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        resolve({ empresa, faturamento, aquisicoes, aliquotas, years, resultadoAtual, resultadoPosReforma, referencia });
       } catch (err) {
         reject(
           new Error(

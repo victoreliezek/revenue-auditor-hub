@@ -4,8 +4,12 @@ function fmtBRL(n: number): string {
   return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function fmtMi(n: number): string {
+  return (n / 1e6).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function fmtPct(n: number): string {
-  return (n * 100).toFixed(2) + '%';
+  return (n * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
 }
 
 function getPhase(i: number): string {
@@ -24,7 +28,7 @@ function getPhase(i: number): string {
 export function generatePresentationHTML(d: ReformaTributariaData): string {
   const first = d.years[0];
   const last = d.years[d.years.length - 1];
-  const deltaPp = ((last.carga - first.carga) * 100).toFixed(2);
+  const deltaPp = ((last.carga - first.carga) * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const deltaR = last.desembolso - first.desembolso;
 
   // Detect tax regime: ISS = services company; ICMS = commerce/industry
@@ -52,7 +56,7 @@ export function generatePresentationHTML(d: ReformaTributariaData): string {
     <div style="flex:1;text-align:center;border:1px solid ${i === d.years.length - 1 ? '#5FB77F' : '#252525'};border-right:none;background:${i === d.years.length - 1 ? '#0b1a0b' : '#111'};padding:18px 6px 12px;">
       <div style="font-size:10px;color:#777;margin-bottom:6px;">${y.ano}</div>
       <div style="font-size:1rem;font-weight:800;color:${i === d.years.length - 1 ? '#5FB77F' : '#fff'};">${fmtPct(y.carga)}</div>
-      <div style="font-size:8.5px;color:#777;margin-top:4px;">R$ ${(y.desembolso / 1e6).toFixed(2)}mi</div>
+      <div style="font-size:8.5px;color:#777;margin-top:4px;">R$ ${fmtMi(y.desembolso)}mi</div>
       <div style="font-size:8px;color:#666;margin-top:5px;line-height:1.3;">${getPhase(i)}</div>
     </div>`,
     )
@@ -283,7 +287,7 @@ body.edit-mode .edit-toggle-btn{background:rgba(95,183,127,.08);border-color:rgb
   <p class="hero-sub reveal d2" data-e>${d.textoPrincipal || `A Reforma Tributária (LC 214) eleva sua carga de ${fmtPct(first.carga)} para ${fmtPct(last.carga)} até ${last.ano}. A carga hoje incide sobre ${tributosAtuais}. Este mapa mostra como esse aumento acontece — ano a ano, imposto a imposto — para que você planeje antes que a conta chegue.`}</p>
   <div class="hero-meta reveal d3">
     <div class="hm"><div class="hml">Empresa</div><div class="hmv">${d.empresa} · ${d.estado}</div></div>
-    <div class="hm"><div class="hml">Atividade</div><div class="hmv">${d.atividade || '—'}</div></div>
+    <div class="hm"><div class="hml">Atividade</div><div class="hmv" data-e>${d.atividade || 'a preencher'}</div></div>
     <div class="hm"><div class="hml">Elaboração</div><div class="hmv">Planning · ${d.referencia}</div></div>
   </div>
 </div>
@@ -298,10 +302,10 @@ body.edit-mode .edit-toggle-btn{background:rgba(95,183,127,.08);border-color:rgb
   <h2 class="section-title ruled">Sobre o que esta simulação foi construída</h2>
   <p class="section-sub" data-e>Todo o mapa parte de dados reais da empresa: faturamento, volume de compras e atividade. A carga atual incide sobre ${tributosAtuais} — que a Reforma substitui por CBS e IBS.</p></div>
   <div class="cg c4" style="margin-top:36px;">
-    <div class="card cg-border reveal d1"><div class="cl">Faturamento anual</div><div class="cv">R$ ${(d.faturamento/1e6).toFixed(1)}<span style="font-size:1rem">mi</span></div><div class="cd">Base de cálculo dos tributos sobre a receita</div></div>
-    <div class="card reveal d2"><div class="cl">Aquisições anuais</div><div class="cv">R$ ${(d.aquisicoes/1e6).toFixed(1)}<span style="font-size:1rem">mi</span></div><div class="cd">Compras que geram crédito tributário</div></div>
+    <div class="card cg-border reveal d1"><div class="cl">Faturamento anual</div><div class="cv">R$ ${fmtMi(d.faturamento)}<span style="font-size:1rem">mi</span></div><div class="cd">Base de cálculo dos tributos sobre a receita</div></div>
+    <div class="card reveal d2"><div class="cl">Aquisições anuais</div><div class="cv">R$ ${fmtMi(d.aquisicoes)}<span style="font-size:1rem">mi</span></div><div class="cd">Compras que geram crédito tributário</div></div>
     <div class="card cg-border reveal d3"><div class="cl">Carga efetiva hoje</div><div class="cv" style="color:var(--g)">${fmtPct(first.carga)}</div><div class="cd">Sobre ${tributosAtuais} a pagar</div></div>
-    <div class="card reveal"><div class="cl">Atividade</div><div class="cv" style="font-size:1rem;line-height:1.25;">${d.atividade || '—'}</div><div class="cd">${d.estado}</div></div>
+    <div class="card reveal"><div class="cl">Atividade</div><div class="cv" style="font-size:1rem;line-height:1.25;" data-e>${d.atividade || 'a preencher'}</div><div class="cd">${d.estado}</div></div>
   </div>
   <div style="margin-top:48px;" class="reveal">
     <div class="eyebrow" style="margin-bottom:6px;">Alíquotas de referência</div>
@@ -313,14 +317,14 @@ body.edit-mode .edit-toggle-btn{background:rgba(95,183,127,.08);border-color:rgb
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
         <table class="dt"><thead><tr><th>Tributo</th><th>Alíquota</th><th>Situação</th></tr></thead><tbody>
           ${isServico
-            ? '<tr><td class="vw">ISS</td><td class="vg">' + (d.aliquotas.iss*100).toFixed(2) + '%</td><td>Substituído pelo IBS em 2033</td></tr>'
+            ? '<tr><td class="vw">ISS</td><td class="vg">' + fmtPct(d.aliquotas.iss) + '</td><td>Reduzido de 2029 a 2032 e substituído pelo IBS em 2033</td></tr>'
             : '<tr><td class="vw">ICMS</td><td class="vg">Variável</td><td>Extinto até 2033</td></tr>'
           }
-          <tr><td class="vw">PIS/COFINS</td><td class="vg">${(d.aliquotas.pisCofins*100).toFixed(2)}%</td><td>Sai em 2027</td></tr>
-          ${d.aliquotas.ipi > 0 ? '<tr><td class="vw">IPI</td><td>' + (d.aliquotas.ipi*100).toFixed(2) + '%</td><td>Mantido em casos específicos</td></tr>' : ''}
+          <tr><td class="vw">PIS/COFINS</td><td class="vg">${fmtPct(d.aliquotas.pisCofins)}</td><td>Sai em 2027</td></tr>
+          ${!isServico && d.aliquotas.ipi > 0 ? '<tr><td class="vw">IPI</td><td>' + fmtPct(d.aliquotas.ipi) + '</td><td>Mantido em casos específicos</td></tr>' : ''}
         </tbody></table>
         <div class="nb"><div class="nb-label">Como sai</div>${isServico
-          ? 'O ISS é substituído pelo IBS a partir de 2033. O PIS/COFINS sai em 2027, substituído pela CBS.'
+          ? 'O ISS é reduzido progressivamente de 2029 a 2032 (−10% em 2029, −20% em 2030, −30% em 2031, −40% em 2032) e substituído integralmente pelo IBS em 2033. O PIS/COFINS sai em 2027, substituído pela CBS.'
           : 'O ICMS é reduzido progressivamente a partir de 2029 (−10%/ano), zerando em 2033. O PIS/COFINS sai de uma vez em 2027, substituído pela CBS.'
         }</div>
       </div>
@@ -328,9 +332,9 @@ body.edit-mode .edit-toggle-btn{background:rgba(95,183,127,.08);border-color:rgb
     <div id="aliq-entram" class="tab-panel">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
         <table class="dt"><thead><tr><th>Tributo</th><th>Alíquota</th><th>Papel na Reforma</th></tr></thead><tbody>
-          <tr><td class="vw">CBS</td><td class="vg">${(d.aliquotas.cbs*100).toFixed(2)}%</td><td>Substitui PIS/COFINS (federal)</td></tr>
-          <tr><td class="vw">IBS Estadual</td><td class="vg">${(d.aliquotas.ibsEstadual*100).toFixed(2)}%</td><td>Substitui o ICMS (estadual)</td></tr>
-          <tr><td class="vw">IBS Municipal</td><td class="vg">${(d.aliquotas.ibsMunicipal*100).toFixed(2)}%</td><td>Parcela municipal do IBS</td></tr>
+          <tr><td class="vw">CBS</td><td class="vg">${fmtPct(d.aliquotas.cbs)}</td><td>Substitui PIS/COFINS (federal)</td></tr>
+          <tr><td class="vw">IBS Estadual</td><td class="vg">${fmtPct(d.aliquotas.ibsEstadual)}</td><td>${isServico ? 'Substitui o ISS (municipal)' : 'Substitui o ICMS (estadual)'}</td></tr>
+          <tr><td class="vw">IBS Municipal</td><td class="vg">${fmtPct(d.aliquotas.ibsMunicipal)}</td><td>Parcela municipal do IBS</td></tr>
         </tbody></table>
         <div class="nb"><div class="nb-label">Como entra</div>CBS entra em 2027 de forma plena. IBS começa em teste em 2027 e assume peso crescente a partir de 2029, atingindo <strong>alíquota cheia em 2033</strong> — nesse ponto mora o salto da carga.</div>
       </div>
@@ -352,15 +356,15 @@ body.edit-mode .edit-toggle-btn{background:rgba(95,183,127,.08);border-color:rgb
       <div class="ig-row"><span class="ig-v" style="color:var(--g)">${fmtPct(first.carga)}</span><span class="ig-arrow">→</span><span class="ig-v" style="color:var(--c)">${fmtPct(last.carga)}</span></div>
       <div class="ig-delta">Acréscimo de <strong style="color:var(--c)">+${deltaPp} pontos percentuais</strong></div></div>
     <div class="ig hl"><div class="ig-label cl-r">Imposto a pagar / ano</div>
-      <div class="ig-row"><span class="ig-v" style="color:var(--g)">R$ ${(first.desembolso/1e6).toFixed(2)}mi</span><span class="ig-arrow">→</span><span class="ig-v" style="color:var(--r)">R$ ${(last.desembolso/1e6).toFixed(2)}mi</span></div>
+      <div class="ig-row"><span class="ig-v" style="color:var(--g)">R$ ${fmtMi(first.desembolso)}mi</span><span class="ig-arrow">→</span><span class="ig-v" style="color:var(--r)">R$ ${fmtMi(last.desembolso)}mi</span></div>
       <div class="ig-delta"><strong style="color:var(--r)">+R$ ${fmtBRL(deltaR)} por ano</strong> no regime final</div></div>
     <div class="ig"><div class="ig-label cl-r">Resultado operacional</div>
-      <div class="ig-row"><span class="ig-v" style="color:var(--g)">R$ ${(resAtual/1e6).toFixed(2)}mi</span><span class="ig-arrow">→</span><span class="ig-v" style="color:var(--r)">R$ ${(resPosReforma/1e6).toFixed(2)}mi</span></div>
+      <div class="ig-row"><span class="ig-v" style="color:var(--g)">R$ ${fmtMi(resAtual)}mi</span><span class="ig-arrow">→</span><span class="ig-v" style="color:var(--r)">R$ ${fmtMi(resPosReforma)}mi</span></div>
       <div class="ig-delta">Queda de <strong style="color:var(--r)">R$ ${fmtBRL(deltaResultado)}</strong> no resultado simulado</div></div>
   </div>
   <div class="bar-box reveal">
     <div class="bar-title">Carga efetiva sobre o consumo · hoje vs regime final</div>
-    <div class="bar-row"><span class="bar-yr">2026</span><div class="bar-track"><div class="bar-fill" data-w="76" style="background:linear-gradient(90deg,var(--g),var(--g));"></div></div><span class="bar-lbl" style="color:var(--g)">${fmtPct(first.carga)}</span></div>
+    <div class="bar-row"><span class="bar-yr">2026</span><div class="bar-track"><div class="bar-fill" data-w="${Math.round(first.carga / last.carga * 100)}" style="background:linear-gradient(90deg,var(--g),var(--g));"></div></div><span class="bar-lbl" style="color:var(--g)">${fmtPct(first.carga)}</span></div>
     <div class="bar-row"><span class="bar-yr">${last.ano}</span><div class="bar-track"><div class="bar-fill" data-w="100"></div></div><span class="bar-lbl" style="color:var(--c)">${fmtPct(last.carga)}</span></div>
     <div style="text-align:right;margin-top:14px;font-size:1.7rem;font-weight:900;color:var(--c);">+${deltaPp} p.p.</div>
   </div>
@@ -376,7 +380,7 @@ body.edit-mode .edit-toggle-btn{background:rgba(95,183,127,.08);border-color:rgb
   <div class="reveal"><div class="eyebrow">03 · A transição não é de uma vez</div>
   <h2 class="section-title ruled">Oito anos de <span style="color:var(--g)">subida gradual</span> até o regime final</h2>
   <p class="section-sub" data-e>A carga sobe de forma quase imperceptível até 2032 — e dá o salto maior em 2033, ${transicaoFinal}</p></div>
-  <div class="tl reveal">${d.years.map((y,i)=>`<div class="ti${i===d.years.length-1?' ti-last':''}"><div class="ti-year">${y.ano}</div><div class="ti-pct">${fmtPct(y.carga)}</div><div class="ti-val">R$ ${(y.desembolso/1e6).toFixed(2)}mi</div><div class="ti-ph">${getPhase(i)}</div></div>`).join('')}</div>
+  <div class="tl reveal">${d.years.map((y,i)=>`<div class="ti${i===d.years.length-1?' ti-last':''}"><div class="ti-year">${y.ano}</div><div class="ti-pct">${fmtPct(y.carga)}</div><div class="ti-val">R$ ${fmtMi(y.desembolso)}mi</div><div class="ti-ph">${getPhase(i)}</div></div>`).join('')}</div>
   <div class="reveal" style="margin-top:40px;">
     <div class="tabs-header">
       <button class="tab-btn active" onclick="tab('evo','tabela',this)">Tabela detalhada</button>
@@ -410,7 +414,7 @@ body.edit-mode .edit-toggle-btn{background:rgba(95,183,127,.08);border-color:rgb
     <div id="comp-tabela" class="tab-panel">
       <table class="dt"><thead><tr><th>Ano</th><th>Fase</th><th style="text-align:right;">Carga efetiva</th><th style="text-align:right;">Total impostos (R$)</th><th style="text-align:right;">Var. vs 2026</th></tr></thead>
       <tbody>
-        ${d.years.map((y, i) => '<tr' + (i === d.years.length - 1 ? ' class="last-row"' : '') + '><td>' + y.ano + '</td><td style="color:#777;font-size:.78rem;">' + getPhase(i) + '</td><td style="text-align:right;color:#5FB77F;font-weight:700;">' + fmtPct(y.carga) + '</td><td style="text-align:right;">' + fmtBRL(y.desembolso) + '</td><td style="text-align:right;color:' + (y.desembolso > first.desembolso ? '#ff5252' : '#777') + ';">' + (i === 0 ? '—' : '+R$ ' + fmtBRL(y.desembolso - first.desembolso)) + '</td></tr>').join('')}
+        ${d.years.map((y, i) => { const delta = y.desembolso - first.desembolso; const deltaStr = i === 0 ? '—' : (delta >= 0 ? '+' : '') + 'R$ ' + fmtBRL(Math.abs(delta)); return '<tr' + (i === d.years.length - 1 ? ' class="last-row"' : '') + '><td>' + y.ano + '</td><td style="color:#777;font-size:.78rem;">' + getPhase(i) + '</td><td style="text-align:right;color:#5FB77F;font-weight:700;">' + fmtPct(y.carga) + '</td><td style="text-align:right;">' + fmtBRL(y.desembolso) + '</td><td style="text-align:right;color:' + (delta > 0 ? '#ff5252' : '#777') + ';">' + deltaStr + '</td></tr>'; }).join('')}
       </tbody></table>
     </div>
   </div>
@@ -429,16 +433,19 @@ body.edit-mode .edit-toggle-btn{background:rgba(95,183,127,.08);border-color:rgb
     <div class="card cg-border"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;"><div class="cl">Base legal</div><span style="font-size:.95rem;font-weight:800;color:var(--g);">LC 214</span></div><div style="font-size:.88rem;font-weight:700;margin-bottom:8px;" data-e>Lei Complementar 214</div><div class="cd" data-e>Institui a CBS e o IBS e define as regras de transição entre 2026 e 2033. ${isServico ? 'Para prestadores de serviços, o ISS é substituído pelo IBS em 2033.' : 'O ICMS é reduzido progressivamente de 2029 a 2033.'}</div></div>
     ${!isServico ? '<div class="card cc-border"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;"><div class="cl cl-c">Benefício fiscal estadual</div><span style="font-size:.95rem;font-weight:800;color:var(--c);">Conv. 52/91</span></div><div style="font-size:.88rem;font-weight:700;margin-bottom:8px;" data-e>Convênio ICMS 52/91</div><div class="cd" data-e>Reduzido de forma escalonada durante a transição, acompanhando a consolidação do IBS.</div></div>' : ''}
   </div>
-  ${!isServico ? `<div class="reveal" style="margin-top:36px;">
-    <div class="eyebrow" data-e style="margin-bottom:14px;">Redução gradativa dos benefícios fiscais estaduais</div>
+  <div class="reveal" style="margin-top:36px;">
+    <div class="eyebrow" data-e style="margin-bottom:14px;">${isServico ? 'Redução gradativa do ISS durante a transição' : 'Redução gradativa dos benefícios fiscais estaduais'}</div>
     <div class="bs-row">
-      <div class="bs"><div class="bs-year">2029</div><div class="bs-pct">10<span style="font-size:.9rem">%</span></div><div class="bs-label" data-e>Primeira redução</div><div class="bs-desc" data-e>Início do escalonamento</div></div>
+      <div class="bs"><div class="bs-year">2029</div><div class="bs-pct">10<span style="font-size:.9rem">%</span></div><div class="bs-label" data-e>Primeira redução</div><div class="bs-desc" data-e>${isServico ? 'ISS começa a ceder' : 'Início do escalonamento'}</div></div>
       <div class="bs"><div class="bs-year">2030</div><div class="bs-pct">20<span style="font-size:.9rem">%</span></div><div class="bs-label" data-e>Segunda redução</div><div class="bs-desc" data-e>IBS ganha peso</div></div>
-      <div class="bs"><div class="bs-year">2031</div><div class="bs-pct">30<span style="font-size:.9rem">%</span></div><div class="bs-label" data-e>Terceira redução</div><div class="bs-desc" data-e>ICMS perde força</div></div>
+      <div class="bs"><div class="bs-year">2031</div><div class="bs-pct">30<span style="font-size:.9rem">%</span></div><div class="bs-label" data-e>Terceira redução</div><div class="bs-desc" data-e>${isServico ? 'ISS perde força' : 'ICMS perde força'}</div></div>
       <div class="bs"><div class="bs-year">2032</div><div class="bs-pct">40<span style="font-size:.9rem">%</span></div><div class="bs-label" data-e>Quarta redução</div><div class="bs-desc" data-e>Véspera do regime final</div></div>
     </div>
-    <div class="nb" data-e><div class="nb-label">Nota técnica</div>Todo o mapa foi elaborado em conformidade com a <strong>Lei Complementar 214</strong>. Os benefícios do <strong>Convênio 52/91</strong> terão redução progressiva: <strong>10% em 2029, 20% em 2030, 30% em 2031 e 40% em 2032</strong>.</div>
-  </div>` : '<div class="nb reveal" data-e style="margin-top:28px;"><div class="nb-label">Nota técnica</div>Todo o mapa foi elaborado em conformidade com a <strong>Lei Complementar 214</strong>. Para prestadores de serviços, o <strong>ISS é substituído pelo IBS em 2033</strong>, com alíquota plena de <strong>' + (d.aliquotas.ibsEstadual + d.aliquotas.ibsMunicipal) * 100 + '%</strong>.</div>'}
+    <div class="nb" data-e><div class="nb-label">Nota técnica</div>${isServico
+      ? 'Todo o mapa foi elaborado em conformidade com a <strong>Lei Complementar 214</strong>. O <strong>ISS</strong> terá redução progressiva de <strong>10% em 2029, 20% em 2030, 30% em 2031 e 40% em 2032</strong>, sendo substituído integralmente pelo <strong>IBS em 2033</strong> com alíquota plena de <strong>' + fmtPct(d.aliquotas.ibsEstadual + d.aliquotas.ibsMunicipal) + '</strong>.'
+      : 'Todo o mapa foi elaborado em conformidade com a <strong>Lei Complementar 214</strong>. Os benefícios do <strong>Convênio 52/91</strong> terão redução progressiva: <strong>10% em 2029, 20% em 2030, 30% em 2031 e 40% em 2032</strong>.'
+    }</div>
+  </div>
 </div>
 </section>
 
