@@ -12,6 +12,7 @@ const SECAO_HEADERS: Record<string, string> = {
   custo_direto:     "Custos Diretos",
   desp_operacional: "Despesas Operacionais",
   extraordinario:   "Extraordinário / Financeiro",
+  nao_classificado: "Não Classificado",
 };
 
 function fmtN(n: number): string {

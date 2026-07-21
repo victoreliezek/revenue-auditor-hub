@@ -22,14 +22,14 @@ export interface FxcData {
   updated_at: string;
 }
 
-export const DRE_GRUPOS = [
+const DRE_GRUPOS_BASE = [
   { key: "csc_expansao",   label: "CSC Expansão",                    match: (r: FxcRecord) => r.tipo === "RECEBER" && r.codigo_categoria === "1.01.96",                                                                                           sinal: 1  as 1,  secao: "receita_direta"    },
   { key: "royalties",      label: "Royalties",                        match: (r: FxcRecord) => r.tipo === "RECEBER" && (r.codigo_categoria === "1.01.95" || r.codigo_categoria === "1.01.93"),                                                     sinal: 1  as 1,  secao: "receita_direta"    },
   { key: "outras_rx_exp",  label: "Outras Receitas Expansão",         match: (r: FxcRecord) => r.tipo === "RECEBER" && (r.codigo_categoria === "1.01.94" || r.codigo_categoria === "1.01.97"),                                                     sinal: 1  as 1,  secao: "receita_direta"    },
   { key: "csc_trafego",    label: "CSC Tráfego pago CAC",             match: (r: FxcRecord) => r.tipo === "RECEBER" && r.codigo_categoria === "1.03.96",                                                                                           sinal: 1  as 1,  secao: "receita_direta"    },
   { key: "nao_classif",    label: "Receitas Não Classificadas",       match: (r: FxcRecord) => r.tipo === "RECEBER" && r.codigo_categoria === "",                                                                                                   sinal: 1  as 1,  secao: "receita_direta"    },
   { key: "devolucoes",     label: "(-) Devolução de Receita",         match: (r: FxcRecord) => r.tipo === "PAGAR"   && r.codigo_categoria.startsWith("2.08"),                                                                                      sinal: -1 as -1, secao: "receita_direta"    },
-  { key: "outras_receitas",label: "(+) Outras Receitas",              match: (r: FxcRecord) => r.tipo === "RECEBER" && r.codigo_categoria !== "" && (r.codigo_categoria.startsWith("1.02") || (r.codigo_categoria.startsWith("1.03") && r.codigo_categoria !== "1.03.96")), sinal: 1 as 1, secao: "outras_receitas" },
+  { key: "outras_receitas",label: "(+) Outras Receitas",              match: (r: FxcRecord) => r.tipo === "RECEBER" && r.codigo_categoria !== "" && (r.codigo_categoria.startsWith("1.01") || r.codigo_categoria.startsWith("1.02") || r.codigo_categoria.startsWith("1.03")) && !["1.01.96", "1.01.95", "1.01.93", "1.01.94", "1.01.97", "1.03.96"].includes(r.codigo_categoria), sinal: 1 as 1, secao: "outras_receitas" },
   { key: "repasses",       label: "(-) Custos Diretos / Repasse",     match: (r: FxcRecord) => r.tipo === "PAGAR"   && r.codigo_categoria.startsWith("2.01"),                                                                                      sinal: -1 as -1, secao: "custo_direto"      },
   { key: "impostos",       label: "(-) Impostos",                     match: (r: FxcRecord) => r.tipo === "PAGAR"   && r.codigo_categoria.startsWith("2.06"),                                                                                      sinal: -1 as -1, secao: "custo_direto"      },
   { key: "folha",          label: "(-) Folha de Pagamento",           match: (r: FxcRecord) => r.tipo === "PAGAR"   && r.codigo_categoria.startsWith("2.03"),                                                                                      sinal: -1 as -1, secao: "custo_direto"      },
@@ -38,6 +38,20 @@ export const DRE_GRUPOS = [
   { key: "desp_admin",     label: "(-) Despesas Administrativas",     match: (r: FxcRecord) => r.tipo === "PAGAR"   && (r.codigo_categoria.startsWith("2.04") && r.codigo_categoria !== "2.04.97" || r.codigo_categoria.startsWith("2.05") || r.codigo_categoria.startsWith("2.11")), sinal: -1 as -1, secao: "desp_operacional" },
   { key: "extraordinario", label: "(+/-) Extraordinário / Financeiro",match: (r: FxcRecord) => r.codigo_categoria !== "" && (r.codigo_categoria.startsWith("1.04") || r.codigo_categoria.startsWith("1.05") || r.codigo_categoria.startsWith("2.07") || r.codigo_categoria.startsWith("2.09") || r.codigo_categoria.startsWith("2.10")), sinal: (r: FxcRecord) => r.tipo === "RECEBER" ? 1 : -1, secao: "extraordinario" },
 ] as const;
+
+// Catch-all: garante que nenhum lançamento PAGO/RECEBIDO do Omie fique de fora do
+// Grand Total, mesmo que venha com um código de categoria novo/inesperado que os
+// grupos acima ainda não mapeiam. Sem isso, categorias fora da lista fixa
+// desapareciam silenciosamente do FCx enquanto continuavam contando na DFC/Omie.
+const NAO_CLASSIFICADO_GRUPO = {
+  key: "nao_classificado",
+  label: "(+/-) Não Classificado (categoria fora do mapa)",
+  match: (r: FxcRecord) => !DRE_GRUPOS_BASE.some((g) => g.match(r)),
+  sinal: (r: FxcRecord) => (r.tipo === "RECEBER" ? 1 : -1),
+  secao: "nao_classificado",
+} as const;
+
+export const DRE_GRUPOS = [...DRE_GRUPOS_BASE, NAO_CLASSIFICADO_GRUPO] as const;
 
 const MESES: Record<string, string> = {
   "01": "jan", "02": "fev", "03": "mar", "04": "abr",
