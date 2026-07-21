@@ -83,6 +83,8 @@ export interface ApuracaoItem {
   excluido_em: string | null;
   excluido_por: string | null;
   motivo_exclusao: string | null;
+  data_pagamento_omie: string[] | null;
+  data_competencia_omie: string[] | null;
 }
 
 export interface OutraReceitaItem {
@@ -272,7 +274,9 @@ export async function gerarItensApuracaoCore(
   // Itens com churn marcado ou excluídos do mês (excluirItemMes) nunca são recalculados.
   const { data: itensExistentes, error: ieErr } = await supabase
     .from("royalties_itens")
-    .select("id,contrato_id,cnpj,valor_omie,confirmado,churn_pipefy_card_id,excluido_em")
+    .select(
+      "id,contrato_id,cnpj,valor_omie,confirmado,churn_pipefy_card_id,excluido_em,data_pagamento_omie,data_competencia_omie",
+    )
     .eq("apuracao_id", apuracao_id);
   if (ieErr) throw new Error(ieErr.message);
   const itemPorContrato = new Map<number, any>(
@@ -280,11 +284,18 @@ export async function gerarItensApuracaoCore(
       .filter((i: any) => i.contrato_id != null)
       .map((i: any) => [i.contrato_id as number, i]),
   );
-  const cnpjsSemContratoComItem = new Set(
+  // Bug corrigido 20/07/2026: era um Set (só existência), então itens "so_omie"
+  // (cliente recebido no Omie sem contrato casado no Pipedrive/CRM) nunca eram
+  // atualizados depois de criados uma vez — regenerar a apuração não refletia
+  // mudança nenhuma de valor pra esses clientes, silenciosamente. Agora é um Map
+  // pro item existente, permitindo comparar e atualizar valor como já era feito
+  // pro caminho "matched".
+  const itemSemContratoPorCnpj = new Map<string, any>(
     (itensExistentes ?? [])
       .filter((i: any) => i.contrato_id == null)
-      .map((i: any) => digits(i.cnpj)),
+      .map((i: any) => [digits(i.cnpj), i]),
   );
+  const cnpjsSemContratoComItem = new Set(itemSemContratoPorCnpj.keys());
   const atualizacoesValorOmie: {
     id: number;
     cnpj?: string | null;
@@ -297,7 +308,24 @@ export async function gerarItensApuracaoCore(
     excluido_em?: string;
     excluido_por?: string;
     motivo_exclusao?: string;
+    data_pagamento_omie?: string[] | null;
+    data_competencia_omie?: string[] | null;
   }[] = [];
+  // Backfill de data_pagamento_omie/data_competencia_omie em itens já
+  // existentes cujo valor do Omie não mudou (senão essas datas só apareceriam
+  // depois que algo no valor mudasse) — não mexe em confirmado/status_match,
+  // só nas duas colunas de data.
+  const atualizacoesMetadadosOmie: {
+    id: number;
+    data_pagamento_omie: string[] | null;
+    data_competencia_omie: string[] | null;
+  }[] = [];
+  const arraysIguais = (a: string[] | null | undefined, b: string[] | null | undefined) => {
+    const x = a ?? [];
+    const y = b ?? [];
+    if (x.length !== y.length) return false;
+    return x.every((v, i) => v === y[i]);
+  };
   // contratos
   const { data: contratos, error: kErr } = await supabase
     .from("contratos")
@@ -344,15 +372,23 @@ export async function gerarItensApuracaoCore(
     };
   };
 
-  // contas_receber agregado por cnpj
+  // contas_receber agregado por cnpj — só categoria "Receitas Diretas" (Omie:
+  // código pai 1.01) entra na base de royalty. Categorias como "Reembolsos"
+  // (1.03) não são receita de serviço recorrente e nunca deveriam ter contado
+  // — ver decisão 20/07/2026. codigo_categoria pode ser null pra lançamentos
+  // sincronizados antes dessa coluna existir; nesse caso, inclui por padrão
+  // (mesmo comportamento de antes) em vez de excluir por falta de dado.
   const { data: recs, error: rErr } = await supabase
     .from("contas_receber")
-    .select("cpf_cnpj,cliente,valor")
+    .select("cpf_cnpj,cliente,valor,valor_liquido,data_pagamento,data_competencia,codigo_categoria")
     .eq("unidade", unidadeNome)
     .eq("status_pagamento", "RECEBIDO")
     .gte("data_pagamento", start)
     .lte("data_pagamento", end);
   if (rErr) throw new Error(rErr.message);
+  const recsReceitasDiretas = (recs ?? []).filter(
+    (r: any) => r.codigo_categoria == null || String(r.codigo_categoria).startsWith("1.01"),
+  );
 
   // Data de cadastro do cliente no Omie — usada como "data do ganho" para
   // clientes só-Omie (sem contrato/deal no Pipedrive), onde não existe
@@ -366,14 +402,39 @@ export async function gerarItensApuracaoCore(
     (cadastros ?? []).map((c: any) => [c.cnpj, c.data_cadastro]),
   );
 
-  type OmieAgg = { cnpj: string; cliente: string; valor: number };
+  type OmieAgg = {
+    cnpj: string;
+    cliente: string;
+    valor: number;
+    pagamentos: Set<string>;
+    competencias: Set<string>;
+  };
   const omieMap = new Map<string, OmieAgg>();
-  for (const r of recs ?? []) {
+  // Royalties incidem sobre o valor efetivamente recebido em caixa, não sobre
+  // o valor bruto da NF — quando há retenção de imposto na fonte (IRRF/PIS/
+  // COFINS/CSLL), o prestador nunca recebe o bruto, o imposto vai direto pro
+  // governo. valor_liquido é calculado incrementalmente pelo sync (só títulos
+  // recentes, ~60 dias — ver VALOR_LIQUIDO_JANELA_DIAS em
+  // ~/sync_omie_supabase.py), então cai de volta pro bruto se ainda não foi
+  // calculado pra aquele título (evita perder receita da apuração por causa
+  // de um título fora da janela, à custa de usar bruto só nesse caso).
+  let semValorLiquido = 0;
+  for (const r of recsReceitasDiretas) {
     const k = digits(r.cpf_cnpj);
     if (!k) continue;
-    const cur = omieMap.get(k) ?? { cnpj: k, cliente: r.cliente ?? "—", valor: 0 };
-    cur.valor += Number(r.valor ?? 0);
+    const cur =
+      omieMap.get(k) ??
+      { cnpj: k, cliente: r.cliente ?? "—", valor: 0, pagamentos: new Set<string>(), competencias: new Set<string>() };
+    if (r.valor_liquido == null) semValorLiquido += 1;
+    cur.valor += Number(r.valor_liquido ?? r.valor ?? 0);
+    if (r.data_pagamento) cur.pagamentos.add(r.data_pagamento);
+    if (r.data_competencia) cur.competencias.add(r.data_competencia);
     omieMap.set(k, cur);
+  }
+  if (semValorLiquido > 0) {
+    console.warn(
+      `gerarItensApuracaoCore: ${semValorLiquido} título(s) de ${unidadeNome} sem valor_liquido calculado ainda — usado valor bruto como fallback.`,
+    );
   }
 
   // Carrega filiais vinculadas a contratos desta unidade — precisa rodar antes de
@@ -517,14 +578,20 @@ export async function gerarItensApuracaoCore(
     const cnpjsGrupo = [c.cnpj, ...filiais].filter((x): x is string => !!x);
     let omieValor = 0;
     let temOmie = false;
+    const pagamentosGrupo = new Set<string>();
+    const competenciasGrupo = new Set<string>();
     for (const cn of cnpjsGrupo) {
       const om = omieMap.get(cn);
       if (om) {
         omieValor += om.valor;
         temOmie = true;
+        for (const d of om.pagamentos) pagamentosGrupo.add(d);
+        for (const d of om.competencias) competenciasGrupo.add(d);
         omieMap.delete(cn);
       }
     }
+    const dataPagamentoOmie = pagamentosGrupo.size ? Array.from(pagamentosGrupo).sort() : null;
+    const dataCompetenciaOmie = competenciasGrupo.size ? Array.from(competenciasGrupo).sort() : null;
     // Já existe item pra esse contrato nesta apuração (ex: confirmado, preservado
     // de propósito por regerarMatchApuracao) — o Omie acima já foi consumido pra não
     // sobrar como "só omie", mas não criamos um item irmão duplicado. Em vez disso,
@@ -567,8 +634,19 @@ export async function gerarItensApuracaoCore(
           valor_confirmado: novoValorOmie,
           confirmado: false,
           status_match: novoValorOmie == null ? "so_pipedrive" : "matched",
+          data_pagamento_omie: dataPagamentoOmie,
+          data_competencia_omie: dataCompetenciaOmie,
           ...(churnInfo ?? {}),
           ...camposExclusaoChurn(churnInfo, novoValorOmie != null),
+        });
+      } else if (
+        !arraysIguais(itemExistente.data_pagamento_omie, dataPagamentoOmie) ||
+        !arraysIguais(itemExistente.data_competencia_omie, dataCompetenciaOmie)
+      ) {
+        atualizacoesMetadadosOmie.push({
+          id: itemExistente.id,
+          data_pagamento_omie: dataPagamentoOmie,
+          data_competencia_omie: dataCompetenciaOmie,
         });
       }
       continue;
@@ -590,6 +668,8 @@ export async function gerarItensApuracaoCore(
         status_match: "matched",
         confirmado: false,
         data_ganho: c.ganhoEm,
+        data_pagamento_omie: dataPagamentoOmie,
+        data_competencia_omie: dataCompetenciaOmie,
         ...(churnInfo ?? {}),
       });
     } else {
@@ -614,7 +694,34 @@ export async function gerarItensApuracaoCore(
 
   // Restantes do Omie → so_omie
   for (const [k, o] of omieMap) {
-    if (cnpjsSemContratoComItem.has(k)) continue;
+    const itemSemContrato = itemSemContratoPorCnpj.get(k);
+    if (itemSemContrato) {
+      if (itemSemContrato.excluido_em) continue; // excluído do mês manualmente, nunca recalcula
+      const valorAtual = itemSemContrato.valor_omie == null ? null : Number(itemSemContrato.valor_omie);
+      const dataPagamentoOmie = o.pagamentos.size ? Array.from(o.pagamentos).sort() : null;
+      const dataCompetenciaOmie = o.competencias.size ? Array.from(o.competencias).sort() : null;
+      if (o.valor !== valorAtual) {
+        atualizacoesValorOmie.push({
+          id: itemSemContrato.id,
+          valor_omie: o.valor,
+          valor_confirmado: o.valor,
+          confirmado: false,
+          status_match: "so_omie",
+          data_pagamento_omie: dataPagamentoOmie,
+          data_competencia_omie: dataCompetenciaOmie,
+        });
+      } else if (
+        !arraysIguais(itemSemContrato.data_pagamento_omie, dataPagamentoOmie) ||
+        !arraysIguais(itemSemContrato.data_competencia_omie, dataCompetenciaOmie)
+      ) {
+        atualizacoesMetadadosOmie.push({
+          id: itemSemContrato.id,
+          data_pagamento_omie: dataPagamentoOmie,
+          data_competencia_omie: dataCompetenciaOmie,
+        });
+      }
+      continue;
+    }
     itens.push({
       apuracao_id: apuracao_id,
       cnpj: k,
@@ -628,7 +735,31 @@ export async function gerarItensApuracaoCore(
       status_match: "so_omie",
       confirmado: false,
       data_ganho: cadastroPorCnpj.get(k) ?? null,
+      data_pagamento_omie: o.pagamentos.size ? Array.from(o.pagamentos).sort() : null,
+      data_competencia_omie: o.competencias.size ? Array.from(o.competencias).sort() : null,
     });
+  }
+
+  // Bug corrigido 20/07/2026: um CNPJ "so_omie" que tinha valor numa geração
+  // anterior mas ficou sem nenhum título elegível nesta (ex: só tinha um
+  // título de categoria "Reembolsos", agora filtrado) nunca aparece em
+  // omieMap — o loop acima não o visita, então o item antigo ficava com o
+  // valor travado pra sempre. Zera explicitamente quem sumiu do omieMap.
+  for (const [k, itemSemContrato] of itemSemContratoPorCnpj) {
+    if (omieMap.has(k)) continue; // já tratado no loop acima
+    if (itemSemContrato.excluido_em) continue;
+    const valorAtual = itemSemContrato.valor_omie == null ? null : Number(itemSemContrato.valor_omie);
+    if (valorAtual !== null) {
+      atualizacoesValorOmie.push({
+        id: itemSemContrato.id,
+        valor_omie: null,
+        valor_confirmado: null,
+        confirmado: false,
+        status_match: "so_omie",
+        data_pagamento_omie: null,
+        data_competencia_omie: null,
+      });
+    }
   }
 
   // Remove itens avulsos de contratos "secundários" fundidos num grupo de CNPJ
@@ -657,7 +788,24 @@ export async function gerarItensApuracaoCore(
     if (upd.excluido_em !== undefined) patch.excluido_em = upd.excluido_em;
     if (upd.excluido_por !== undefined) patch.excluido_por = upd.excluido_por;
     if (upd.motivo_exclusao !== undefined) patch.motivo_exclusao = upd.motivo_exclusao;
+    if (upd.data_pagamento_omie !== undefined) patch.data_pagamento_omie = upd.data_pagamento_omie;
+    if (upd.data_competencia_omie !== undefined) patch.data_competencia_omie = upd.data_competencia_omie;
     const { error: uErr } = await supabase.from("royalties_itens").update(patch).eq("id", upd.id);
+    if (uErr) throw new Error(uErr.message);
+  }
+
+  // Backfill de data_pagamento_omie/data_competencia_omie sem tocar em
+  // confirmado/valor — roda pra itens cujo valor não mudou desde a última
+  // geração (senão essas datas nunca apareceriam pra apurações já confirmadas
+  // ou com itens estáveis).
+  for (const upd of atualizacoesMetadadosOmie) {
+    const { error: uErr } = await supabase
+      .from("royalties_itens")
+      .update({
+        data_pagamento_omie: upd.data_pagamento_omie,
+        data_competencia_omie: upd.data_competencia_omie,
+      })
+      .eq("id", upd.id);
     if (uErr) throw new Error(uErr.message);
   }
 

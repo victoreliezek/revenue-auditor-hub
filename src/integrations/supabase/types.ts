@@ -298,6 +298,7 @@ export type Database = {
         Row: {
           cliente: string | null
           codigo_omie: number | null
+          codigo_categoria: string | null
           cpf_cnpj: string | null
           created_at: string | null
           data_competencia: string | null
@@ -308,10 +309,12 @@ export type Database = {
           status_pagamento: string | null
           unidade: string | null
           valor: number | null
+          valor_liquido: number | null
         }
         Insert: {
           cliente?: string | null
           codigo_omie?: number | null
+          codigo_categoria?: string | null
           cpf_cnpj?: string | null
           created_at?: string | null
           data_competencia?: string | null
@@ -322,10 +325,12 @@ export type Database = {
           status_pagamento?: string | null
           unidade?: string | null
           valor?: number | null
+          valor_liquido?: number | null
         }
         Update: {
           cliente?: string | null
           codigo_omie?: number | null
+          codigo_categoria?: string | null
           cpf_cnpj?: string | null
           created_at?: string | null
           data_competencia?: string | null
@@ -336,6 +341,7 @@ export type Database = {
           status_pagamento?: string | null
           unidade?: string | null
           valor?: number | null
+          valor_liquido?: number | null
         }
         Relationships: []
       }

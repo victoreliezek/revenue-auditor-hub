@@ -47,7 +47,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { brl } from "@/components/audit/format";
+import { brl, date } from "@/components/audit/format";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
   MOTIVOS_EXCLUSAO_ROYALTIES,
@@ -105,6 +105,24 @@ function formatCnpjCpf(v: string | null | undefined): string {
   if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
   if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
   return v;
+}
+
+// Um item de royalties pode agregar mais de um título do Omie no mesmo mês
+// (2ª fatura, ou filiais vinculadas ao mesmo contrato) — daí as duas colunas
+// virem array em vez de data única.
+function formatDatasPagamento(datas: string[] | null | undefined): string {
+  if (!datas || datas.length === 0) return "—";
+  return datas.map((d) => date(d)).join(", ");
+}
+
+function formatCompetencias(datas: string[] | null | undefined): string {
+  if (!datas || datas.length === 0) return "—";
+  return datas
+    .map((d) => {
+      const [y, m] = d.slice(0, 7).split("-");
+      return `${m}/${y}`;
+    })
+    .join(", ");
 }
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
@@ -1598,6 +1616,18 @@ function SecaoGrupo({
                       onSort={onSort}
                       align="right"
                     />
+                    <th
+                      className="px-3 py-2 text-left"
+                      title="Mês em que o título entrou no Omie como recebido — a apuração filtra por essa data, não pela competência"
+                    >
+                      Pagamento
+                    </th>
+                    <th
+                      className="px-3 py-2 text-left"
+                      title="Competência do(s) título(s) do Omie que geraram o valor ao lado — pode divergir do mês de pagamento em faturas atrasadas"
+                    >
+                      Competência
+                    </th>
                     <SortableTh
                       label="Confirmado"
                       sortKey="confirmado"
@@ -1714,6 +1744,12 @@ function SecaoGrupo({
                         )}
                         <td className="px-3 py-2 text-right">
                           {it.valor_omie != null ? brl(it.valor_omie) : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                          {formatDatasPagamento(it.data_pagamento_omie)}
+                        </td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                          {formatCompetencias(it.data_competencia_omie)}
                         </td>
                         <td className="px-3 py-2 text-right">
                           <Input
@@ -1939,6 +1975,18 @@ function BaseAntigaTable({
               onSort={onSort}
               align="right"
             />
+            <th
+              className="px-3 py-2 text-left"
+              title="Mês em que o título entrou no Omie como recebido — a apuração filtra por essa data, não pela competência"
+            >
+              Pagamento
+            </th>
+            <th
+              className="px-3 py-2 text-left"
+              title="Competência do(s) título(s) do Omie que geraram o valor ao lado — pode divergir do mês de pagamento em faturas atrasadas"
+            >
+              Competência
+            </th>
             <SortableTh
               label="Confirmado"
               sortKey="confirmado"
@@ -1968,6 +2016,12 @@ function BaseAntigaTable({
 
               <td className="px-3 py-2 text-right">
                 {it.valor_omie != null ? brl(it.valor_omie) : "—"}
+              </td>
+              <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                {formatDatasPagamento(it.data_pagamento_omie)}
+              </td>
+              <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                {formatCompetencias(it.data_competencia_omie)}
               </td>
               <td className="px-3 py-2 text-right">
                 <Input
