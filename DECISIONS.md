@@ -215,6 +215,20 @@ Formato de cada entrada:
 **Status:** implementado e validado. Arquivos: `~/sync_omie_clientes.py` (fora do repo git, script local), migrations no repo.
 **Próximos passos:** nenhuma tabela/feature do OpsBoard consome `omie_clientes` diretamente hoje (é auditoria, per docstring do script) além do enriquecimento de UF em `/clientes` (via `omie_clientes` + BrasilAPI, ver entrada de `project_empresas_uf_estado` na memória) — validar se esse fluxo também estava mudo por causa desses bugs. Considerar migrar esse script pra Edge Function também (mesma lógica do plano geral de migração), já que ele tem o padrão exato de bug (retry/log ausente) que motivou todo esse trabalho.
 
+## [2026-07-20] Direção: Planning Ops vira sistema de trabalho para churn/tratativas, Pipefy passa a downstream
+
+**Contexto:** discussão sobre a visão geral do Planning Ops se tornar o sistema central de trabalho do time (não só consulta/BI) — o que implica passar a substituir, por partes, funções hoje feitas em outras ferramentas. Primeiro recorte escolhido pelo usuário: churn/tratativas.
+
+**Decisão:** o time deve lançar e gerenciar as tratativas de churn dentro do Planning Ops — ninguém deve precisar abrir o Pipefy pra criar um card. O Pipefy continua sendo atualizado (porque a apuração ainda depende dele), mas passa a ser destino de escrita a partir do Planning Ops, não ponto de entrada manual do time.
+
+**Estado atual (achado ao revisar o código antes de registrar esta entrada, não implementado nesta conversa):** já existe um write-path parcial. O botão "Marcar churn" na tela de apuração de royalties (`royalties.$unidadeId.$mes.tsx`) chama `marcarChurn` (`royalties.functions.ts`), que cria um card direto na fase "Perdido" do pipe Pipefy "Tratativas" (307196408). O sync de volta (`~/sync_pipefy_tratativas.py`, LaunchAgent local, roda a cada 15min) traz o card pra `central_tratativas` no Supabase. Ou seja, o padrão "Planning Ops escreve → Pipefy atualizado → apuração continua vendo lá" já é validado em produção, só que restrito a esse único botão.
+
+**Gap identificado (não implementado, escopo da próxima etapa):** a tela `tratativas.tsx` hoje é só espelho de leitura do Pipefy — não dá pra (a) criar uma tratativa fora do fluxo de apuração de royalties, nem (b) gerenciar/avançar o status de uma tratativa já existente (mover pra "Recuperado", adicionar observação) de dentro do Planning Ops. Hoje só o Pipefy comanda a fase depois que o card nasce.
+
+**Observação técnica à parte:** `sync_pipefy_tratativas.py` roda local via LaunchAgent com credenciais em texto puro em `~/` — mesmo débito já registrado em memória (`project_home_scripts_hardcoded_secrets`, `project_migracao_integracoes_supabase_cloud`). Migrar pra Edge Function seria natural fazer junto quando essa expansão for implementada (mesmo pivot já feito no sync de onboarding Pipedrive→Pipefy).
+
+**Próximos passos:** nenhuma implementação ainda, só a direção registrada. Falta detalhar com o usuário: quais ações do ciclo de vida da tratativa o time deve poder fazer de dentro do Planning Ops, e o mapeamento exato de campos pra escrita de volta no Pipefy.
+
 ## [2026-07-20] Investigação: por que Contas a Receber não bate com relatórios de recebimento das unidades (ex: ANA_RJ_COMPLETA)
 
 **Contexto:** usuário pediu pra investigar por que a planilha de recebimentos do Rio de Janeiro (`ANA_RJ_COMPLETA_2026.06.xlsx`, feita pela contadora) não batia com a tela Contas a Receber do Planning Ops. Gap aparente de ~22% pra junho/2026.
@@ -240,3 +254,40 @@ Resíduo real após controlar os 3 fatores: ~3%, majoritariamente ajustes manuai
 **Status:** implementado e validado (RJ). Não rodado ainda pras outras unidades (roda automaticamente na próxima execução do LaunchAgent das 6h, ou pode ser disparado manualmente do mesmo jeito).
 
 **Próximos passos:** nenhum obrigatório. Se o resíduo de ~3% incomodar no futuro, os dois grupos identificados (ajustes manuais da contadora, lançamentos sem cliente) provavelmente exigem conversa com a unidade, não mais engenharia.
+
+## [2026-07-20] Royalties passam a incidir sobre valor líquido recebido, não NF bruta
+
+**Contexto:** durante a investigação de reconciliação de Contas a Receber (entrada anterior), um caso real (cliente ENGEPRED + Unioffice, RJ) mostrou uma NF de R$18.308,33 gerando só R$17.187,48 em caixa — retenção de PIS/COFINS/CSLL/IR na fonte (~6,15%). Usuário apontou o ponto central: quando há retenção na fonte, o valor bruto da NF **nunca chega a entrar em caixa do prestador** — o imposto é recolhido direto pelo pagador. Logo a base de cálculo de royalties (que deveria ser sobre o que a unidade efetivamente recebeu) estava inflada nesses casos.
+
+**Decisão:** `gerarItensApuracaoCore` (`royalties.functions.ts`) agrega `contas_receber.valor_liquido` em vez de `valor` bruto. Fallback pro bruto só quando líquido ainda não foi calculado (título fora da janela de 60 dias do sync incremental — ver entrada anterior) — evita perder receita da apuração por dado ausente, ao custo de eventualmente usar bruto nesse caso raro (logado via `console.warn`).
+
+**Implementado:**
+- `src/lib/royalties.functions.ts`: select de `contas_receber` ganha `valor_liquido`; agregação usa `r.valor_liquido ?? r.valor` (fallback). Mudança isolada a essas duas linhas — resto da função (matching por CNPJ/filiais, churn, etc.) inalterado.
+- `src/integrations/supabase/types.ts`: adicionado `valor_liquido` em `contas_receber` (Row/Insert/Update) — não estava no schema gerado.
+
+**Efeito prático:** royalty calculado fica ligeiramente menor para clientes com retenção na fonte (a maioria dos contratos B2B recorrentes tem). Não afeta apurações já `confirmado`/`faturado` (guard existente em `gerarItensApuracaoCore` já impede regeração de apuração fechada) — só apurações em aberto, e apenas quando regeneradas.
+
+**Status:** implementado, não testado em apuração real ainda (não gerei/regenerei nenhuma apuração de royalties nesta conversa — só a função foi alterada). Validar rodando uma geração de apuração de RJ e conferindo que os itens usam o valor líquido esperado antes de confiar no número final.
+
+**Próximos passos:** rodar `gerarItensApuracaoCore` pra uma apuração aberta do RJ e conferir os valores item a item contra o líquido calculado manualmente.
+
+## [2026-07-21] Nova página "Saúde da Carteira" — pilar financeiro do Customer Health Score
+
+**Contexto:** apresentação da Expansão sobre a nova estrutura de Customer Success (jul/2026) define um Customer Health Score com 4 pilares (Relacionamento, Auditoria técnica, Financeiro, Sistema de tarefas) e um semáforo Saudável/Atenção/Risco por cliente. Usuário pediu para começar pelo pilar Financeiro no Planning Ops.
+
+**Achado antes de implementar:** `empresas.status_financeiro` (ATIVO/EM_ATRASO/INADIMPLENTE/SEM_ATIVIDADE/NUNCA_PAGOU/SEM_AR) já existe e já é usado em `/clientes` e `/painel-unidade`, mas a lógica que o calcula não foi encontrada em nenhum script (`~/sync_omie_*.py`, `~/sync_recebimentos_franquias.py` etc.) nem em migration do repo — origem não rastreável no momento desta implementação.
+
+**Decisão (usuário, via pergunta direta):** não usar `status_financeiro` como base do score novo. Calcular o pilar financeiro do zero, de forma transparente, direto de `contas_receber` + `central_tratativas` + `contratos`. Página nova dedicada (`/saude-carteira`), pensada como semente do CHS completo — os outros pilares (NPS/Relacionamento já existe em `/nps`; Auditoria técnica; Execução) entram depois na mesma página.
+
+**Implementado:**
+- `src/lib/saude-carteira.functions.ts`: server fn `listSaudeCarteira`. Junta `empresas` (franquias, filtradas por `unidades.tipo='regional'`) com `contas_receber` via CNPJ normalizado (`digits()` de `server-utils.ts`, mesmo cuidado de formato já registrado no bug de filiais de royalties), com `contratos` (MRR ativo, `status_contrato='Ativo'`) via `pipedrive_id`/`pipedrive_deal_id`, e com `central_tratativas` (tratativa ativa / churn) pelo mesmo deal id.
+- Categoria financeira recalculada com as mesmas 6 faixas de `STATUS_META` (`clientes.tsx`), mas computada aqui: sem título → `SEM_AR`; nunca recebeu → `NUNCA_PAGOU`; título vencido em aberto → `EM_ATRASO` (≤90 dias) ou `INADIMPLENTE` (>90 dias); sem atraso mas sem pagamento recente → `SEM_ATIVIDADE`; caso contrário `ATIVO`. Corte de 90 dias escolhido por já ser a convenção implícita no texto de `STATUS_META` existente (não é um número novo inventado).
+- Tratativa aberta em `central_tratativas` (estágio ≠ Perdido/Recuperado) força semáforo = Risco, independente da categoria financeira. Estágio = Perdido marca o cliente como `churn` e o remove da carteira ativa (não entra na contagem de saudável/atenção/risco).
+- `src/hooks/use-saude-carteira.ts` + `src/routes/_authenticated/saude-carteira.tsx`: página com KPIs, aba "Por unidade" (semáforo agregado + MRR em atenção/risco) e aba "Clientes" (tabela filtrável).
+- Permissão nova `view.saude_carteira` (não pega carona em `view.clientes`) — `permissions.functions.ts`, sidebar (`app-sidebar.tsx`, grupo Operação + grupo Minha Unidade do sócio franqueado), migration `20260721120000_permissao_saude_carteira.sql` seedando os 6 papéis de sistema (admin/auditor/diretor/head/socio/socio_franqueado), aplicada via Management API.
+
+**Fora do escopo desta etapa (dados não existem ainda):** evolução de valor contratado / upsell-downsell (sem histórico de MRR, só estado atual em `contratos`) e renegociação de cobranças (sem tabela). Precisam de schema novo se viram pilar do score no futuro.
+
+**Status:** implementado, build (`vite build`) validado sem erros novos. Não testado navegando na UI real ainda — validar dados na tela antes de divulgar para os sócios.
+
+**Próximos passos:** abrir `/saude-carteira` no navegador e conferir números de 2-3 clientes conhecidos contra a Auditoria/Contas a Receber antes de considerar o pilar financeiro pronto. Depois, plugar o pilar Relacionamento (dados já existem em `/nps`) como segunda coluna do score composto.
