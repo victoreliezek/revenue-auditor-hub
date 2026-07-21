@@ -85,16 +85,18 @@ export const adminListUsers = createServerFn({ method: "GET" })
 
 export const adminCreateUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { nome: string; email: string; role: Role; password: string }) => {
+  .inputValidator((input: { nome: string; email: string; role: Role; password: string; unidade?: string }) => {
     const nome = (input?.nome ?? "").trim();
     const email = (input?.email ?? "").trim().toLowerCase();
     const role = input?.role;
     const password = input?.password ?? "";
+    const unidade = (input?.unidade ?? "").trim() || undefined;
     if (!nome) throw new Error("Nome é obrigatório.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Email inválido.");
     if (!role) throw new Error("Papel inválido.");
     if (password.length < 8) throw new Error("Senha deve ter pelo menos 8 caracteres.");
-    return { nome, email, role, password };
+    if (role === "socio_franqueado" && !unidade) throw new Error("Selecione a unidade do sócio franqueado.");
+    return { nome, email, role, password, unidade };
   })
   .handler(async ({ data, context }) => {
     await ensureAdmin(context.userId);
@@ -130,15 +132,35 @@ export const adminCreateUser = createServerFn({ method: "POST" })
       if (roleErr) console.error("[adminCreateUser] role upsert failed:", roleErr);
     }
 
-    // Para sócio (qualquer tipo), busca a unidade pelo email
+    // Para sócio (qualquer tipo), vincula a unidade em public.socios
     let unidade: string | null = null;
     if (data.role === "socio" || data.role === "socio_franqueado") {
-      const { data: socio } = await supabaseAdmin
-        .from("socios")
-        .select("unidade")
-        .ilike("email", data.email)
-        .maybeSingle();
-      unidade = socio?.unidade ?? null;
+      if (data.unidade) {
+        // Unidade escolhida no formulário: cria ou atualiza o registro em socios
+        const { data: existing } = await supabaseAdmin
+          .from("socios")
+          .select("id")
+          .ilike("email", data.email)
+          .maybeSingle();
+        if (existing) {
+          await supabaseAdmin
+            .from("socios")
+            .update({ unidade: data.unidade, user_id: userId, nome_completo: data.nome })
+            .eq("id", existing.id);
+        } else {
+          await supabaseAdmin
+            .from("socios")
+            .insert({ email: data.email, unidade: data.unidade, user_id: userId, nome_completo: data.nome });
+        }
+        unidade = data.unidade;
+      } else {
+        const { data: socio } = await supabaseAdmin
+          .from("socios")
+          .select("unidade")
+          .ilike("email", data.email)
+          .maybeSingle();
+        unidade = socio?.unidade ?? null;
+      }
     }
 
 

@@ -76,6 +76,21 @@ function UsersPage() {
     enabled: isAdmin,
   });
   const roles = rolesQuery.data ?? [];
+
+  const unidadesQuery = useQuery({
+    queryKey: ["admin-unidades"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("unidades")
+        .select("nome_da_praca")
+        .eq("tipo", "regional")
+        .order("nome_da_praca");
+      if (error) throw error;
+      return (data ?? []).map((u) => u.nome_da_praca as string);
+    },
+    enabled: isAdmin,
+  });
+  const unidades = unidadesQuery.data ?? [];
   const roleLabel = (key: string) => roles.find((r) => r.key === key)?.label ?? key;
   const rolePill = (key: string) => SYSTEM_ROLE_PILL[key] ?? CUSTOM_ROLE_PILL;
 
@@ -87,6 +102,7 @@ function UsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [socioUnidade, setSocioUnidade] = useState<string | null>(null);
   const [lookingUp, setLookingUp] = useState(false);
+  const [unidadeSel, setUnidadeSel] = useState("");
 
   // Preview da unidade quando role=socio + email digitado
   useEffect(() => {
@@ -111,13 +127,14 @@ function UsersPage() {
   }, [email, role, lookupFn]);
 
   const createMut = useMutation({
-    mutationFn: (input: { nome: string; email: string; role: Role; password: string }) => createFn({ data: input }),
+    mutationFn: (input: { nome: string; email: string; role: Role; password: string; unidade?: string }) => createFn({ data: input }),
     onSuccess: (res, variables) => {
       setCredential({ email: res.email, password: variables.password, unidade: res.unidade });
       setNome("");
       setEmail("");
       setRole("diretor");
       setSocioUnidade(null);
+      setUnidadeSel("");
       setShowForm(false);
       setError(null);
       qc.invalidateQueries({ queryKey: ["admin-users"] });
@@ -209,7 +226,16 @@ function UsersPage() {
 
         {showForm && (
           <form
-            onSubmit={(e) => { e.preventDefault(); createMut.mutate({ nome, email, role, password: generatePassword(12) }); }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              createMut.mutate({
+                nome,
+                email,
+                role,
+                password: generatePassword(12),
+                unidade: role === "socio_franqueado" ? unidadeSel : undefined,
+              });
+            }}
             className="rounded-xl border bg-card p-4 grid gap-3 sm:grid-cols-4"
           >
             <div className="sm:col-span-1">
@@ -237,7 +263,11 @@ function UsersPage() {
             </div>
             <div className="sm:col-span-1">
               <label className="block text-xs font-medium text-foreground">Papel</label>
-              <select value={role} onChange={(e) => setRole(e.target.value as Role)} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+              <select
+                value={role}
+                onChange={(e) => { setRole(e.target.value as Role); setUnidadeSel(""); }}
+                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              >
                 {roles.map((r) => (
                   <option key={r.key} value={r.key}>
                     {r.label}
@@ -246,6 +276,22 @@ function UsersPage() {
                 ))}
               </select>
             </div>
+            {role === "socio_franqueado" && (
+              <div className="sm:col-span-1">
+                <label className="block text-xs font-medium text-foreground">Unidade</label>
+                <select
+                  required
+                  value={unidadeSel}
+                  onChange={(e) => setUnidadeSel(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="" disabled>Selecione…</option>
+                  {unidades.map((u) => (
+                    <option key={u} value={u}>{u}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="sm:col-span-4 flex justify-end">
               <button type="submit" disabled={createMut.isPending} className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
                 {createMut.isPending ? "Criando..." : "Criar e gerar senha"}
