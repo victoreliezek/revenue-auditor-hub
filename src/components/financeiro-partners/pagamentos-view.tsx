@@ -403,7 +403,7 @@ export function PagamentosView() {
       <div className="flex items-center gap-3">
         <CircleDollarSign className="h-6 w-6 text-primary" />
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Pagamentos das Unidades</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Recebimentos das Unidades</h1>
           <p className="text-sm text-muted-foreground">
             Faturas das apurações de royalties fechadas (confirmadas) — status do Omie como referência + validação manual contra o extrato bancário.
           </p>

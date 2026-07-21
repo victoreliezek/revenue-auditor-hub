@@ -32,7 +32,7 @@ const TABS = [
   { id: "dfc", label: "DFC" },
   { id: "fcx", label: "FCx" },
   { id: "contas-receber", label: "Contas a Receber" },
-  { id: "pagamentos", label: "Pagamentos" },
+  { id: "pagamentos", label: "Recebimentos" },
 ] as const;
 
 function FinanceiroPartnersPage() {
