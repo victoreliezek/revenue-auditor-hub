@@ -9,7 +9,7 @@ export const PAGE_DEFS: { key: string; label: string }[] = [
   
   { key: "/unidades", label: "Unidades (Regras + Royalties & CAC)" },
   { key: "/meus-royalties", label: "Meus Royalties (Sócio Franqueado)" },
-  { key: "/financeiro-partners", label: "Financeiro Partners (DFC · DRE · Receitas · Despesas)" },
+  { key: "/financeiro-partners", label: "Financeiro Partners (FCx · DRE · Receitas · Despesas)" },
   { key: "/nps", label: "NPS" },
   { key: "/admin/usuarios", label: "Admin · Usuários" },
   { key: "/admin/permissoes", label: "Admin · Permissões" },
