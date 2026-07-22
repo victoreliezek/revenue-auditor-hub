@@ -363,6 +363,45 @@ export type Database = {
         }
         Relationships: []
       }
+      cs_onboarding_cards: {
+        Row: {
+          concluido: boolean
+          criado_em: string | null
+          entrou_fase_atual_em: string | null
+          fase_atual: string | null
+          fase_atual_ordem: number | null
+          fases_history: Json | null
+          pipefy_card_id: string
+          synced_at: string
+          titulo: string | null
+          update_time: string | null
+        }
+        Insert: {
+          concluido?: boolean
+          criado_em?: string | null
+          entrou_fase_atual_em?: string | null
+          fase_atual?: string | null
+          fase_atual_ordem?: number | null
+          fases_history?: Json | null
+          pipefy_card_id: string
+          synced_at?: string
+          titulo?: string | null
+          update_time?: string | null
+        }
+        Update: {
+          concluido?: boolean
+          criado_em?: string | null
+          entrou_fase_atual_em?: string | null
+          fase_atual?: string | null
+          fase_atual_ordem?: number | null
+          fases_history?: Json | null
+          pipefy_card_id?: string
+          synced_at?: string
+          titulo?: string | null
+          update_time?: string | null
+        }
+        Relationships: []
+      }
       contas_receber: {
         Row: {
           cliente: string | null

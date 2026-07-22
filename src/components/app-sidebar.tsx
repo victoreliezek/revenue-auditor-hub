@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { TrendingUp, TrendingDown, Users, UserCog, ShieldCheck, Building2, Coins, BadgeCheck, Wallet, Smile, MessageSquareWarning, Filter, Gauge, LineChart, Receipt, Activity, BarChart3, GitMerge, FileBarChart2, KeyRound, Percent, Megaphone, HeartPulse, ClipboardCheck } from "lucide-react";
+import { TrendingUp, TrendingDown, Users, UserCog, ShieldCheck, Building2, Coins, BadgeCheck, Wallet, Smile, MessageSquareWarning, Filter, Gauge, LineChart, Receipt, Activity, BarChart3, GitMerge, FileBarChart2, KeyRound, Percent, Megaphone, HeartPulse, ClipboardCheck, UserCheck } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -78,6 +78,12 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
     label: "Auditoria Interna",
     items: [
       { title: "Auditoria Interna", url: "/auditoria-interna", icon: ClipboardCheck, permission: "view.auditoria_interna" },
+    ],
+  },
+  {
+    label: "CS",
+    items: [
+      { title: "Painel de CS", url: "/painel-cs", icon: UserCheck, permission: "view.painel_cs" },
     ],
   },
   {
