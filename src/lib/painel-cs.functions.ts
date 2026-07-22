@@ -29,6 +29,19 @@ function faseOrdem(nome: string | null | undefined): number {
   return idx === -1 ? 999 : idx;
 }
 
+// Campo "Unidade" vem do Start Form como "Planning <Unidade>" (ex: "Planning
+// Fortaleza") — normaliza pro nome canônico usado no resto do app
+// (FRANQUIA_UNIDADES em src/lib/franquias.ts). "Sudeste" é o rename conhecido
+// pra Rio de Janeiro nesse pipe (ver project_pipedrive_pipefy_onboarding_sync).
+function canonicalUnidade(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const base = raw.trim().replace(/^planning\s+/i, "").trim();
+  if (!base) return null;
+  if (base.toLowerCase() === "sudeste") return "Rio de Janeiro";
+  if (base.toLowerCase() === "campo novo do parecis") return "Campo Novo";
+  return base;
+}
+
 const CARDS_QUERY = `
   query($pipeId: ID!, $after: String) {
     allCards(pipeId: $pipeId, first: 30, after: $after) {
@@ -42,6 +55,7 @@ const CARDS_QUERY = `
           done
           current_phase { name }
           phases_history { phase { name } firstTimeIn lastTimeOut }
+          fields { field { id } value }
         }
       }
     }
@@ -85,6 +99,8 @@ function mapCard(card: any) {
   }));
   const atual = history[history.length - 1];
   const faseAtual: string | null = card.current_phase?.name ?? null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fieldMap = new Map<string, string>((card.fields ?? []).map((f: any) => [f.field.id, f.value]));
   return {
     pipefy_card_id: String(card.id),
     titulo: card.title ?? null,
@@ -93,6 +109,7 @@ function mapCard(card: any) {
     entrou_fase_atual_em: atual?.entrou_em ?? null,
     criado_em: card.createdAt ?? null,
     concluido: !!card.done,
+    unidade: canonicalUnidade(fieldMap.get("unidade_1")),
     fases_history: history,
     update_time: card.updated_at ?? null,
     synced_at: new Date().toISOString(),

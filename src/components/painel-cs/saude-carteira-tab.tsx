@@ -1,6 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { HeartPulse, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -26,10 +25,6 @@ import type { SaudeClienteRow, CategoriaFinanceira, Semaforo } from "@/lib/saude
 import { usePermissions, unitMatches } from "@/hooks/use-permissions";
 
 const ALL = "__all__";
-
-export const Route = createFileRoute("/_authenticated/saude-carteira")({
-  component: SaudeCarteiraPage,
-});
 
 // razao_social às vezes vem de um enriquecimento de CNPJ que grava placeholders
 // em vez de deixar nulo quando não encontra a razão social oficial (mesmo
@@ -66,6 +61,11 @@ const SEMAFORO_META: Record<Semaforo, { label: string; badge: string; dot: strin
     badge: "bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-950/50 dark:text-red-200",
     dot: "bg-red-500",
   },
+  sem_medicao: {
+    label: "Sem medição",
+    badge: "bg-slate-100 text-slate-700 hover:bg-slate-100 dark:bg-slate-800/60 dark:text-slate-300",
+    dot: "bg-slate-400",
+  },
 };
 
 function semaforoBadge(s: Semaforo | null) {
@@ -78,7 +78,7 @@ function fmtBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 }
 
-function SaudeCarteiraPage() {
+export function SaudeCarteiraTab() {
   const { data, isLoading, error } = useSaudeCarteira();
   const perms = usePermissions();
 
@@ -119,26 +119,28 @@ function SaudeCarteiraPage() {
     const saudavel = ativos.filter((r) => r.semaforo === "saudavel").length;
     const atencao = ativos.filter((r) => r.semaforo === "atencao").length;
     const risco = ativos.filter((r) => r.semaforo === "risco").length;
+    const semMedicao = ativos.filter((r) => r.semaforo === "sem_medicao").length;
     const mrrEmRisco = ativos
       .filter((r) => r.semaforo === "risco" || r.semaforo === "atencao")
       .reduce((acc, r) => acc + r.mrr_ativo, 0);
     const valorTotalEmAtraso = ativos.reduce((acc, r) => acc + r.valor_em_atraso, 0);
-    return { total: ativos.length, saudavel, atencao, risco, mrrEmRisco, valorTotalEmAtraso };
+    return { total: ativos.length, saudavel, atencao, risco, semMedicao, mrrEmRisco, valorTotalEmAtraso };
   }, [ativos]);
 
   const porUnidade = useMemo(() => {
-    const map = new Map<string, { saudavel: number; atencao: number; risco: number; mrrRisco: number }>();
+    const map = new Map<string, { saudavel: number; atencao: number; risco: number; semMedicao: number; mrrRisco: number }>();
     for (const r of ativos) {
       const u = r.unidade ?? "—";
-      const cur = map.get(u) ?? { saudavel: 0, atencao: 0, risco: 0, mrrRisco: 0 };
+      const cur = map.get(u) ?? { saudavel: 0, atencao: 0, risco: 0, semMedicao: 0, mrrRisco: 0 };
       if (r.semaforo === "saudavel") cur.saudavel += 1;
       else if (r.semaforo === "atencao") cur.atencao += 1;
       else if (r.semaforo === "risco") cur.risco += 1;
+      else if (r.semaforo === "sem_medicao") cur.semMedicao += 1;
       if (r.semaforo === "risco" || r.semaforo === "atencao") cur.mrrRisco += r.mrr_ativo;
       map.set(u, cur);
     }
     return Array.from(map.entries())
-      .map(([unidade, v]) => ({ unidade, ...v, total: v.saudavel + v.atencao + v.risco }))
+      .map(([unidade, v]) => ({ unidade, ...v, total: v.saudavel + v.atencao + v.risco + v.semMedicao }))
       .sort((a, b) => b.risco - a.risco || b.atencao - a.atencao);
   }, [ativos]);
 
@@ -150,19 +152,9 @@ function SaudeCarteiraPage() {
   };
 
   return (
-    <div className="space-y-4 p-4 md:p-6">
-      <header className="flex items-center gap-3">
-        <HeartPulse className="h-6 w-6 text-primary" />
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Saúde da Carteira</h1>
-          <p className="text-sm text-muted-foreground">
-            Pilar financeiro do Customer Health Score — inadimplência, tratativas ativas e MRR em risco.
-          </p>
-        </div>
-      </header>
-
+    <div className="space-y-4">
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         <Card className="p-4">
           <div className="text-xs text-muted-foreground">Carteira ativa</div>
           <div className="mt-1 text-2xl font-semibold">{kpis.total}</div>
@@ -178,6 +170,10 @@ function SaudeCarteiraPage() {
         <Card className="p-4">
           <div className="text-xs text-muted-foreground">Risco</div>
           <div className="mt-1 text-2xl font-semibold text-red-600">{kpis.risco}</div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-xs text-muted-foreground">Sem medição</div>
+          <div className="mt-1 text-2xl font-semibold text-slate-500">{kpis.semMedicao}</div>
         </Card>
         <Card className="p-4">
           <div className="text-xs text-muted-foreground">MRR em atenção/risco</div>
@@ -204,6 +200,7 @@ function SaudeCarteiraPage() {
                   <TableHead className="text-right">Saudável</TableHead>
                   <TableHead className="text-right">Atenção</TableHead>
                   <TableHead className="text-right">Risco</TableHead>
+                  <TableHead className="text-right">Sem medição</TableHead>
                   <TableHead className="text-right">MRR em atenção/risco</TableHead>
                 </TableRow>
               </TableHeader>
@@ -214,12 +211,13 @@ function SaudeCarteiraPage() {
                     <TableCell className="text-right text-emerald-600">{u.saudavel}</TableCell>
                     <TableCell className="text-right text-amber-600">{u.atencao}</TableCell>
                     <TableCell className="text-right text-red-600">{u.risco}</TableCell>
+                    <TableCell className="text-right text-slate-500">{u.semMedicao}</TableCell>
                     <TableCell className="text-right">{fmtBRL(u.mrrRisco)}</TableCell>
                   </TableRow>
                 ))}
                 {porUnidade.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="py-6 text-center text-muted-foreground">
                       Sem dados no filtro atual.
                     </TableCell>
                   </TableRow>
@@ -255,6 +253,7 @@ function SaudeCarteiraPage() {
                   <SelectItem value="saudavel">Saudável</SelectItem>
                   <SelectItem value="atencao">Atenção</SelectItem>
                   <SelectItem value="risco">Risco</SelectItem>
+                  <SelectItem value="sem_medicao">Sem medição</SelectItem>
                 </SelectContent>
               </Select>
               {hasFilters && (

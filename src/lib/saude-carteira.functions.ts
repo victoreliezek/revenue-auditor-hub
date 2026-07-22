@@ -25,7 +25,7 @@ export type CategoriaFinanceira =
   | "NUNCA_PAGOU"
   | "SEM_AR";
 
-export type Semaforo = "saudavel" | "atencao" | "risco";
+export type Semaforo = "saudavel" | "atencao" | "risco" | "sem_medicao";
 
 export interface SaudeClienteRow {
   id: number;
@@ -60,9 +60,13 @@ function classificarSemaforo(cat: CategoriaFinanceira): Semaforo {
     case "INADIMPLENTE":
     case "NUNCA_PAGOU":
       return "risco";
+    // SEM_AR = nenhum título encontrado no Omie pra esse CNPJ — não é possível
+    // medir saúde financeira (não é o mesmo que "saudável"), então fica fora
+    // das estatísticas de saudável/atenção/risco em vez de cair no default.
+    case "SEM_AR":
+      return "sem_medicao";
     case "EM_ATRASO":
     case "SEM_ATIVIDADE":
-    case "SEM_AR":
     default:
       return "atencao";
   }

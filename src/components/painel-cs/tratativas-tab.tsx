@@ -1,8 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { MessageSquareWarning, RefreshCw, Search } from "lucide-react";
+import { RefreshCw, Search } from "lucide-react";
 import { toast } from "sonner";
 import { syncTratativas } from "@/lib/tratativas.functions";
 import {
@@ -42,10 +41,6 @@ import { usePermissions, unitMatches } from "@/hooks/use-permissions";
 import { isFranquiaUnidade } from "@/lib/franquias";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/tratativas")({
-  component: TratativasPage,
-});
-
 type Tratativa = {
   id: number;
   titulo: string | null;
@@ -84,7 +79,7 @@ function statusBadge(status: string | null) {
   return <Badge variant="outline">{status ?? NA}</Badge>;
 }
 
-function TratativasPage() {
+export function TratativasTab() {
   const perms = usePermissions();
   const [rows, setRows] = useState<Tratativa[]>([]);
   const [ganhoEmPorDealId, setGanhoEmPorDealId] = useState<Map<string, string>>(new Map());
@@ -292,17 +287,8 @@ function TratativasPage() {
   );
 
   return (
-    <div className="space-y-4 p-4 md:p-6">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <MessageSquareWarning className="h-6 w-6 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold">Tratativas</h1>
-            <p className="text-sm text-muted-foreground">
-              Análise gerencial de churn, recuperações e tratativas em aberto
-            </p>
-          </div>
-        </div>
+    <div className="space-y-4">
+      <div className="flex justify-end">
         <Button
           variant="outline"
           size="sm"

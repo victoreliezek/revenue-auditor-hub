@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { TrendingUp, TrendingDown, Users, UserCog, ShieldCheck, Building2, Coins, BadgeCheck, Wallet, Smile, MessageSquareWarning, Filter, Gauge, LineChart, Receipt, Activity, BarChart3, GitMerge, FileBarChart2, KeyRound, Percent, Megaphone, HeartPulse, ClipboardCheck, UserCheck } from "lucide-react";
+import { TrendingUp, TrendingDown, Users, UserCog, ShieldCheck, Building2, Coins, BadgeCheck, Wallet, Filter, Gauge, LineChart, Receipt, Activity, BarChart3, GitMerge, FileBarChart2, KeyRound, Percent, Megaphone, ClipboardCheck, UserCheck } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -31,9 +31,6 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
     label: "Operação",
     items: [
       { title: "Clientes", url: "/clientes", icon: Building2, permission: "view.clientes" },
-      { title: "NPS", url: "/nps", icon: Smile, permission: "view.nps" },
-      { title: "Tratativas", url: "/tratativas", icon: MessageSquareWarning, permission: "view.tratativas" },
-      { title: "Saúde da Carteira", url: "/saude-carteira", icon: HeartPulse, permission: "view.saude_carteira" },
     ],
   },
   {
@@ -83,7 +80,7 @@ const DEFAULT_GROUPS: { label: string; items: Item[] }[] = [
   {
     label: "CS",
     items: [
-      { title: "Painel de CS", url: "/painel-cs", icon: UserCheck, permission: "view.painel_cs" },
+      { title: "CS", url: "/painel-cs", icon: UserCheck, permission: "view.painel_cs" },
     ],
   },
   {
@@ -104,9 +101,7 @@ const SOCIO_FRANQUEADO_GROUPS: { label: string; items: Item[] }[] = [
     items: [
       { title: "Painel", url: "/painel-unidade", icon: Gauge },
       { title: "Clientes", url: "/clientes", icon: Building2 },
-      { title: "NPS", url: "/nps", icon: Smile },
-      { title: "Tratativas", url: "/tratativas", icon: MessageSquareWarning },
-      { title: "Saúde da Carteira", url: "/saude-carteira", icon: HeartPulse },
+      { title: "CS", url: "/painel-cs", icon: UserCheck },
     ],
   },
   {

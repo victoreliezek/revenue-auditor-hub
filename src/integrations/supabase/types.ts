@@ -374,6 +374,7 @@ export type Database = {
           pipefy_card_id: string
           synced_at: string
           titulo: string | null
+          unidade: string | null
           update_time: string | null
         }
         Insert: {
@@ -386,6 +387,7 @@ export type Database = {
           pipefy_card_id: string
           synced_at?: string
           titulo?: string | null
+          unidade?: string | null
           update_time?: string | null
         }
         Update: {
@@ -398,6 +400,7 @@ export type Database = {
           pipefy_card_id?: string
           synced_at?: string
           titulo?: string | null
+          unidade?: string | null
           update_time?: string | null
         }
         Relationships: []

@@ -5,12 +5,10 @@ export const PAGE_DEFS: { key: string; label: string }[] = [
   { key: "/operacao", label: "Operação" },
   { key: "/contas-receber", label: "Contas a Receber" },
   { key: "/funil-receita", label: "Funil de Receita (+ Auditorias)" },
-  { key: "/tratativas", label: "Tratativas" },
-  
   { key: "/unidades", label: "Unidades (Regras + Royalties & CAC)" },
   { key: "/meus-royalties", label: "Meus Royalties (Sócio Franqueado)" },
   { key: "/financeiro-partners", label: "Financeiro Partners (FCx · DRE · Receitas · Despesas)" },
-  { key: "/nps", label: "NPS" },
+  { key: "/painel-cs", label: "CS (Onboarding, Saúde da Carteira, Tratativas, NPS)" },
   { key: "/admin/usuarios", label: "Admin · Usuários" },
   { key: "/admin/permissoes", label: "Admin · Permissões" },
   { key: "/admin/validacao", label: "Admin · Validação de Páginas" },

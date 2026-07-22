@@ -1,6 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Smile, Search, X, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Search, X, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -36,16 +35,11 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useNps, } from "@/hooks/use-nps";
+import { useNps } from "@/hooks/use-nps";
 import type { NpsRow } from "@/lib/nps.functions";
-import { usePermissions, unitMatches } from "@/hooks/use-permissions";
 import { isFranquiaUnidade } from "@/lib/franquias";
 
 const ALL = "__all__";
-
-export const Route = createFileRoute("/_authenticated/nps")({
-  component: NpsPage,
-});
 
 type Categoria = "promotor" | "neutro" | "detrator" | null;
 
@@ -82,7 +76,7 @@ function fmtDate(d: string | null) {
   return dt.toLocaleDateString("pt-BR");
 }
 
-function NpsPage() {
+export function NpsTab() {
   const { data, isLoading, error } = useNps();
   const rows = useMemo(
     () => (data?.rows ?? []).filter((r) => isFranquiaUnidade(r.unidade ?? r.empresa_unidade)),
@@ -258,17 +252,7 @@ function NpsPage() {
   const ClassIcon = classification.icon;
 
   return (
-    <div className="space-y-4 p-4 md:p-6">
-      <header className="flex items-center gap-3">
-        <Smile className="h-6 w-6 text-primary" />
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">NPS — Visão Gerencial</h1>
-          <p className="text-sm text-muted-foreground">
-            Pesquisas de satisfação e percepção fiscal da rede.
-          </p>
-        </div>
-      </header>
-
+    <div className="space-y-4">
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
         <Card className="p-4">
